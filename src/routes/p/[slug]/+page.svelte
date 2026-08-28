@@ -2,10 +2,8 @@
 	import { page } from '$app/state';
 	import { mockStates, makers, reviews, type StateType } from '$lib/data/mockStates';
 	import StateCard from '$lib/components/video/StateCard.svelte';
-	import FilterChips from '$lib/components/video/FilterChips.svelte';
-	import ScreenshotGallery from '$lib/components/product/ScreenshotGallery.svelte';
 	import ReviewsSection from '$lib/components/product/ReviewsSection.svelte';
-	import { Verified, Globe } from 'reicon-svelte';
+	import { Verified, Globe, FileText, AlertTriangle, Star, ArrowUp } from 'reicon-svelte';
 
 	let slug = $derived(page.params.slug);
 	let active: StateType | 'all' = $state('all');
@@ -15,7 +13,6 @@
 	let productStates = $derived(mockStates.filter((s) => s.product.slug === slug));
 	let displayStates = $derived(productStates.length ? productStates : mockStates.slice(0, 4));
 	let product = $derived(displayStates[0]?.product ?? { name: slug, slug, avatar: '', verified: false });
-	let screenshots = $derived(displayStates[0]?.screenshots ?? []);
 	let maker = $derived(makers.find((m) => m.handle === displayStates[0]?.maker.handle));
 	let filtered = $derived(displayStates.filter((s) => (active === 'all' ? true : s.type === active)));
 
@@ -119,16 +116,14 @@
 		</div>
 	</header>
 
-	<!-- ─── Screenshots ─── -->
-	{#if screenshots.length > 0}
-		<div class="pb-5">
-			<ScreenshotGallery {screenshots} name={product.name} />
-		</div>
-	{/if}
-
 	<!-- ─── Tabs ─── -->
 	<nav class="flex items-center gap-1 overflow-x-auto scrollbar-none pb-3" role="tablist">
-		{#each [{ id: 'updates', label: 'Updates', count: filtered.length }, { id: 'changelog', label: 'Changelog' }, { id: 'incidents', label: 'Incidents' }, { id: 'reviews', label: 'Reviews' }] as t}
+		{#each [
+			{ id: 'updates', label: 'Updates', count: filtered.length },
+			{ id: 'changelog', label: 'Changelog', count: filtered.filter((s) => s.type === 'changelog' || s.type === 'launch').length },
+			{ id: 'incidents', label: 'Incidents', count: filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length },
+			{ id: 'reviews', label: 'Reviews' }
+		] as t}
 			<button
 				onclick={() => { tab = t.id as typeof tab; active = 'all'; }}
 				role="tab"
@@ -147,13 +142,7 @@
 				{/if}
 			</button>
 		{/each}
-		<div class="ml-auto hidden md:flex items-center gap-1.5">
-			<FilterChips active={active} onSelect={(v) => (active = v)} />
-		</div>
 	</nav>
-	<div class="md:hidden pb-2">
-		<FilterChips active={active} onSelect={(v) => (active = v)} />
-	</div>
 
 	<!-- ─── Tab content ─── -->
 	{#if tab === 'updates'}
@@ -164,9 +153,12 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="py-16 flex flex-col items-center text-center">
-				<p class="text-sm text-[var(--pc-text-muted)] opacity-40">No updates yet</p>
-				<p class="mt-1 text-[11px] text-[var(--pc-text-faint)] opacity-30">Follow to get notified.</p>
+			<div class="py-16 flex flex-col items-center text-center pc-enter">
+				<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
+					<ArrowUp size={16} weight="Outline" class="opacity-30" />
+				</div>
+				<p class="mt-3 text-sm font-medium">No updates yet</p>
+				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">Follow this product to get notified when they post.</p>
 			</div>
 		{/if}
 
@@ -208,9 +200,12 @@
 				</a>
 			{/each}
 			{#if filtered.filter((s) => s.type === 'changelog' || s.type === 'launch').length === 0}
-				<div class="py-12 flex flex-col items-center text-center">
-					<p class="text-sm text-[var(--pc-text-muted)] opacity-40">No changelogs</p>
-					<p class="mt-1 text-[11px] text-[var(--pc-text-faint)] opacity-30">Appear when this product ships updates.</p>
+				<div class="py-16 flex flex-col items-center text-center pc-enter">
+					<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
+						<FileText size={16} weight="Outline" class="opacity-30" />
+					</div>
+					<p class="mt-3 text-sm font-medium">No changelogs</p>
+					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">Changelogs appear when this product ships updates.</p>
 				</div>
 			{/if}
 		</div>
@@ -237,9 +232,12 @@
 				</div>
 			{/each}
 			{#if filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length === 0}
-				<div class="py-12 flex flex-col items-center text-center">
-					<p class="text-sm text-[var(--pc-text-muted)] opacity-40">No incidents</p>
-					<p class="mt-1 text-[11px] text-[var(--pc-text-faint)] opacity-30">Clean track record.</p>
+				<div class="py-16 flex flex-col items-center text-center pc-enter">
+					<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
+						<AlertTriangle size={16} weight="Outline" class="opacity-30" />
+					</div>
+					<p class="mt-3 text-sm font-medium">No incidents</p>
+					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">This product has a clean track record.</p>
 				</div>
 			{/if}
 		</div>

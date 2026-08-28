@@ -100,17 +100,6 @@
 			<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[10px] font-700 text-white">3</span>
 		</button>
 
-		<a
-			href="/you"
-			aria-label="Profile"
-			class="ml-1 size-8 rounded-full overflow-hidden"
-		>
-			<img
-				src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"
-				alt="avatar"
-				class="size-full object-cover"
-			/>
-		</a>
 	</div>
 	</div>
 </header>

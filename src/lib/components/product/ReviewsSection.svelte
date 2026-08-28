@@ -57,9 +57,11 @@
 		</div>
 	</div>
 {:else}
-	<div class="p-6 rounded-[10px] bg-[var(--pc-surface-2)] flex flex-col items-center text-center">
-		<MessageDots size={24} weight="Outline" class="mx-auto text-[var(--pc-text-faint)]" />
-		<p class="mt-3 text-sm font-600 text-[var(--pc-text-muted)]">No reviews yet</p>
-		<p class="mt-1 text-xs text-[var(--pc-text-faint)]">Try this product and share what you think.</p>
+	<div class="py-16 flex flex-col items-center text-center pc-enter">
+		<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
+			<MessageDots size={16} weight="Outline" class="opacity-30" />
+		</div>
+		<p class="mt-3 text-sm font-medium">No reviews yet</p>
+		<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">Try this product and share what you think.</p>
 	</div>
 {/if}
