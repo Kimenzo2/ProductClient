@@ -24,11 +24,11 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<link rel="apple-touch-icon" href={favicon} />
-	<title>Product Client — YouTube for products, focus over noise</title>
-	<meta name="description" content="Follow makers, not algorithms. Subscribe to products for launches, changelogs, incidents and events — focus, not doom-scroll." />
+	<title>Product Client — Follow products, not algorithms</title>
+	<meta name="description" content="Follow products, not algorithms. Get launches, changelogs, incidents and events — focus, not feed noise." />
 	<meta name="theme-color" content="#0d0d0d" />
 	<meta property="og:title" content="Product Client" />
-	<meta property="og:description" content="YouTube for products — subscribe to builders for every State." />
+	<meta property="og:description" content="Product Client — follow products for every State update." />
 	<meta property="og:type" content="website" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />

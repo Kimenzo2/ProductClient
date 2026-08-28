@@ -15,7 +15,7 @@
 </script>
 
 <header
-	class="sticky top-0 z-40 border-b border-[var(--pc-border)] bg-[var(--pc-surface)]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[var(--pc-surface)]/80"
+	class="sticky top-0 z-40 bg-[var(--pc-bg)]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[var(--pc-bg)]/80"
 >
 	<div class="mx-auto max-w-[1440px] flex h-[var(--pc-header-h)] items-center gap-3 md:gap-4 px-3 md:px-4 w-full">
 		<!-- Left: menu + logo -->
@@ -29,22 +29,15 @@
 				<Menu size={20} weight="Outline" />
 			</button>
 
-			<a href="/" class="flex items-center gap-2.5">
-				<span class="grid size-8 place-items-center rounded-[9px] bg-[var(--pc-accent)] text-white shadow-[var(--pc-shadow-card)]">
-					<Rocket size={16} weight="Outline" color="white" />
-				</span>
-				<span class="hidden sm:block leading-none">
-					<span class="text-[15px] font-800 tracking-tight text-[var(--pc-text)]">Product Client</span>
-					<span class="block text-[10px] font-600 tracking-[0.12em] uppercase text-[var(--pc-text-faint)]">Build • Ship • Focus</span>
-				</span>
-				<span class="sm:hidden text-[15px] font-800 tracking-tight text-[var(--pc-text)]">PC</span>
+			<a href="/" class="grid size-8 place-items-center rounded-[10px] bg-[var(--pc-accent)] text-white" aria-label="Home">
+				<Rocket size={16} weight="Outline" color="white" />
 			</a>
 		</div>
 
 		<!-- Center: search -->
 		<div class="hidden md:flex flex-1 justify-center px-4">
 			<div class="flex w-full max-w-[480px] items-center gap-2">
-				<label class="flex flex-1 items-center gap-2 rounded-full border border-[var(--pc-border)] bg-[var(--pc-bg)] px-3.5 py-2 text-sm focus-within:border-[var(--pc-border-strong)] focus-within:bg-[var(--pc-surface)] transition-colors shadow-sm">
+				<label class="flex flex-1 items-center gap-2 rounded-full bg-[var(--pc-surface-2)] px-3.5 py-2 text-sm focus-within:bg-[var(--pc-surface)] transition-colors">
 					<Search size={16} weight="Outline" />
 					<input
 						bind:value={search}
@@ -54,8 +47,7 @@
 						placeholder="Search products, makers..."
 						class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)]"
 						aria-label="Search"
-					/>
-					<span class="hidden xl:inline-flex items-center gap-1 rounded-full bg-[var(--pc-surface-2)] border border-[var(--pc-border)] px-2 py-0.5 text-[10px] font-600 text-[var(--pc-text-muted)]">⌘K</span>
+					/>						<span class="hidden xl:inline-flex items-center gap-1 rounded-full bg-[var(--pc-surface)] px-2 py-0.5 text-[10px] font-600 text-[var(--pc-text-muted)]">⌘K</span>
 				</label>
 			</div>
 		</div>
@@ -73,7 +65,7 @@
 
 		<a
 			href="/studio"
-			class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--pc-accent)] hover:bg-[var(--pc-accent-hover)] px-4 py-2 text-sm font-700 text-white shadow-sm transition-colors"
+			class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--pc-accent)] hover:bg-[var(--pc-accent-hover)] px-4 py-2 text-sm font-medium text-white transition-colors"
 		>
 			<Add size={16} weight="Outline" />
 			<span class="hidden lg:inline">Launch</span>
@@ -111,7 +103,7 @@
 		<a
 			href="/you"
 			aria-label="Profile"
-			class="ml-1 size-8 rounded-full overflow-hidden ring-1 ring-[var(--pc-border)] hover:ring-[var(--pc-border-strong)] transition"
+			class="ml-1 size-8 rounded-full overflow-hidden"
 		>
 			<img
 				src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"

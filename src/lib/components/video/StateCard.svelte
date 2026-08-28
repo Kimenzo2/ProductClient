@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MockState } from '$lib/data/mockStates';
-	import { Play, Verified, MoreH } from 'reicon-svelte';
+	import { Verified, MoreH } from 'reicon-svelte';
 
 	let { item }: { item: MockState } = $props();
 
@@ -15,14 +15,14 @@
 	let meta = $derived(typeMeta[item.type] ?? typeMeta.launch);
 </script>
 
-<div class="group flex flex-col gap-3 pc-enter" style="will-change: transform;">
+<div class="group flex flex-col gap-2.5 pc-enter">
 	<div class="pc-bezel p-1.5">
-		<a href="/watch/{item.id}" class="pc-bezel-inner relative aspect-video overflow-hidden block">
+		<a href="/update/{item.id}" class="pc-bezel-inner relative aspect-[4/3] overflow-hidden block">
 		<img
 			src={item.thumbnail}
 			alt={item.title}
 			loading="lazy"
-			class="h-full w-full object-cover transition-[transform,filter] duration-300 group-hover:scale-[1.03] group-hover:brightness-[1.02]"
+			class="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-[1.04]"
 		/>
 		<span
 			class="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-700 tracking-wide uppercase text-white shadow"
@@ -33,15 +33,7 @@
 		<span
 			class="absolute bottom-2 right-2 rounded-[6px] bg-black/80 px-1.5 py-1 text-[11px] font-600 leading-none text-white backdrop-blur"
 		>
-			{item.duration}
-		</span>
-		<!-- play hover -->
-		<span
-			class="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] bg-black/10"
-		>
-			<span class="grid size-12 place-items-center rounded-full bg-white/90 text-black shadow-xl backdrop-blur will-change-transform group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
-				<Play size={20} weight="Outline" color="black" />
-			</span>
+			{item.readTime}
 		</span>
 		</a>
 	</div>
@@ -51,23 +43,23 @@
 			<img src={item.product.avatar} alt={item.product.name} class="size-9 rounded-full object-cover mt-0.5 ring-1 ring-[var(--pc-border)]" />
 		</a>
 		<div class="min-w-0 flex-1">
-			<a href="/watch/{item.id}" class="block">
-				<h3 class="line-clamp-2 text-[15px] font-600 leading-[1.35] group-hover:text-[var(--blue-7)] transition-colors">
+			<a href="/update/{item.id}" class="block">
+				<h3 class="line-clamp-2 text-sm font-600 leading-[1.35] group-hover:text-[var(--blue-7)] transition-colors">
 					{item.title}
 				</h3>
 			</a>
-			<a
-				href="/p/{item.product.slug}"
-				class="mt-1 flex items-center gap-1 text-sm text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]"
-			>
-				{item.product.name}
-				{#if item.product.verified}
-					<Verified size={14} weight="Outline" color="var(--blue-6)" />
-				{/if}
-			</a>
-			<p class="text-[13px] leading-4 text-[var(--pc-text-faint)]">
-				{item.views} views • {item.postedAt}
-			</p>
+		<a
+			href="/p/{item.product.slug}"
+			class="mt-1 flex items-center gap-1 text-sm text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]"
+		>
+			{item.product.name}
+			{#if item.product.verified}
+				<Verified size={14} weight="Outline" color="var(--blue-6)" />
+			{/if}
+		</a>
+		<a href="/m/{item.maker.handle}" class="text-sm leading-4 text-[var(--pc-text-faint)] hover:text-[var(--pc-text-muted)]">
+			by {item.maker.name} • {item.reads} reads • {item.postedAt}
+		</a>
 		</div>
 		<button
 			aria-label="More"

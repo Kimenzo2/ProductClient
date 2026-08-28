@@ -13,6 +13,6 @@ export default defineConfig({
 	preflights: [],
 	shortcuts: {
 		'pc-chip':
-			'px-3 py-1.5 rounded-full text-sm font-500 bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-border)] transition-colors cursor-pointer border border-transparent data-[active=true]:bg-[var(--pc-text)] data-[active=true]:text-[var(--pc-bg)] data-[active=true]:border-[var(--pc-text)]'
+			'inline-flex items-center justify-center h-9 px-3 rounded-lg text-[13px] font-normal cursor-pointer transition-[background-color,color] duration-150 bg-[var(--tab-bg)] text-[var(--tab-color)] hover:bg-[var(--tab-hover-bg)] hover:text-[var(--tab-hover-color)] data-[active=true]:bg-[var(--tab-active-bg)] data-[active=true]:text-[var(--tab-active-color)] data-[active=true]:shadow-[var(--tab-active-shadow)]'
 	}
 });

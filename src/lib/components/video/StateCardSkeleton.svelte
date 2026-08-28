@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-3">
 	<div class="pc-bezel p-1.5">
-		<div class="pc-bezel-inner aspect-video overflow-hidden bg-[var(--pc-surface-2)]">
+		<div class="pc-bezel-inner aspect-[4/3] overflow-hidden bg-[var(--pc-surface-2)]">
 			<div class="skeleton h-full w-full"></div>
 		</div>
 	</div>
