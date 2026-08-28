@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { toggleMode, mode } from 'mode-watcher';
-	import { Menu, Play, Search, CloseCircle, Mic, Add, Sun, Moon, Bell } from 'reicon-svelte';
+	import { Menu, Search, Add, Sun, Moon, Bell, Rocket } from 'reicon-svelte';
 
 	let {
-		sidebarCollapsed = false,
 		onToggleSidebar,
 		onSearch
 	}: {
@@ -16,89 +15,74 @@
 </script>
 
 <header
-	class="sticky top-0 z-40 flex h-[var(--pc-header-h)] items-center gap-4 border-b border-[var(--pc-border)] bg-[var(--pc-surface)] px-3 md:px-4"
+	class="sticky top-0 z-40 border-b border-[var(--pc-border)] bg-[var(--pc-surface)]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[var(--pc-surface)]/80"
 >
-	<!-- Left -->
-	<div class="flex items-center gap-2 md:gap-3">
+	<div class="mx-auto max-w-[1440px] flex h-[var(--pc-header-h)] items-center gap-3 md:gap-4 px-3 md:px-4 w-full">
+		<!-- Left: menu + logo -->
+		<div class="flex items-center gap-2 md:gap-3 shrink-0">
+			<button
+				aria-label="Toggle navigation"
+				aria-expanded="false"
+				onclick={onToggleSidebar}
+				class="grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors duration-200 lg:hidden"
+			>
+				<Menu size={20} weight="Outline" />
+			</button>
+
+			<a href="/" class="flex items-center gap-2.5">
+				<span class="grid size-8 place-items-center rounded-[9px] bg-[var(--pc-accent)] text-white shadow-[var(--pc-shadow-card)]">
+					<Rocket size={16} weight="Outline" color="white" />
+				</span>
+				<span class="hidden sm:block leading-none">
+					<span class="text-[15px] font-800 tracking-tight text-[var(--pc-text)]">Product Client</span>
+					<span class="block text-[10px] font-600 tracking-[0.12em] uppercase text-[var(--pc-text-faint)]">Build • Ship • Focus</span>
+				</span>
+				<span class="sm:hidden text-[15px] font-800 tracking-tight text-[var(--pc-text)]">PC</span>
+			</a>
+		</div>
+
+		<!-- Center: search -->
+		<div class="hidden md:flex flex-1 justify-center px-4">
+			<div class="flex w-full max-w-[480px] items-center gap-2">
+				<label class="flex flex-1 items-center gap-2 rounded-full border border-[var(--pc-border)] bg-[var(--pc-bg)] px-3.5 py-2 text-sm focus-within:border-[var(--pc-border-strong)] focus-within:bg-[var(--pc-surface)] transition-colors shadow-sm">
+					<Search size={16} weight="Outline" />
+					<input
+						bind:value={search}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') onSearch?.(search);
+						}}
+						placeholder="Search products, makers..."
+						class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)]"
+						aria-label="Search"
+					/>
+					<span class="hidden xl:inline-flex items-center gap-1 rounded-full bg-[var(--pc-surface-2)] border border-[var(--pc-border)] px-2 py-0.5 text-[10px] font-600 text-[var(--pc-text-muted)]">⌘K</span>
+				</label>
+			</div>
+		</div>
+
+	<!-- Right: actions –  open-source, launch -->
+	<div class="flex items-center gap-1 md:gap-2 ml-auto">
+		<!-- mobile search icon -->
 		<button
-			aria-label="Toggle sidebar"
-			onclick={onToggleSidebar}
-			class="grid size-10 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
+			aria-label="Search"
+			class="grid md:hidden size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)]"
+			onclick={() => onSearch?.(search)}
 		>
-			<Menu size={20} weight="Outline" />
+			<Search size={18} weight="Outline" />
 		</button>
 
-		<a href="/" class="flex items-center gap-2.5">
-			<span
-				class="grid size-8 place-items-center rounded-[8px] bg-[var(--pc-accent)] text-white shadow-[var(--pc-shadow-card)]"
-			>
-				<Play size={16} weight="Outline" color="white" />
-			</span>
-			<span class="hidden sm:block">
-				<span class="text-[15px] font-700 tracking-tight leading-none">Product Client</span>
-				<span class="block text-[10px] font-600 tracking-[0.12em] uppercase text-[var(--pc-text-faint)] leading-none">BUILD • SHIP • FOCUS</span
-				>
-			</span>
-			<span class="sm:hidden text-[15px] font-800 tracking-tight">PC</span>
-		</a>
-	</div>
-
-	<!-- Center – Search -->
-	<div class="flex flex-1 justify-center px-2 md:px-8">
-		<div class="flex w-full max-w-[640px] items-center">
-			<div
-				class="flex flex-1 items-center gap-2 rounded-full border border-[var(--pc-border)] bg-[var(--pc-bg)] px-3 py-1.5 focus-within:border-[var(--pc-border-strong)] focus-within:bg-[var(--pc-surface)] transition-colors shadow-sm"
-			>
-				<input
-					bind:value={search}
-					onkeydown={(e) => {
-						if (e.key === 'Enter') onSearch?.(search);
-					}}
-					placeholder="Search products, makers, launches..."
-					class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)] py-1"
-				/>
-				{#if search}
-					<button
-						onclick={() => {
-							search = '';
-							onSearch?.('');
-						}}
-						class="grid size-6 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]"
-						aria-label="Clear"
-					>
-						<CloseCircle size={14} weight="Outline" />
-					</button>
-				{/if}
-			</div>
-			<button
-				onclick={() => onSearch?.(search)}
-				aria-label="Search"
-				class="ml-2 grid size-9 md:size-10 place-items-center rounded-full bg-[var(--pc-surface-2)] hover:bg-[var(--pc-border)] border border-[var(--pc-border)] transition-colors"
-			>
-				<Search size={18} weight="Outline" />
-			</button>
-			<button
-				aria-label="Voice search"
-				class="ml-2 hidden md:grid size-10 place-items-center rounded-full bg-[var(--pc-surface-2)] hover:bg-[var(--pc-border)] transition-colors"
-			>
-				<Mic size={18} weight="Outline" />
-			</button>
-		</div>
-	</div>
-
-	<!-- Right -->
-	<div class="flex items-center gap-1 md:gap-2">
 		<a
 			href="/studio"
-			class="hidden md:inline-flex items-center gap-2 rounded-full bg-[var(--pc-surface-2)] hover:bg-[var(--pc-border)] px-4 py-2 text-sm font-600 transition-colors border border-[var(--pc-border)]"
+			class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--pc-accent)] hover:bg-[var(--pc-accent-hover)] px-4 py-2 text-sm font-700 text-white shadow-sm transition-colors"
 		>
 			<Add size={16} weight="Outline" />
-			Create
+			<span class="hidden lg:inline">Launch</span>
+			<span class="lg:hidden">Launch</span>
 		</a>
 		<a
 			href="/studio"
-			aria-label="Create"
-			class="grid md:hidden size-9 place-items-center rounded-full bg-[var(--pc-surface-2)] border border-[var(--pc-border)]"
+			aria-label="Launch"
+			class="grid sm:hidden size-9 place-items-center rounded-full bg-[var(--pc-accent)] text-white"
 		>
 			<Add size={16} weight="Outline" />
 		</a>
@@ -106,7 +90,7 @@
 		<button
 			onclick={toggleMode}
 			aria-label="Toggle theme"
-			class="grid size-9 md:size-10 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
+			class="grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
 			title="Toggle theme"
 		>
 			{#if mode.current === 'dark'}
@@ -118,22 +102,24 @@
 
 		<button
 			aria-label="Notifications"
-			class="relative grid size-9 md:size-10 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
+			class="relative grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
 		>
 			<Bell size={18} weight="Outline" />
 			<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[10px] font-700 text-white">3</span>
 		</button>
 
-		<button
+		<a
+			href="/you"
 			aria-label="Profile"
-			class="ml-1 size-8 md:size-8 rounded-full overflow-hidden ring-2 ring-[var(--pc-border)] hover:ring-[var(--pc-border-strong)] transition"
+			class="ml-1 size-8 rounded-full overflow-hidden ring-1 ring-[var(--pc-border)] hover:ring-[var(--pc-border-strong)] transition"
 		>
 			<img
 				src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop"
 				alt="avatar"
 				class="size-full object-cover"
 			/>
-		</button>
+		</a>
+	</div>
 	</div>
 </header>
 

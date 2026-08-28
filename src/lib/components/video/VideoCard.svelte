@@ -15,8 +15,9 @@
 	let meta = $derived(typeMeta[item.type] ?? typeMeta.launch);
 </script>
 
-<div class="group flex flex-col gap-3">
-	<a href="/watch/{item.id}" class="relative aspect-video overflow-hidden rounded-[12px] bg-[var(--pc-surface-2)] shadow-[var(--pc-shadow-card)] border border-[var(--pc-border)] block">
+<div class="group flex flex-col gap-3 pc-enter" style="will-change: transform;">
+	<div class="pc-bezel p-1.5">
+		<a href="/watch/{item.id}" class="pc-bezel-inner relative aspect-video overflow-hidden block">
 		<img
 			src={item.thumbnail}
 			alt={item.title}
@@ -36,13 +37,14 @@
 		</span>
 		<!-- play hover -->
 		<span
-			class="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10"
+			class="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] bg-black/10"
 		>
-			<span class="grid size-12 place-items-center rounded-full bg-white/90 text-black shadow-lg backdrop-blur">
+			<span class="grid size-12 place-items-center rounded-full bg-white/90 text-black shadow-xl backdrop-blur will-change-transform group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
 				<Play size={20} weight="Outline" color="black" />
 			</span>
 		</span>
-	</a>
+		</a>
+	</div>
 
 	<div class="flex gap-3">
 		<a href="/p/{item.product.slug}" class="shrink-0">

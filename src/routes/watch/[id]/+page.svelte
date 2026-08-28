@@ -21,20 +21,22 @@
 	<title>{data.title} — Product Client</title>
 </svelte:head>
 
-<div class="mx-auto max-w-[1920px] px-3 md:px-4 py-4 md:py-6">
+<div class="w-full px-3 md:px-4 py-4 md:py-6">
 	<div class="grid grid-cols-1 lg:grid-cols-[1fr_402px] gap-6">
 		<!-- Left – Watch -->
-		<div class="min-w-0">
-			<!-- Player -->
-			<div class="relative aspect-video w-full overflow-hidden rounded-[12px] bg-black shadow-[var(--pc-shadow-card)]">
-				<img src={data.thumbnail} alt={data.title} class="h-full w-full object-cover" />
-				<button aria-label="Play" class="absolute inset-0 grid place-items-center bg-black/5 hover:bg-black/10 transition">
-					<span class="grid size-16 place-items-center rounded-full bg-white text-black shadow-xl">
-						<Play size={24} weight="Outline" color="black" />
-					</span>
-				</button>
-				<span class="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-700 tracking-wide uppercase text-white">Now playing • {data.type}</span>
-				<span class="pointer-events-none absolute bottom-3 right-3 rounded-[6px] bg-black/80 px-2 py-1 text-xs font-600 text-white">{data.duration}</span>
+		<div class="min-w-0 pc-enter">
+			<!-- Player – double-bezel -->
+			<div class="pc-bezel p-1.5">
+				<div class="pc-bezel-inner relative aspect-video w-full overflow-hidden bg-black">
+					<img src={data.thumbnail} alt={data.title} class="h-full w-full object-cover" />
+					<button aria-label="Play" class="absolute inset-0 grid place-items-center bg-black/5 hover:bg-black/10 transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group">
+						<span class="grid size-16 place-items-center rounded-full bg-white text-black shadow-xl group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]">
+							<Play size={24} weight="Outline" color="black" />
+						</span>
+					</button>
+					<span class="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-700 tracking-wide uppercase text-white backdrop-blur">Now playing • {data.type}</span>
+					<span class="pointer-events-none absolute bottom-3 right-3 rounded-[6px] bg-black/80 px-2 py-1 text-xs font-600 text-white backdrop-blur">{data.duration}</span>
+				</div>
 			</div>
 
 			<!-- Title -->
@@ -86,8 +88,9 @@
 				</div>
 			</div>
 
-			<!-- Description / Changelog -->
-			<div class="mt-4 rounded-[12px] bg-[var(--pc-surface-2)] p-4">
+			<!-- Description / Changelog – double-bezel -->
+			<div class="mt-4 pc-bezel p-1.5">
+				<div class="pc-bezel-inner bg-[var(--pc-surface-2)] p-4">
 				<div class="flex items-center gap-3 text-sm">
 					<span class="font-700">{data.views} views</span>
 					<span class="text-[var(--pc-text-muted)]">{data.postedAt}</span>
@@ -121,6 +124,7 @@
 
 Links: github.com • docs • status</pre>
 				</details>
+				</div>
 			</div>
 
 			<!-- Feedback thread -->

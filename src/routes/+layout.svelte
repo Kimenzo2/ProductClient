@@ -23,6 +23,13 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<link rel="apple-touch-icon" href={favicon} />
+	<title>Product Client — YouTube for products, focus over noise</title>
+	<meta name="description" content="Follow makers, not algorithms. Subscribe to products for launches, changelogs, incidents and events — focus, not doom-scroll." />
+	<meta name="theme-color" content="#0d0d0d" />
+	<meta property="og:title" content="Product Client" />
+	<meta property="og:description" content="YouTube for products — subscribe to builders for every State." />
+	<meta property="og:type" content="website" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -31,11 +38,19 @@
 
 <ModeWatcher defaultMode="dark" darkClassNames={['dark']} lightClassNames={['light']} disableTransitions={false} />
 
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--pc-text)] focus:text-[var(--pc-bg)] focus:px-5 focus:py-2 focus:text-sm focus:font-700">Skip to content</a>
+
 <Header sidebarCollapsed={collapsed} onToggleSidebar={toggleSidebar} onSearch={(q) => (searchQuery = q)} />
 
-<div class="flex">
+<div class="mx-auto max-w-[1440px] w-full flex pc-orbs pc-grain">
 	<Sidebar collapsed={collapsed} open={mobileOpen} onClose={() => (mobileOpen = false)} />
-	<main class="min-w-0 flex-1 bg-[var(--pc-bg)]">
+	<main id="main" class="min-w-0 flex-1 bg-[var(--pc-bg)] min-h-[calc(100dvh-var(--pc-header-h))]">
 		{@render children()}
 	</main>
 </div>
+
+<style>
+	:global(.sr-only) {
+		position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+	}
+</style>

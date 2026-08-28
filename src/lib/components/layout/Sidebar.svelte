@@ -1,156 +1,72 @@
 <script lang="ts">
-	import { Home, Video, Compass, Bell, Box, Heart, History, Inbox, ArrowDown, CloseCircle, Menu, Play } from 'reicon-svelte';
+	import { page } from '$app/state';
+	import { Compass, Heart, Rocket, Search, Bell, CloseCircle, Play } from 'reicon-svelte';
 
 	let {
-		collapsed = false,
 		open = false,
 		onClose
 	}: { collapsed?: boolean; open?: boolean; onClose?: () => void } = $props();
 
-	const main = [
-		{ label: 'Home', icon: 'home', href: '/', active: true },
-		{ label: 'Following', icon: 'following', href: '/following', active: false },
-		{ label: 'Discover', icon: 'compass', href: '/discover', active: false },
-		{ label: 'Notifications', icon: 'bell', href: '/notifications', active: false, badge: '3' }
+	let path = $derived(page.url.pathname);
+
+	const items = [
+		{ label: 'Discover', href: '/', icon: Compass, desc: 'All launches' },
+		{ label: 'Following', href: '/following', icon: Heart, desc: 'Subscribed' },
+		{ label: 'Launchpad', href: '/launchpad', icon: Rocket, desc: 'Weekly' },
+		{ label: 'Search', href: '/search', icon: Search, desc: 'Find' }
 	];
 
-	const library = [
-		{ label: 'Your products', icon: 'box', href: '/you' },
-		{ label: 'Liked', icon: 'heart', href: '/liked' },
-		{ label: 'History', icon: 'history', href: '/history' },
-		{ label: 'Feedback inbox', icon: 'inbox', href: '/feedback' }
-	];
-
-	const subs = [
-		{ name: 'OpenAI', avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop', live: true },
-		{ name: 'Linear', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&h=100&fit=crop', live: false },
-		{ name: 'Vercel', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', live: true },
-		{ name: 'Figma', avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop', live: false },
-		{ name: 'Perplexity', avatar: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=100&h=100&fit=crop', live: false },
-		{ name: 'Supabase', avatar: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=100&h=100&fit=crop', live: true }
-	];
+	function isActive(href: string) {
+		if (href === '/') return path === '/';
+		return path.startsWith(href);
+	}
 </script>
 
-{#snippet icon(name: string)}
-	{#if name === 'home'}
-		<Home size={18} weight="Outline" />
-	{:else if name === 'following'}
-		<Video size={18} weight="Outline" />
-	{:else if name === 'compass'}
-		<Compass size={18} weight="Outline" />
-	{:else if name === 'bell'}
-		<Bell size={18} weight="Outline" />
-	{:else if name === 'box'}
-		<Box size={18} weight="Outline" />
-	{:else if name === 'heart'}
-		<Heart size={18} weight="Outline" />
-	{:else if name === 'history'}
-		<History size={18} weight="Outline" />
-	{:else if name === 'inbox'}
-		<Inbox size={18} weight="Outline" />
-	{/if}
-{/snippet}
-
+<!-- Desktop rail – 72px, minimal -->
 <aside
-	class={[
-		'hidden lg:flex flex-col border-r border-[var(--pc-border)] bg-[var(--pc-surface)] overflow-y-auto sticky top-[var(--pc-header-h)] h-[calc(100vh-var(--pc-header-h))] overscroll-contain',
-		collapsed ? 'w-[72px] px-2 py-3' : 'w-[240px] px-3 py-3'
-	].join(' ')}
+	class="hidden lg:flex flex-col items-center gap-1 border-r border-[var(--pc-border)] bg-[var(--pc-surface)] sticky top-[var(--pc-header-h)] h-[calc(100dvh-var(--pc-header-h))] w-[72px] py-3 shrink-0"
+	aria-label="Primary navigation"
 >
-	{#if !collapsed}
-		<nav class="space-y-1">
-			{#each main as it}
-				<a
-					href={it.href}
-					class={[
-						'flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors',
-						it.active ? 'bg-[var(--pc-surface-2)] font-600' : 'hover:bg-[var(--pc-surface-2)]'
-					].join(' ')}
-				>
-					{@render icon(it.icon)}
-					<span class="flex-1">{it.label}</span>
-					{#if it.badge}<span class="rounded-full bg-[var(--pc-accent)] px-1.5 py-0.5 text-[10px] font-700 text-white">{it.badge}</span>{/if}
-				</a>
-			{/each}
-		</nav>
+	<nav class="flex flex-col items-center gap-1 w-full px-1.5">
+		{#each items as it}
+			{@const Icon = it.icon}
+			<a
+				href={it.href}
+				aria-current={isActive(it.href) ? 'page' : undefined}
+				aria-label={it.label}
+				title="{it.label} — {it.desc}"
+				class={[
+					'flex flex-col items-center gap-1 rounded-[12px] px-1.5 py-2.5 text-[10px] font-600 leading-none w-full border transition-colors duration-150 text-center',
+					isActive(it.href)
+						? 'bg-[var(--pc-text)] text-[var(--pc-bg)] border-[var(--pc-text)] shadow-sm'
+						: 'bg-transparent text-[var(--pc-text-muted)] border-transparent hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]'
+				].join(' ')}
+			>
+				<Icon size={18} weight="Outline" />
+				<span class="tracking-wide truncate w-full">{it.label}</span>
+			</a>
+		{/each}
+	</nav>
 
-		<div class="my-3 h-px bg-[var(--pc-border)]"></div>
-
-		<nav class="space-y-1">
-			<p class="px-3 py-1 text-[11px] font-700 tracking-[0.08em] uppercase text-[var(--pc-text-muted)]">Library</p>
-			{#each library as it}
-				<a href={it.href} class="flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm hover:bg-[var(--pc-surface-2)] transition-colors">
-					{@render icon(it.icon)}
-					{it.label}
-				</a>
-			{/each}
-		</nav>
-
-		<div class="my-3 h-px bg-[var(--pc-border)]"></div>
-
-		<div>
-			<p class="px-3 py-1 text-[11px] font-700 tracking-[0.08em] uppercase text-[var(--pc-text-muted)]">Subscriptions</p>
-			<div class="mt-1 space-y-0.5">
-				{#each subs as s}
-					<a href="/p/{s.name.toLowerCase()}" class="flex items-center gap-3 rounded-[10px] px-2 py-1.5 hover:bg-[var(--pc-surface-2)] transition-colors">
-						<span class="relative">
-							<img src={s.avatar} alt={s.name} class="size-6 rounded-full object-cover" />
-							{#if s.live}<span class="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-[var(--pc-accent)] ring-2 ring-[var(--pc-surface)]"></span>{/if}
-						</span>
-						<span class="text-sm truncate flex-1">{s.name}</span>
-						{#if s.live}<span class="size-1.5 rounded-full bg-[var(--pc-accent)] animate-pulse"></span>{/if}
-					</a>
-				{/each}
-				<a href="/subscriptions" class="flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm hover:bg-[var(--pc-surface-2)]">
-					<ArrowDown size={16} weight="Outline" />
-					Show 42 more
-				</a>
-			</div>
-		</div>
-
-		<div class="my-3 h-px bg-[var(--pc-border)]"></div>
-		<div class="px-3 py-2 text-[11px] leading-4 text-[var(--pc-text-faint)]">
-			<div class="flex flex-wrap gap-x-3 gap-y-1 font-600">
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">About</a>
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">Press</a>
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">Copyright</a>
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">Contact</a>
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">Terms</a>
-				<a href="/" class="hover:text-[var(--pc-text-muted)]">Privacy</a>
-			</div>
-			<p class="mt-3">© 2026 Product Client</p>
-		</div>
-	{:else}
-		<!-- collapsed -->
-		<nav class="flex flex-col items-center gap-1">
-			{#each main as it}
-				<a
-					href={it.href}
-					class={[
-						'flex flex-col items-center gap-1 rounded-[10px] px-2 py-3 text-[10px] leading-none w-full',
-						it.active ? 'bg-[var(--pc-surface-2)] font-600' : 'hover:bg-[var(--pc-surface-2)]'
-					].join(' ')}
-				>
-					{@render icon(it.icon)}
-					{it.label}
-				</a>
-			{/each}
-			<div class="my-2 h-px w-full bg-[var(--pc-border)]"></div>
-			{#each subs.slice(0, 6) as s}
-				<a href="/p/{s.name.toLowerCase()}" class="flex flex-col items-center gap-1 py-2">
-					<span class="relative"><img src={s.avatar} alt={s.name} class="size-7 rounded-full object-cover" /></span>
-					<span class="text-[10px] truncate max-w-[60px]">{s.name}</span>
-				</a>
-			{/each}
-		</nav>
-	{/if}
+	<div class="mt-auto flex flex-col items-center gap-2 w-full px-2 pb-2">
+		<a
+			href="/notifications"
+			aria-label="Notifications"
+			class="relative grid size-9 place-items-center rounded-full border border-[var(--pc-border)] bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:text-[var(--pc-text)] hover:border-[var(--pc-border-strong)] transition-colors"
+		>
+			<Bell size={18} weight="Outline" />
+			<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[10px] font-700 text-white">3</span>
+		</a>
+		<a href="/you" class="size-8 rounded-full overflow-hidden ring-1 ring-[var(--pc-border)] hover:ring-[var(--pc-border-strong)] transition" aria-label="Profile">
+			<img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="avatar" class="size-full object-cover" />
+		</a>
+	</div>
 </aside>
 
-<!-- Mobile drawer -->
+<!-- Mobile drawer – full nav -->
 {#if open}
-	<!-- backdrop -->
 	<button
-		aria-label="Close sidebar"
+		aria-label="Close navigation"
 		onclick={onClose}
 		class="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
 	></button>
@@ -160,33 +76,40 @@
 		<div class="flex h-[var(--pc-header-h)] items-center gap-3 border-b border-[var(--pc-border)] px-3">
 			<button
 				onclick={onClose}
-				class="grid size-10 place-items-center rounded-full hover:bg-[var(--pc-surface-2)]"
+				class="grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)]"
 				aria-label="Close"
 			>
 				<CloseCircle size={20} weight="Outline" />
 			</button>
 			<span class="flex items-center gap-2">
-				<span class="grid size-8 place-items-center rounded-[8px] bg-[var(--pc-accent)] text-white"><Play size={16} weight="Outline" color="white" /></span>
+				<span class="grid size-8 place-items-center rounded-[9px] bg-[var(--pc-accent)] text-white"><Play size={16} weight="Outline" color="white" /></span>
 				<span class="text-sm font-800">Product Client</span>
 			</span>
 		</div>
 		<nav class="p-3 space-y-1">
-			{#each main as it}
-				<a href={it.href} onclick={onClose} class={['flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm', it.active ? 'bg-[var(--pc-surface-2)] font-600' : 'hover:bg-[var(--pc-surface-2)]'].join(' ')}>
-					{@render icon(it.icon)}{it.label}
+			{#each items as it}
+				{@const MIcon = it.icon}
+				<a
+					href={it.href}
+					onclick={onClose}
+					class={[
+						'flex items-center gap-3 rounded-[12px] px-3 py-3 text-sm border',
+						isActive(it.href) ? 'bg-[var(--pc-text)] text-[var(--pc-bg)] border-[var(--pc-text)] font-600' : 'border-transparent hover:bg-[var(--pc-surface-2)]'
+					].join(' ')}
+				>
+					<MIcon size={18} weight="Outline" />
+					<span class="flex-1">{it.label}</span>
+					<span class="text-xs text-[var(--pc-text-faint)]">{it.desc}</span>
 				</a>
 			{/each}
 		</nav>
 		<div class="mx-3 h-px bg-[var(--pc-border)]"></div>
-		<div class="p-3">
-			<p class="px-3 py-1 text-[11px] font-700 tracking-widest uppercase text-[var(--pc-text-muted)]">Subscriptions</p>
-			{#each subs as s}
-				<a href="/p/{s.name.toLowerCase()}" onclick={onClose} class="flex items-center gap-3 rounded-[10px] px-2 py-2 hover:bg-[var(--pc-surface-2)]">
-					<img src={s.avatar} alt={s.name} class="size-7 rounded-full object-cover" />
-					<span class="text-sm flex-1">{s.name}</span>
-					{#if s.live}<span class="size-2 rounded-full bg-[var(--pc-accent)]"></span>{/if}
-				</a>
-			{/each}
+		<div class="p-3 space-y-2">
+			<p class="px-3 text-[11px] font-700 tracking-widest uppercase text-[var(--pc-text-muted)]">This week</p>
+			<div class="rounded-[12px] border border-[var(--pc-border)] bg-[var(--pc-surface-2)] p-3">
+				<p class="text-xs font-700">33 launches • 256 upvotes</p>
+				<p class="text-xs text-[var(--pc-text-muted)]"> Week 35 — live now</p>
+			</div>
 		</div>
 	</aside>
 {/if}
