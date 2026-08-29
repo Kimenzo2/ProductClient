@@ -235,7 +235,7 @@
 
 				<div class="mt-6 p-3 rounded-[14px] bg-[var(--pc-surface)] text-left">
 					<p class="text-xs font-medium uppercase tracking-wide text-[var(--pc-text-faint)] opacity-65">Embed badge for your site</p>
-					<pre class="mt-2 text-xs leading-4 text-[var(--pc-text-muted)] break-all whitespace-pre-wrap overflow-hidden">{`<iframe src="/badge/${createdSlug}" width="300" height="65" frameborder="0" style="border:none;border-radius:12px;overflow:hidden;"></iframe>`}</pre>
+					<pre class="mt-2 text-xs leading-4 text-[var(--pc-text-muted)] break-all whitespace-pre-wrap overflow-hidden">{`<iframe src="/badge/${createdSlug}" width="300" height="65" frameborder="0" sandbox="allow-scripts" style="border:none;border-radius:12px;overflow:hidden;"></iframe>`}</pre>
 				</div>
 
 				<div class="mt-6 flex flex-col gap-2">

@@ -61,7 +61,7 @@
 				<div class="mb-6">
 					<h2 class="text-[11px] font-medium uppercase tracking-wider text-[var(--pc-text-faint)] mb-2">Products</h2>
 					<div class="space-y-1.5">
-						{#each results.products as p}
+						{#each results.products as p (p.slug)}
 							<a href="/p/{p.slug}" class="flex items-center gap-3 p-3 rounded-[14px] bg-[var(--pc-surface-2)] transition-[background-color] group">
 								<img src={p.avatar} alt={p.name} class="size-10 rounded-[10px] object-cover" />
 								<div class="min-w-0 flex-1">
@@ -82,7 +82,7 @@
 				<div class="mb-6">
 					<h2 class="text-[11px] font-medium uppercase tracking-wider text-[var(--pc-text-faint)] mb-2">Makers</h2>
 					<div class="space-y-1.5">
-						{#each results.makers as m}
+						{#each results.makers as m (m.handle)}
 							<a href="/m/{m.handle}" class="flex items-center gap-3 p-3 rounded-[14px] bg-[var(--pc-surface-2)] transition-[background-color] group">
 								<img src={m.avatar} alt={m.name} class="size-10 rounded-full object-cover" />
 								<div class="min-w-0 flex-1">
@@ -103,7 +103,7 @@
 				<div>
 					<h2 class="text-[11px] font-medium uppercase tracking-wider text-[var(--pc-text-faint)] mb-2">Launches</h2>
 					<div class="space-y-1.5">
-						{#each results.launches as item}
+						{#each results.launches as item (item.id)}
 							<a href="/update/{item.id}" class="flex gap-3 p-3 rounded-[14px] bg-[var(--pc-surface-2)] transition-[background-color] group">
 								<img src={item.thumbnail} alt="" class="hidden md:block w-[80px] aspect-[4/3] rounded-[10px] object-cover shrink-0" role="presentation" />
 								<div class="min-w-0 flex-1">

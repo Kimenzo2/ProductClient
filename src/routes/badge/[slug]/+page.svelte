@@ -10,7 +10,7 @@
 	let copied = $state(false);
 
 	let embedCode = $derived(
-		`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/badge/${slug}" width="300" height="65" frameborder="0" style="border:none;border-radius:12px;overflow:hidden;"></iframe>`
+		`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}/badge/${slug}" width="300" height="65" frameborder="0" sandbox="allow-scripts" style="border:none;border-radius:12px;overflow:hidden;"></iframe>`
 	);
 
 	function copyEmbed() {

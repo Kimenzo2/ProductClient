@@ -69,7 +69,7 @@
 				onclick={() => selectedCategory = cat ?? 'all'}
 				class={[
 					'h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 cursor-pointer',
-					selectedCategory === cat
+					$state.snapshot(selectedCategory) === $state.snapshot(cat)
 						? 'bg-[var(--tab-active-bg)] text-[var(--tab-active-color)] shadow-[var(--tab-active-shadow)]'
 						: 'bg-[var(--tab-bg)] text-[var(--tab-color)] hover:bg-[var(--tab-hover-bg)] hover:text-[var(--tab-hover-color)]'
 				].join(' ')}

@@ -36,7 +36,28 @@ This file is read by future AI agents working in `C:\Users\admin\Downloads\Produ
 - Workspace: `C:\Users\admin\Downloads\ProductClient`
 - Dev URL: `http://localhost:3000` (Vite server.port 3000). Do not change port.
 
-## 6) Verification checklist before finishing any task
+## 6) Writing issues for the svelte-5-doctor tool
+
+The user runs `svelte-5-doctor` against ProductClient frequently. When a bug is found, write the issue for the tool's maintainer using this format:
+
+- **No project-specific framing.** Don't mention ProductClient, the user's app name, or their specific routes. Describe the issue as a global Svelte problem that would affect any project using the tool.
+- **Plain explanation, not a report.** Write like you're explaining something to a colleague — not like you're filing a Jira ticket. No severity labels, no priority numbers, no bullet-point severity matrices.
+- **Structure:**
+  1. One sentence stating what the tool does wrong.
+  2. Why it's wrong — what Svelte rule or behavior it violates.
+  3. A broken example (what the tool produces).
+  4. What it should do instead.
+  5. The root cause — what the tool's logic is missing.
+- **Tone:** Direct, specific, no flattery or padding. Just the problem and the fix.
+- **Example style:**
+  > The tool adds hardcoded `href="#"` to `<a>` tags when fixing unused CSS selectors. This creates a duplicate attribute error because the element already has a dynamic `href` binding. A pre-check for existing `href` bindings would prevent this.
+
+Known issues found so far:
+1. **`$state()` generic syntax** — tool changes `$state<Type>(val)` to `$state()<Type>(val)` which Svelte 5 rejects. Correct: `$state<Type>(val)`.
+2. **Keyed each blocks on non-id objects** — tool adds `(item.id)` to `{#each}` blocks but many arrays don't have `id`. Tool should introspect the element type first. Static const arrays don't need keyed blocks at all.
+3. **Duplicate `href="#"` injection** — tool adds `href="#"` to `<a>` tags that already have dynamic `href` bindings, causing `attribute_duplicate` errors.
+
+## 7) Verification checklist before finishing any task
 - [ ] `rg -n "<svg" src` → empty
 - [ ] All new icons import from `reicon-svelte` with `weight="Outline"`
 - [ ] `bun run check` → 0 errors, `bun run build` → success

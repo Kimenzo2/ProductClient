@@ -56,7 +56,7 @@
 
 {#if href}
 	<a
-		{href}
+		href={href}
 		class={classes}
 		{onclick}
 		rel={isExternal ? 'noopener noreferrer' : undefined}

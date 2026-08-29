@@ -226,8 +226,6 @@
 </div>
 
 <style>
-	.scrollbar-none { scrollbar-width: none; }
-	.scrollbar-none::-webkit-scrollbar { display: none; }
 	.line-clamp-2 {
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
