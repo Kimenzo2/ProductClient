@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { mockStates } from '$lib/data/mockStates';
 	import { Verified } from 'reicon-svelte';
+	import { Tabs } from 'bits-ui';
 
 	type Period = 'day' | 'week' | 'month' | 'year';
 	let period = $state<Period>('week');
@@ -39,29 +40,22 @@
 	<!-- Header -->
 	<header class="pt-10 pb-5 max-sm:pt-8 max-sm:pb-4">
 		<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Leaderboard</h1>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-40">Rolling rankings — votes count at any time.</p>
+		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Rolling rankings — votes count at any time.</p>
 	</header>
 
 	<!-- Period tabs -->
-	<div class="flex items-center gap-1 pb-4">
-		{#each (['day', 'week', 'month', 'year'] as Period[]) as p}
-			<button
-				onclick={() => (period = p)}
-				class={[
-					'h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150',
-					period === p
-						? 'bg-[var(--tab-active-bg)] text-[var(--tab-active-color)] shadow-[var(--tab-active-shadow)]'
-						: 'bg-[var(--tab-bg)] text-[var(--tab-color)] hover:bg-[var(--tab-hover-bg)] hover:text-[var(--tab-hover-color)]'
-				].join(' ')}
-			>
-				{p.charAt(0).toUpperCase() + p.slice(1)}
-			</button>
-		{/each}
-	</div>
+	<Tabs.Root value={period} onValueChange={(v) => { if (v) period = v as Period; }} class="pb-4">
+		<Tabs.List class="flex items-center gap-1">
+			<Tabs.Trigger value="day" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">Day</Tabs.Trigger>
+			<Tabs.Trigger value="week" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">Week</Tabs.Trigger>
+			<Tabs.Trigger value="month" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">Month</Tabs.Trigger>
+			<Tabs.Trigger value="year" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">Year</Tabs.Trigger>
+		</Tabs.List>
+	</Tabs.Root>
 
 	<!-- Leaderboard list -->
 	<div class="space-y-2">
-		{#each rankedProducts as product, i}
+		{#each rankedProducts as product, i (product.slug)}
 			{@const rank = i + 1}
 			<a
 				href="/p/{product.slug}"
@@ -71,9 +65,9 @@
 				<div class="hidden sm:flex flex-col items-center justify-center min-w-[36px] text-center">
 					{#if rank <= 3}
 						<span class="text-[18px]" title="{podiumLabel[rank]}">{podiumEmoji[rank]}</span>
-						<span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--pc-text-faint)] opacity-40">{podiumLabel[rank]}</span>
+						<span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--pc-text-faint)] opacity-65">{podiumLabel[rank]}</span>
 					{:else}
-						<span class="text-[11px] font-medium text-[var(--pc-text-faint)] opacity-30">#{rank}</span>
+						<span class="text-[11px] font-medium text-[var(--pc-text-faint)] opacity-55">#{rank}</span>
 					{/if}
 				</div>
 
@@ -93,13 +87,13 @@
 							<Verified size={12} weight="Outline" color="var(--color-blue-600)" />
 						{/if}
 					</div>
-					<p class="text-[11px] text-[var(--pc-text-muted)] opacity-40 mt-0.5 truncate">{product.category}</p>
+					<p class="text-[11px] text-[var(--pc-text-muted)] opacity-65 mt-0.5 truncate">{product.category}</p>
 				</div>
 
 				<!-- Score -->
 				<div class="text-right shrink-0">
 					<p class="text-[13px] font-medium">{formatScore(product.score)}</p>
-					<p class="text-[10px] text-[var(--pc-text-faint)] opacity-30">
+					<p class="text-[10px] text-[var(--pc-text-faint)] opacity-55">
 						{period === 'day' ? 'today' : period === 'week' ? 'this week' : period === 'month' ? 'this month' : 'this year'}
 					</p>
 				</div>
@@ -108,7 +102,7 @@
 	</div>
 
 	<!-- Footer -->
-	<p class="mt-6 text-center text-[11px] text-[var(--pc-text-faint)] opacity-30">
+	<p class="mt-6 text-center text-[11px] text-[var(--pc-text-faint)] opacity-55">
 		Rankings update continuously as votes come in.
 	</p>
 </div>

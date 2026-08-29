@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Review } from '$lib/data/mockStates';
 	import { Star, Verified, MessageDots } from 'reicon-svelte';
+	import { Avatar, Card } from '$lib/components/ui';
 
 	let { reviews = [], productSlug = '' }: { reviews: Review[]; productSlug?: string } = $props();
 
@@ -27,20 +28,20 @@
 				{/each}
 				<span class="ml-1.5 text-sm font-medium">{avgStars.toFixed(1)}</span>
 			</div>
-			<span class="text-xs text-[var(--pc-text-muted)]">{productReviews.length} review{productReviews.length !== 1 ? 's' : ''}</span>
+			<span class="text-xs text-[var(--pc-text-muted)] opacity-65">{productReviews.length} review{productReviews.length !== 1 ? 's' : ''}</span>
 		</div>
 
 		<!-- Reviews list -->
 		<div class="space-y-3">
 			{#each productReviews as review (review.id)}
-				<div class="p-3 rounded-[10px] bg-[var(--pc-surface-2)]">
+				<Card padding="md">
 					<div class="flex items-start gap-3">
-						<img src={review.avatar} alt={review.user} class="size-8 rounded-full object-cover shrink-0" />
+						<Avatar src={review.avatar} alt={review.user} size="md" />
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
 								<span class="text-sm font-medium">{review.user}</span>
 								{#if review.verified}
-									<Verified size={12} weight="Outline" color="var(--blue-6)" />
+									<Verified size={12} weight="Outline" color="var(--color-blue-600)" />
 								{/if}
 								<span class="text-xs text-[var(--pc-text-faint)]">• {review.postedAt}</span>
 							</div>
@@ -52,16 +53,16 @@
 							<p class="mt-1.5 text-sm text-[var(--pc-text-muted)] leading-relaxed">{review.text}</p>
 						</div>
 					</div>
-				</div>
+				</Card>
 			{/each}
 		</div>
 	</div>
 {:else}
 	<div class="py-16 flex flex-col items-center text-center pc-enter">
 		<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-			<MessageDots size={16} weight="Outline" class="opacity-30" />
+			<MessageDots size={16} weight="Outline" class="opacity-65" />
 		</div>
 		<p class="mt-3 text-sm font-medium">No reviews yet</p>
-		<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">Try this product and share what you think.</p>
+		<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Try this product and share what you think.</p>
 	</div>
 {/if}

@@ -2,6 +2,8 @@
 	import { page } from '$app/state';
 	import { makers, mockStates } from '$lib/data/mockStates';
 	import { Verified, Link as LinkIcon, Calendar, Flame, Globe } from 'reicon-svelte';
+	import { Tabs } from 'bits-ui';
+	import { Avatar, Button, Card, Chip, Separator, Toggle } from '$lib/components/ui';
 
 	let handle = $derived(page.params.handle);
 	let maker = $derived(makers.find((m) => m.handle === handle));
@@ -42,12 +44,8 @@
 
 		<!-- ─── Profile header ─── -->
 		<header class="flex items-end gap-4 -mt-8 md:-mt-10 relative z-10 pb-5">
-			<!-- Avatar — 72px, overlaps banner -->
-			<img
-				src={maker.avatar}
-				alt={maker.name}
-				class="size-[72px] md:size-20 rounded-full object-cover bg-[var(--pc-bg)]"
-			/>
+			<!-- Avatar -->
+			<Avatar src={maker.avatar} alt={maker.name} size="xl" class="!size-[72px] md:!size-20 -mt-8 md:-mt-10 relative z-10" />
 
 			<div class="min-w-0 flex-1 pb-1">
 				<!-- Name row -->
@@ -57,22 +55,14 @@
 						<Verified size={16} weight="Outline" color="var(--color-blue-600)" />
 					{/if}
 				</div>
-				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-40">@{maker.handle}</p>
+				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">@{maker.handle}</p>
 			</div>
 
 			<!-- Actions — right-aligned -->
 			<div class="flex items-center gap-2 shrink-0 pb-1">
-				<button
-					onclick={() => (following = !following)}
-					class={[
-						'rounded-full px-4 py-1.5 text-[13px] font-medium transition-[opacity] duration-150',
-						following
-							? 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]'
-							: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-88'
-					].join(' ')}
-				>
+				<Toggle bind:pressed={following} variant="default" size="md">
 					{following ? 'Following' : 'Follow'}
-				</button>
+				</Toggle>
 			</div>
 		</header>
 
@@ -93,7 +83,7 @@
 				</span>
 			{/if}
 			<span class="text-[var(--pc-text-faint)] opacity-20">·</span>
-			<span class="inline-flex items-center gap-1 opacity-35">
+			<span class="inline-flex items-center gap-1 opacity-60">
 				<Calendar size={11} weight="Outline" /> {maker.joinedAt}
 			</span>
 		</div>
@@ -120,30 +110,19 @@
 		{/if}
 
 		<!-- ─── Tabs ─── -->
-		<nav class="flex items-center gap-1 mt-5 pb-3 overflow-x-auto scrollbar-none" role="tablist">
-			{#each [
-				{ id: 'updates', label: 'Updates', count: makerStates.length },
-				{ id: 'products', label: 'Products' },
-				{ id: 'about', label: 'About' }
-			] as t}
-				<button
-					onclick={() => (tab = t.id as typeof tab)}
-					role="tab"
-					aria-selected={tab === t.id}
-					class={[
-						'inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150',
-						tab === t.id
-							? 'bg-[var(--tab-active-bg)] text-[var(--tab-active-color)] shadow-[var(--tab-active-shadow)]'
-							: 'bg-[var(--tab-bg)] text-[var(--tab-color)] hover:bg-[var(--tab-hover-bg)] hover:text-[var(--tab-hover-color)]'
-					].join(' ')}
-				>
-					{t.label}
-					{#if t.count !== undefined}
-						<span class="text-[11px] opacity-40">{t.count}</span>
-					{/if}
-				</button>
-			{/each}
-		</nav>
+		<Tabs.Root value={tab} onValueChange={(v) => { if (v) tab = v as typeof tab; }} class="mt-5 pb-3 overflow-x-auto scrollbar-none">
+			<Tabs.List class="flex items-center gap-1">
+				<Tabs.Trigger value="updates" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
+					Updates <span class="text-[11px] opacity-65">{makerStates.length}</span>
+				</Tabs.Trigger>
+				<Tabs.Trigger value="products" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
+					Products
+				</Tabs.Trigger>
+				<Tabs.Trigger value="about" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
+					About
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
 
 		<!-- ─── Tab content ─── -->
 		{#if tab === 'updates'}
@@ -153,13 +132,13 @@
 						<img src={item.thumbnail} alt="" class="hidden md:block w-[100px] aspect-[4/3] rounded-[10px] object-cover shrink-0" role="presentation" />
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<span class="text-[11px] font-medium uppercase tracking-wide opacity-40" style:color={item.type === 'launch' ? 'var(--color-blue-600)' : undefined}>{item.type}</span>
-								<span class="text-[11px] text-[var(--pc-text-faint)] opacity-25">·</span>
-								<span class="text-[11px] text-[var(--pc-text-faint)] opacity-30">{item.postedAt}</span>
+								<span class="text-[11px] font-medium uppercase tracking-wide opacity-65" style:color={item.type === 'launch' ? 'var(--color-blue-600)' : undefined}>{item.type}</span>
+								<span class="text-[11px] text-[var(--pc-text-faint)] opacity-50">·</span>
+								<span class="text-[11px] text-[var(--pc-text-faint)] opacity-55">{item.postedAt}</span>
 							</div>
 							<h3 class="mt-1 text-[13px] font-medium leading-snug group-hover:text-[var(--pc-text)] transition-colors">{item.title}</h3>
-							<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-40 line-clamp-2">{item.description}</p>
-							<div class="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--pc-text-faint)] opacity-30">
+							<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-65 line-clamp-2">{item.description}</p>
+							<div class="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--pc-text-faint)] opacity-55">
 								<span class="inline-flex items-center gap-1">
 									<img src={item.product.avatar} alt="" class="size-3 rounded-full object-cover" />
 									{item.product.name}
@@ -172,7 +151,7 @@
 				{/each}
 				{#if makerStates.length === 0}
 					<div class="py-16 flex flex-col items-center text-center">
-						<p class="text-sm text-[var(--pc-text-muted)] opacity-40">No updates yet</p>
+						<p class="text-sm text-[var(--pc-text-muted)] opacity-65">No updates yet</p>
 					</div>
 				{/if}
 			</div>
@@ -187,7 +166,7 @@
 								{p.name}
 								{#if p.verified}<Verified size={12} weight="Outline" color="var(--color-blue-600)" />{/if}
 							</p>
-							<p class="text-[11px] text-[var(--pc-text-muted)] opacity-40 truncate">{p.category}</p>
+							<p class="text-[11px] text-[var(--pc-text-muted)] opacity-65 truncate">{p.category}</p>
 						</div>
 					</a>
 				{/each}
@@ -201,19 +180,19 @@
 				</div>
 				<div class="grid grid-cols-2 gap-4 text-[13px]">
 					<div>
-						<p class="text-[var(--pc-text-muted)] opacity-40">Total reads</p>
+						<p class="text-[var(--pc-text-muted)] opacity-65">Total reads</p>
 						<p class="mt-0.5 font-medium">{maker.totalReads}</p>
 					</div>
 					<div>
-						<p class="text-[var(--pc-text-muted)] opacity-40">Products</p>
+						<p class="text-[var(--pc-text-muted)] opacity-65">Products</p>
 						<p class="mt-0.5 font-medium">{maker.products}</p>
 					</div>
 					<div>
-						<p class="text-[var(--pc-text-muted)] opacity-40">Followers</p>
+						<p class="text-[var(--pc-text-muted)] opacity-65">Followers</p>
 						<p class="mt-0.5 font-medium">{formatFollowers(maker.followers)}</p>
 					</div>
 					<div>
-						<p class="text-[var(--pc-text-muted)] opacity-40">Joined</p>
+						<p class="text-[var(--pc-text-muted)] opacity-65">Joined</p>
 						<p class="mt-0.5 font-medium">{maker.joinedAt}</p>
 					</div>
 				</div>
@@ -223,7 +202,7 @@
 {:else}
 	<div class="flex flex-col items-center justify-center py-20 pc-enter">
 		<p class="text-lg font-medium">Maker not found</p>
-		<p class="text-sm text-[var(--pc-text-muted)] opacity-40 mt-1">No maker with handle "{handle}".</p>
+		<p class="text-sm text-[var(--pc-text-muted)] opacity-65 mt-1">No maker with handle "{handle}".</p>
 		<a href="/" class="mt-4 rounded-full bg-[var(--pc-text)] text-[var(--pc-bg)] px-5 py-2 text-[13px] font-medium">Go home</a>
 	</div>
 {/if}
@@ -234,6 +213,7 @@
 	.line-clamp-2 {
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}

@@ -1,25 +1,24 @@
 <script lang="ts">
+	import { ToggleGroup } from 'bits-ui';
 	import { stateTypes, type StateType } from '$lib/data/mockStates';
 
 	let { active = 'all', onSelect }: { active: StateType | 'all'; onSelect: (v: StateType | 'all') => void } = $props();
+
+	const chipClass = 'inline-flex items-center justify-center h-9 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)] data-[state=on]:bg-[var(--tab-active-bg)] data-[state=on]:text-[var(--tab-active-color)] data-[state=on]:shadow-[var(--tab-active-shadow)] data-[state=off]:bg-[var(--tab-bg)] data-[state=off]:text-[var(--tab-color)] data-[state=off]:hover:bg-[var(--tab-hover-bg)] data-[state=off]:hover:text-[var(--tab-hover-color)]';
 </script>
 
-<div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-	{#each stateTypes as t}
-		<button
-			data-active={active === t.value}
-			onclick={() => onSelect(t.value as StateType | 'all')}
-			class={[
-				'inline-flex items-center justify-center h-9 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150',
-				active === t.value
-					? 'bg-[var(--pc-surface-2)] text-[var(--pc-text)] shadow-[0_1px_2px_rgba(0,0,0,0.15)]'
-					: 'bg-transparent text-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text-muted)]'
-			].join(' ')}
-		>
+<ToggleGroup.Root
+	type="single"
+	value={active}
+	onValueChange={(v) => { if (v) onSelect(v as StateType | 'all'); }}
+	class="flex items-center gap-1.5 overflow-x-auto scrollbar-none"
+>
+	{#each stateTypes as t (t.value)}
+		<ToggleGroup.Item value={t.value} class={chipClass}>
 			{t.label}
-		</button>
+		</ToggleGroup.Item>
 	{/each}
-</div>
+</ToggleGroup.Root>
 
 <style>
 	.scrollbar-none {
