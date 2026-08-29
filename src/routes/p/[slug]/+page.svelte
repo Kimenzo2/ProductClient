@@ -3,9 +3,10 @@
 	import { mockStates, makers, reviews, type StateType } from '$lib/data/mockStates';
 	import StateCard from '$lib/components/video/StateCard.svelte';
 	import ReviewsSection from '$lib/components/product/ReviewsSection.svelte';
-	import { Verified, Globe, FileText, AlertTriangle, Star, ArrowUp } from 'reicon-svelte';
+	import { Verified, Globe, FileText, AlertTriangle, Star, ArrowUp, ArrowRight, Map as MapIcon } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
-	import { Avatar, Badge, Button, Card, Chip, Separator, Toggle } from '$lib/components/ui';
+	import { Avatar, Badge, Button, Card, Chip, Separator, StatePanel, Toggle } from '$lib/components/ui';
+	import { publicDocs, publicIncidents, publicProductStories, publicProofs } from '$lib/data/public';
 
 	let slug = $derived(page.params.slug);
 	let active: StateType | 'all' = $state('all');
@@ -13,10 +14,14 @@
 	let following = $state(false);
 
 	let productStates = $derived(mockStates.filter((s) => s.product.slug === slug));
-	let displayStates = $derived(productStates.length ? productStates : mockStates.slice(0, 4));
+	let displayStates = $derived(productStates);
 	let product = $derived(displayStates[0]?.product ?? { name: slug, slug, avatar: '', verified: false });
 	let maker = $derived(makers.find((m) => m.handle === displayStates[0]?.maker.handle));
 	let filtered = $derived(displayStates.filter((s) => (active === 'all' ? true : s.type === active)));
+	let publicDoc = $derived(publicDocs.find((doc) => doc.productSlug === slug));
+	let productIncidents = $derived(publicIncidents.filter((incident) => incident.productSlug === slug));
+	let hasProof = $derived(publicProofs.some((proof) => proof.productSlug === slug));
+	let publicThread = $derived(publicProductStories.find((thread) => thread.productSlug === slug));
 
 	let uniqueProducts = $derived(
 		[...new Map(mockStates.map((s) => [s.product.slug, s.product])).values()]
@@ -41,7 +46,7 @@
 </script>
 
 <svelte:head>
-	<title>{product.name} — Product Client</title>
+	<title>{product.name} | Product Client</title>
 </svelte:head>
 
 <div class="w-full max-w-[883px] mx-auto px-6 max-sm:px-4">
@@ -82,6 +87,8 @@
 					<span class="opacity-50">{formatReads(totalReads)} reads</span>
 					<span class="text-[var(--pc-text-faint)] opacity-20">·</span>
 					<span class="opacity-50">{displayStates.length} updates</span>
+					<span class="text-[var(--pc-text-faint)] opacity-20">·</span>
+					<span class="opacity-50">{productIncidents.length} service problems</span>
 					{#if maker}
 						<span class="text-[var(--pc-text-faint)] opacity-20">·</span>
 						<a href="/m/{maker.handle}" class="inline-flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
@@ -102,10 +109,23 @@
 						</Button>
 					{/if}
 					<Button variant="outline" size="sm" href="/badge/{slug}">Embed badge</Button>
+					<Button variant="outline" size="sm" href="/status/{slug}"><AlertTriangle size={12} weight="Outline" class="opacity-50" /> Status</Button>
+					{#if publicDoc}<Button variant="outline" size="sm" href={publicDoc.publicPath}><FileText size={12} weight="Outline" class="opacity-50" /> Docs</Button>{/if}
+					{#if hasProof}<Button variant="outline" size="sm" href="/wall/{slug}-proof">Customer stories</Button>{/if}
 				</div>
 			</div>
 		</div>
 	</header>
+	{#if productStates.length === 0}
+		<Card padding="md" class="mb-5"><p class="text-sm font-medium">This product has not published an update yet.</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-65">The public page is ready for its first update, help page, and customer story.</p></Card>
+	{/if}
+	{#if publicThread}
+		<section class="mb-5 rounded-[18px] bg-[var(--pc-surface-2)] p-4 ring-1 ring-[var(--pc-border-strong)]/30" aria-labelledby="product-thread-title">
+			<div class="flex flex-wrap items-center gap-2"><Chip size="xs" variant="accent">Product story</Chip><span class="text-[10px] text-[var(--pc-text-faint)]">Updated {publicThread.updatedAt}</span></div>
+			<div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div class="min-w-0"><h2 id="product-thread-title" class="text-[17px] font-medium tracking-tight">Why this work matters</h2><p class="mt-1 max-w-[64ch] text-[13px] leading-relaxed text-[var(--pc-text-muted)] opacity-75">{publicThread.outcome}</p></div><MapIcon size={18} weight="Outline" class="shrink-0 opacity-45" aria-hidden="true" /></div>
+			<div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/25 pt-3">{#if productStates[0]}<a href={`/update/${productStates[0].id}`} class="inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)]">Read the latest update <ArrowRight size={12} weight="Outline" aria-hidden="true" /></a>{/if}<a href="/feedback/new" class="text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]">Share your feedback</a></div>
+		</section>
+	{/if}
 
 	<!-- ─── Tabs ─── -->
 	<Tabs.Root value={tab} onValueChange={(v) => { if (v) { tab = v as typeof tab; active = 'all'; } }} class="overflow-x-auto scrollbar-none pb-3">
@@ -114,10 +134,10 @@
 				Updates <span class="text-[11px] opacity-65">{filtered.length}</span>
 			</Tabs.Trigger>
 			<Tabs.Trigger value="changelog" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
-				Changelog <span class="text-[11px] opacity-65">{filtered.filter((s) => s.type === 'changelog' || s.type === 'launch').length}</span>
+				Change log <span class="text-[11px] opacity-65">{filtered.filter((s) => s.type === 'changelog' || s.type === 'launch').length}</span>
 			</Tabs.Trigger>
 			<Tabs.Trigger value="incidents" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
-				Incidents <span class="text-[11px] opacity-65">{filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length}</span>
+				Service problems <span class="text-[11px] opacity-65">{filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length}</span>
 			</Tabs.Trigger>
 			<Tabs.Trigger value="reviews" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
 				Reviews
@@ -134,13 +154,7 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="py-16 flex flex-col items-center text-center pc-enter">
-				<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-					<ArrowUp size={16} weight="Outline" class="opacity-55" />
-				</div>
-				<p class="mt-3 text-sm font-medium">No updates yet</p>
-				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Follow this product to get notified when they post.</p>
-			</div>
+			<StatePanel icon={ArrowUp} title="No updates yet" description="Follow this product to get notified when they post." actionLabel={following ? 'Following' : 'Follow product'} onAction={() => (following = !following)} class="pc-enter" />
 		{/if}
 
 		<!-- Similar -->
@@ -181,13 +195,7 @@
 				</a>
 			{/each}
 			{#if filtered.filter((s) => s.type === 'changelog' || s.type === 'launch').length === 0}
-				<div class="py-16 flex flex-col items-center text-center pc-enter">
-					<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-						<FileText size={16} weight="Outline" class="opacity-55" />
-					</div>
-					<p class="mt-3 text-sm font-medium">No changelogs</p>
-					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Changelogs appear when this product ships updates.</p>
-				</div>
+				<StatePanel icon={FileText} title="No change log yet" description="Updates will appear here when this product changes." class="pc-enter" />
 			{/if}
 		</div>
 
@@ -213,13 +221,7 @@
 				</div>
 			{/each}
 			{#if filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length === 0}
-				<div class="py-16 flex flex-col items-center text-center pc-enter">
-					<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-						<AlertTriangle size={16} weight="Outline" class="opacity-55" />
-					</div>
-					<p class="mt-3 text-sm font-medium">No incidents</p>
-					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">This product has a clean track record.</p>
-				</div>
+				<StatePanel variant="success" icon={AlertTriangle} title="No service problems" description="This product has a clean track record." class="pc-enter" />
 			{/if}
 		</div>
 	{/if}

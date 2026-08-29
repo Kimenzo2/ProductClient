@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { makers, mockStates } from '$lib/data/mockStates';
-	import { Verified, Link as LinkIcon, Calendar, Flame, Globe } from 'reicon-svelte';
+	import { Verified, Link as LinkIcon, Calendar, Flame, Globe, UserSquare } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
-	import { Avatar, Button, Card, Chip, Separator, Toggle } from '$lib/components/ui';
+	import { Avatar, Button, Card, Chip, Separator, StatePanel, Toggle } from '$lib/components/ui';
 
 	let handle = $derived(page.params.handle);
 	let maker = $derived(makers.find((m) => m.handle === handle));
@@ -149,11 +149,7 @@
 						</div>
 					</a>
 				{/each}
-				{#if makerStates.length === 0}
-					<div class="py-16 flex flex-col items-center text-center">
-						<p class="text-sm text-[var(--pc-text-muted)] opacity-65">No updates yet</p>
-					</div>
-				{/if}
+				{#if makerStates.length === 0}<StatePanel icon={Calendar} title="No updates yet" description="This maker has not published an update yet." />{/if}
 			</div>
 
 		{:else if tab === 'products'}
@@ -200,11 +196,7 @@
 		{/if}
 	</div>
 {:else}
-	<div class="flex flex-col items-center justify-center py-20 pc-enter">
-		<p class="text-lg font-medium">Maker not found</p>
-		<p class="text-sm text-[var(--pc-text-muted)] opacity-65 mt-1">No maker with handle "{handle}".</p>
-		<a href="/" class="mt-4 rounded-full bg-[var(--pc-text)] text-[var(--pc-bg)] px-5 py-2 text-[13px] font-medium">Go home</a>
-	</div>
+	<StatePanel size="page" icon={UserSquare} title="Maker not found" description={`There is no maker with the name “${handle}”.`} actionLabel="Go home" actionHref="/" class="pc-enter" />
 {/if}
 
 <style>

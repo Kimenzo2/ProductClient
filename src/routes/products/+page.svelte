@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { mockStates } from '$lib/data/mockStates';
 	import { Search, Verified } from 'reicon-svelte';
-	import { Avatar, Button, Card, Chip, Input } from '$lib/components/ui';
+	import { Avatar, Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
 
 	let q = $state('');
 	let selectedCategory = $state('all');
@@ -69,7 +69,7 @@
 				onclick={() => selectedCategory = cat ?? 'all'}
 				class={[
 					'h-8 px-3 rounded-lg text-[13px] font-normal whitespace-nowrap transition-[background-color,color] duration-150 cursor-pointer',
-					$state.snapshot(selectedCategory) === $state.snapshot(cat)
+					selectedCategory === (cat ?? 'all')
 						? 'bg-[var(--tab-active-bg)] text-[var(--tab-active-color)] shadow-[var(--tab-active-shadow)]'
 						: 'bg-[var(--tab-bg)] text-[var(--tab-color)] hover:bg-[var(--tab-hover-bg)] hover:text-[var(--tab-hover-color)]'
 				].join(' ')}
@@ -81,14 +81,7 @@
 
 	<!-- Products grid -->
 	{#if filtered.length === 0}
-		<Card padding="lg" class="py-16 flex flex-col items-center text-center pc-enter">
-			<div class="mx-auto size-10 rounded-full bg-[var(--pc-surface)] grid place-items-center">
-				<Search size={16} weight="Outline" class="opacity-65" />
-			</div>
-			<p class="mt-3 text-sm font-medium">No products found</p>
-			<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Try a different search or category.</p>
-			<Button variant="ghost" class="mt-4" onclick={() => { q = ''; selectedCategory = 'all'; }}>Clear filters</Button>
-		</Card>
+		<StatePanel icon={Search} title="No products found" description="Try a different search or category." actionLabel="Clear filters" onAction={() => { q = ''; selectedCategory = 'all'; }} class="pc-enter" />
 	{:else}
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pc-enter-stagger">
 			{#each filtered as product (product.slug)}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Review } from '$lib/data/mockStates';
 	import { Star, Verified, MessageDots } from 'reicon-svelte';
-	import { Avatar, Card } from '$lib/components/ui';
+	import { Avatar, Card, StatePanel } from '$lib/components/ui';
 
 	let { reviews = [], productSlug = '' }: { reviews: Review[]; productSlug?: string } = $props();
 
@@ -24,7 +24,7 @@
 		<div class="flex items-center gap-4">
 			<div class="flex items-center gap-1">
 				{#each starsArray(avgStars) as filled}
-					<Star size={16} weight={filled ? 'Filled' : 'Outline'} color={filled ? 'var(--yellow-7)' : 'var(--pc-text-faint)'} />
+					<Star size={16} weight="Outline" color={filled ? 'var(--yellow-7)' : 'var(--pc-text-faint)'} />
 				{/each}
 				<span class="ml-1.5 text-sm font-medium">{avgStars.toFixed(1)}</span>
 			</div>
@@ -47,7 +47,7 @@
 							</div>
 							<div class="flex items-center gap-0.5 mt-0.5">
 								{#each starsArray(review.stars) as filled}
-									<Star size={12} weight={filled ? 'Filled' : 'Outline'} color={filled ? 'var(--yellow-7)' : 'var(--pc-text-faint)'} />
+									<Star size={12} weight="Outline" color={filled ? 'var(--yellow-7)' : 'var(--pc-text-faint)'} />
 								{/each}
 							</div>
 							<p class="mt-1.5 text-sm text-[var(--pc-text-muted)] leading-relaxed">{review.text}</p>
@@ -58,11 +58,5 @@
 		</div>
 	</div>
 {:else}
-	<div class="py-16 flex flex-col items-center text-center pc-enter">
-		<div class="size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-			<MessageDots size={16} weight="Outline" class="opacity-65" />
-		</div>
-		<p class="mt-3 text-sm font-medium">No reviews yet</p>
-		<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Try this product and share what you think.</p>
-	</div>
+	<StatePanel icon={MessageDots} title="No reviews yet" description="Try this product and share what you think." class="pc-enter" />
 {/if}

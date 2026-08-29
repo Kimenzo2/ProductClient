@@ -3,13 +3,14 @@
 	import ProductLaunchCard from '$lib/components/product/ProductLaunchCard.svelte';
 	import { mockStates, type StateType } from '$lib/data/mockStates';
 	import { Search, Flame, Rocket, Users2, ArrowUp, Trophy, ArrowRight } from 'reicon-svelte';
-	import { Avatar, Badge, Button, Card, Chip, Input } from '$lib/components/ui';
+	import { Avatar, Badge, Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
 
 	let active: StateType | 'all' = $state('all');
 	let q = $state('');
 	let upvoted = $state<Set<string>>(new Set());
+	let visibleCount = $state(12);
 
-	let filtered = $derived(
+	let matching = $derived(
 		mockStates
 			.filter((s) => {
 				const byType = active === 'all' ? true : s.type === active;
@@ -18,8 +19,8 @@
 					: true;
 				return byType && byQ;
 			})
-			.slice(0, 12)
 	);
+	let visible = $derived(matching.slice(0, visibleCount));
 
 	function toggleUpvote(id: string) {
 		const next = new Set(upvoted);
@@ -72,10 +73,10 @@
 		<div class="absolute bottom-0 left-0 right-0 h-px bg-[var(--pc-border-strong)] opacity-20"></div>
 
 		<div class="flex items-center gap-2 overflow-x-auto scrollbar-none pt-1">
-			<FilterChips active={active} onSelect={(v) => (active = v)} />
+			<FilterChips active={active} onSelect={(v) => { active = v; visibleCount = 12; }} />
 			<span class="ml-auto hidden md:inline-flex items-center gap-1.5 text-xs text-[var(--pc-text-muted)] opacity-65 shrink-0">
 				<Flame size={12} weight="Outline" />
-				{filtered.length}
+				{matching.length}
 			</span>
 		</div>
 
@@ -83,7 +84,7 @@
 		<div class="mt-2.5 flex md:hidden items-center gap-2 rounded-full bg-[var(--pc-surface-2)] px-3 py-2">
 			<Search size={14} weight="Outline" class="opacity-65" />
 			<input bind:value={q} placeholder="Search" class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)]" />
-			{#if q}<button onclick={() => (q = '')} class="text-xs text-[var(--pc-text-muted)]">Clear</button>{/if}
+			{#if q}<button type="button" onclick={() => (q = '')} class="text-xs text-[var(--pc-text-muted)]">Clear</button>{/if}
 		</div>
 	</nav>
 
@@ -97,32 +98,25 @@
 				<div class="flex flex-1 max-w-[380px] items-center gap-2 rounded-full bg-[var(--pc-surface-2)] px-3.5 py-2 transition-colors focus-within:bg-[var(--pc-surface)]">
 					<Search size={14} weight="Outline" class="opacity-65" />
 					<input bind:value={q} placeholder="Search launches, makers..." class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)]" />
-					{#if q}<button onclick={() => (q = '')} class="text-xs text-[var(--pc-text-muted)]">Clear</button>{/if}
+					{#if q}<button type="button" onclick={() => (q = '')} class="text-xs text-[var(--pc-text-muted)]">Clear</button>{/if}
 				</div>
-				<span class="text-xs text-[var(--pc-text-faint)] opacity-55 shrink-0">{filtered.length} of {week.products}</span>
+				<span class="text-xs text-[var(--pc-text-faint)] opacity-55 shrink-0">{matching.length} of {week.products}</span>
 			</div>
 
-			{#if filtered.length === 0}
-				<Card padding="lg" class="py-16 flex flex-col items-center text-center pc-enter">
-					<div class="mx-auto size-10 rounded-full bg-[var(--pc-surface)] grid place-items-center">
-						<Search size={16} weight="Outline" class="opacity-65" />
-					</div>
-					<p class="mt-4 text-sm font-medium">No launches match</p>
-					<p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-65">Try a different filter or search term.</p>
-					<Button variant="primary" class="mt-5" onclick={() => { active = 'all'; q = ''; }}>Clear filters</Button>
-				</Card>
+			{#if matching.length === 0}
+				<StatePanel icon={Search} title="No launches match" description="Try a different filter or search term." actionLabel="Clear filters" onAction={() => { active = 'all'; q = ''; }} class="pc-enter" />
 			{:else}
 				<div class="space-y-2.5 pc-enter-stagger">
-					{#each filtered as item, i (item.id)}
+					{#each visible as item, i (item.id)}
 						<ProductLaunchCard {item} rank={i + 1} upvoted={upvoted.has(item.id)} onUpvote={toggleUpvote} />
 					{/each}
 				</div>
 
 				<div class="mt-8 flex flex-col items-center gap-2.5">
 					<p class="text-xs text-[var(--pc-text-faint)] opacity-55">
-						{week.live - filtered.length} more this week
+						{matching.length - visible.length} more this week
 					</p>
-					<Button variant="ghost">Load more</Button>
+					{#if visible.length < matching.length}<Button variant="ghost" onclick={() => (visibleCount += 12)}>Load more</Button>{:else}<span class="text-[11px] text-[var(--pc-text-faint)]">You’re all caught up</span>{/if}
 				</div>
 			{/if}
 		</main>
@@ -164,7 +158,7 @@
 								<div class="text-[13px] font-normal leading-none line-clamp-1 group-hover:text-[var(--pc-text)] transition-colors">{m.maker.name}</div>
 								<div class="text-[11px] text-[var(--pc-text-muted)] opacity-65 line-clamp-1 mt-0.5">{m.product.name}</div>
 							</div>
-							<span class="text-[11px] text-[var(--pc-accent)] opacity-0 group-hover:opacity-100 transition-opacity">Follow</span>
+							<span class="text-[11px] text-[var(--pc-accent)] opacity-0 transition-opacity group-hover:opacity-100">View</span>
 						</a>
 					{/each}
 				</div>
@@ -208,18 +202,7 @@
 		</aside>
 	</div>
 
-	<!-- Mobile bottom nav spacer -->
-	<div class="h-[64px] lg:hidden"></div>
 </div>
-
-<!-- Mobile bottom nav -->
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 flex items-center justify-around bg-[var(--pc-bg)]/95 backdrop-blur py-1 border-t border-[var(--pc-border-strong)]/10">
-	<a href="/" class="flex flex-col items-center gap-0.5 py-1.5 px-4 text-[10px] font-medium"><Rocket size={16} weight="Outline" />Launch</a>
-	<a href="/following" class="flex flex-col items-center gap-0.5 py-1.5 px-4 text-[10px] text-[var(--pc-text-muted)]"><Trophy size={16} weight="Outline" />Rank</a>
-	<a href="/studio" aria-label="Launch" class="grid size-9 place-items-center rounded-full bg-[var(--pc-accent)] text-white"><Rocket size={16} weight="Outline" color="white" /></a>
-	<a href="/search" class="flex flex-col items-center gap-0.5 py-1.5 px-4 text-[10px] text-[var(--pc-text-muted)]"><Search size={16} weight="Outline" />Search</a>
-	<a href="/you" class="flex flex-col items-center gap-0.5 py-1.5 px-4 text-[10px] text-[var(--pc-text-muted)]"><Users2 size={16} weight="Outline" />You</a>
-</nav>
 
 <style>
 	.scrollbar-none { scrollbar-width: none; }

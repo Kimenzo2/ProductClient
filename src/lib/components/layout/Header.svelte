@@ -1,111 +1,98 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { toggleMode, mode } from 'mode-watcher';
-	import { Menu, Search, Add, Sun, Moon, Bell, Rocket } from 'reicon-svelte';
+	import { Bell, Menu, Moon, Rocket, Search, Sun } from 'reicon-svelte';
+	import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
 
 	let {
 		onToggleSidebar,
-		onSearch
+		onOpenSearch,
+		sidebarOpen = false,
+		unreadCount = 3
 	}: {
-		sidebarCollapsed?: boolean;
 		onToggleSidebar: () => void;
-		onSearch?: (q: string) => void;
+		onOpenSearch: (query?: string) => void;
+		sidebarOpen?: boolean;
+		unreadCount?: number;
 	} = $props();
 
-	let search = $state('');
+	let themeReady = $state(false);
+
+	onMount(() => {
+		themeReady = true;
+	});
 </script>
 
-<header
-	class="sticky top-0 z-40 bg-[var(--pc-bg)]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[var(--pc-bg)]/80"
->
-	<div class="mx-auto max-w-[1440px] flex h-[var(--pc-header-h)] items-center gap-3 md:gap-4 px-3 md:px-4 w-full">
-		<!-- Left: menu + logo -->
-		<div class="flex items-center gap-2 md:gap-3 shrink-0">
+<header class="sticky top-0 z-40 bg-[var(--pc-bg)]/90 backdrop-blur-xl supports-[backdrop-filter]:bg-[var(--pc-bg)]/80">
+	<div class="mx-auto flex h-[var(--pc-header-h)] w-full max-w-[1440px] items-center gap-3 px-3 md:gap-4 md:px-4">
+		<div class="flex shrink-0 items-center gap-2 md:gap-3">
 			<button
 				aria-label="Toggle navigation"
-				aria-expanded="false"
+				aria-expanded={sidebarOpen}
 				onclick={onToggleSidebar}
-				class="grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors duration-200 lg:hidden"
+				class="grid size-9 place-items-center rounded-full transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface-2)] lg:hidden"
 			>
 				<Menu size={20} weight="Outline" />
 			</button>
 
-			<a href="/" class="grid size-8 place-items-center rounded-[10px] bg-[var(--pc-accent)] text-white" aria-label="Home">
+			<a href="/" class="grid size-8 place-items-center rounded-[10px] bg-[var(--pc-accent)] text-white" aria-label="Product Client home">
 				<Rocket size={16} weight="Outline" color="white" />
 			</a>
-		</div>
 
-		<!-- Center: search -->
-		<div class="hidden md:flex flex-1 justify-center px-4">
-			<div class="flex w-full max-w-[480px] items-center gap-2">
-				<label class="flex flex-1 items-center gap-2 rounded-full bg-[var(--pc-surface-2)] px-3.5 py-2 text-sm focus-within:bg-[var(--pc-surface)] transition-colors">
-					<Search size={16} weight="Outline" />
-					<input
-						bind:value={search}
-						onkeydown={(e) => {
-							if (e.key === 'Enter') onSearch?.(search);
-						}}
-						placeholder="Search products, makers..."
-						class="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--pc-text-faint)]"
-						aria-label="Search"
-					/>						<span class="hidden xl:inline-flex items-center gap-1 rounded-full bg-[var(--pc-surface)] px-2 py-0.5 text-[10px] font-600 text-[var(--pc-text-muted)]">⌘K</span>
-				</label>
+			<div class="hidden items-center gap-2 lg:flex">
+			<span class="text-sm font-medium tracking-tight">Product Client</span>
 			</div>
 		</div>
 
-	<!-- Right: actions –  open-source, launch -->
-	<div class="flex items-center gap-1 md:gap-2 ml-auto">
-		<!-- mobile search icon -->
 		<button
-			aria-label="Search"
-			class="grid md:hidden size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)]"
-			onclick={() => onSearch?.(search)}
+			type="button"
+			onclick={() => onOpenSearch()}
+			class="hidden min-w-0 flex-1 items-center justify-between gap-3 rounded-full bg-[var(--pc-surface-2)] px-3.5 py-2 text-left text-sm text-[var(--pc-text-muted)] transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] md:flex md:max-w-[520px] md:mx-auto"
+			aria-label="Open global search"
+			aria-keyshortcuts="Control+K Meta+K"
 		>
-			<Search size={18} weight="Outline" />
+			<span class="flex min-w-0 items-center gap-2">
+				<Search size={16} weight="Outline" class="shrink-0 opacity-65" />
+				<span class="truncate">Find a product, update, help page, or feedback...</span>
+			</span>
+			<kbd class="hidden shrink-0 rounded-[8px] bg-[var(--pc-surface)] px-2 py-0.5 text-[10px] font-medium text-[var(--pc-text-faint)] xl:inline">⌘K</kbd>
 		</button>
 
-		<a
-			href="/studio"
-			class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[var(--pc-accent)] hover:bg-[var(--pc-accent-hover)] px-4 py-2 text-sm font-medium text-white transition-colors"
-		>
-			<Add size={16} weight="Outline" />
-			<span class="hidden lg:inline">Launch</span>
-			<span class="lg:hidden">Launch</span>
-		</a>
-		<a
-			href="/studio"
-			aria-label="Launch"
-			class="grid sm:hidden size-9 place-items-center rounded-full bg-[var(--pc-accent)] text-white"
-		>
-			<Add size={16} weight="Outline" />
-		</a>
+		<div class="ml-auto flex items-center gap-1 md:gap-2">
+			<button
+				type="button"
+				aria-label="Open search"
+				onclick={() => onOpenSearch()}
+				class="grid size-9 place-items-center rounded-full transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface-2)] md:hidden"
+			>
+				<Search size={18} weight="Outline" />
+			</button>
 
-		<button
-			onclick={toggleMode}
-			aria-label="Toggle theme"
-			class="grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
-			title="Toggle theme"
-		>
-			{#if mode.current === 'dark'}
-				<Sun size={18} weight="Outline" />
-			{:else}
-				<Moon size={18} weight="Outline" />
-			{/if}
-		</button>
+			<div class="hidden sm:block"><QuickCreate /></div>
+			<div class="sm:hidden"><QuickCreate compact /></div>
 
-		<button
-			aria-label="Notifications"
-			class="relative grid size-9 place-items-center rounded-full hover:bg-[var(--pc-surface-2)] transition-colors"
-		>
-			<Bell size={18} weight="Outline" />
-			<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[10px] font-700 text-white">3</span>
-		</button>
+			<button
+				type="button"
+				onclick={toggleMode}
+				aria-label="Toggle theme"
+				title="Toggle theme"
+				class="grid size-9 place-items-center rounded-full transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface-2)]"
+			>
+				{#if !themeReady || mode.current === 'dark'}
+					<Sun size={18} weight="Outline" />
+				{:else}
+					<Moon size={18} weight="Outline" />
+				{/if}
+			</button>
 
-	</div>
+			<a href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} class="relative grid size-9 place-items-center rounded-full transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface-2)]">
+				<Bell size={18} weight="Outline" />
+				{#if unreadCount > 0}<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[10px] font-700 text-white">{unreadCount}</span>{/if}
+			</a>
+		</div>
 	</div>
 </header>
 
 <style>
-	header {
-		backdrop-filter: saturate(1.2);
-	}
+	header { backdrop-filter: saturate(1.2); }
 </style>

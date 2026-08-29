@@ -38,7 +38,7 @@
 
 {#if href}
 	<a
-		{href}
+		href={href}
 		class="{classes} block"
 		rel={isExternal ? 'noopener noreferrer' : undefined}
 		{...restProps}

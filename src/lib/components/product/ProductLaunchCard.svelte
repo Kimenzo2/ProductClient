@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MockState } from '$lib/data/mockStates';
-	import { ArrowUp, Verified, Share, Bookmark } from 'reicon-svelte';
+	import { ArrowUp, Verified } from 'reicon-svelte';
 	import { Avatar, Badge, Button, Card, Chip } from '$lib/components/ui';
 
 	let {
@@ -32,7 +32,6 @@
 	};
 	let tags = $derived(item.product.tags?.slice(0, 3) ?? fallbackTags[item.type] ?? ['Launch']);
 
-	const podiumEmoji = ['', '🥇', '🥈', '🥉'];
 	const podiumLabel = ['', 'Gold', 'Silver', 'Bronze'];
 
 	let upvoteClass = $derived(
@@ -46,7 +45,7 @@
 	<!-- Rank -->
 	<div class="hidden sm:flex flex-col items-center justify-center min-w-[36px] text-center">
 		{#if rank <= 3}
-			<span class="text-[18px]" title="{podiumLabel[rank]} product">{podiumEmoji[rank]}</span>
+			<span class="grid size-7 place-items-center rounded-[9px] bg-[var(--pc-surface)] text-[13px] font-medium tabular-nums" title="{podiumLabel[rank]} product">{rank}</span>
 			<span class="mt-0.5 text-[10px] font-medium tracking-wide uppercase text-[var(--pc-text-faint)]">{podiumLabel[rank]}</span>
 		{:else}
 			<Badge size="md">{rank}</Badge>
@@ -97,11 +96,6 @@
 			</a>
 			<span class="hidden sm:inline opacity-50">•</span>
 			<span class="opacity-50">{item.postedAt}</span>
-			<div class="ml-auto hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-				<Share size={11} weight="Outline" /> share
-				<span class="mx-0.5">·</span>
-				<Bookmark size={11} weight="Outline" /> save
-			</div>
 		</div>
 	</div>
 

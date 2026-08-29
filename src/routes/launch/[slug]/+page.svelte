@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { preLaunchProducts } from '$lib/data/mockStates';
 	import { Rocket, Clock, Users, CheckCircle, Envelope } from 'reicon-svelte';
-	import { Button, Card, Chip } from '$lib/components/ui';
+	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
 
 	let slug = $derived(page.params.slug);
 	let product = $derived(preLaunchProducts.find((p) => p.slug === slug));
@@ -113,9 +113,5 @@
 		</div>
 	</div>
 {:else}
-	<div class="flex flex-col items-center justify-center py-20 pc-enter">
-		<p class="text-lg font-medium">Product not found</p>
-		<p class="text-sm text-[var(--pc-text-muted)] opacity-65 mt-1">No pre-launch product with slug "{slug}".</p>
-		<Button href="/" variant="primary" class="mt-4">Go home</Button>
-	</div>
+	<StatePanel size="page" icon={Rocket} title="Pre-launch product not found" description={`There is no pre-launch product with the name “${slug}”.`} actionLabel="Go home" actionHref="/" class="pc-enter" />
 {/if}

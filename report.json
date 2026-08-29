@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 3,
+  "score": 0,
+  "label": "Critical",
+  "diagnostics": [
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/no-index-as-key",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "{#each} without key — use `{#each items as item (item.id)}`",
+      "filePath": "src/routes/+page.svelte",
+      "line": 189,
+      "column": 6,
+      "tags": [
+        "performance",
+        "correctness"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/no-layout-animation",
+      "severity": "error",
+      "category": "Performance",
+      "message": "Animating layout properties causes thrash — use transform/opacity.",
+      "filePath": "src/routes/+page.svelte",
+      "line": 48,
+      "column": 88,
+      "tags": [
+        "performance"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/no-giant-component",
+      "severity": "warn",
+      "category": "Maintainability",
+      "message": "Component is 682 lines (threshold 400) — split via snippets/composition.",
+      "filePath": "src/lib/data/mockStates.ts",
+      "line": 1,
+      "column": 1,
+      "tags": [
+        "maintainability",
+        "architecture"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/leaderboard/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/launchpad/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/following/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/notifications/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/studio/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/lib/components/layout/Sidebar.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/kit-app-state-eager-init",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "$app/state read at module top-level — move inside $effect/onMount to avoid eager leak (2.70.3)",
+      "filePath": "src/lib/components/layout/Sidebar.svelte",
+      "line": 2,
+      "column": 24,
+      "tags": [
+        "performance",
+        "sveltekit"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/iframe-missing-sandbox",
+      "severity": "warn",
+      "category": "Security",
+      "message": "<iframe> missing sandbox attribute.",
+      "filePath": "src/routes/badge/[slug]/+page.svelte",
+      "line": 12,
+      "column": 4,
+      "tags": [
+        "security",
+        "a11y"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/kit-app-state-eager-init",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "$app/state read at module top-level — move inside $effect/onMount to avoid eager leak (2.70.3)",
+      "filePath": "src/routes/badge/[slug]/+page.svelte",
+      "line": 2,
+      "column": 24,
+      "tags": [
+        "performance",
+        "sveltekit"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/p/[slug]/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/no-layout-animation",
+      "severity": "error",
+      "category": "Performance",
+      "message": "Animating layout properties causes thrash — use transform/opacity.",
+      "filePath": "src/routes/p/[slug]/+page.svelte",
+      "line": 192,
+      "column": 81,
+      "tags": [
+        "performance"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/kit-app-state-eager-init",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "$app/state read at module top-level — move inside $effect/onMount to avoid eager leak (2.70.3)",
+      "filePath": "src/routes/p/[slug]/+page.svelte",
+      "line": 2,
+      "column": 24,
+      "tags": [
+        "performance",
+        "sveltekit"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/compile-error",
+      "severity": "error",
+      "category": "Correctness",
+      "message": "`$state(...)` can only be used as a variable declaration initializer, a class field declaration, or the first assignment to a class field at the top level of the constructor.",
+      "filePath": "src/routes/m/[handle]/+page.svelte",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "ruleId": "svelte-5-doctor/no-layout-animation",
+      "severity": "error",
+      "category": "Performance",
+      "message": "Animating layout properties causes thrash — use transform/opacity.",
+      "filePath": "src/routes/m/[handle]/+page.svelte",
+      "line": 156,
+      "column": 82,
+      "tags": [
+        "performance"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/kit-app-state-eager-init",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "$app/state read at module top-level — move inside $effect/onMount to avoid eager leak (2.70.3)",
+      "filePath": "src/routes/m/[handle]/+page.svelte",
+      "line": 2,
+      "column": 24,
+      "tags": [
+        "performance",
+        "sveltekit"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/kit-app-state-eager-init",
+      "severity": "warn",
+      "category": "Performance",
+      "message": "$app/state read at module top-level — move inside $effect/onMount to avoid eager leak (2.70.3)",
+      "filePath": "src/routes/update/[id]/+page.svelte",
+      "line": 2,
+      "column": 24,
+      "tags": [
+        "performance",
+        "sveltekit"
+      ]
+    },
+    {
+      "ruleId": "svelte-5-doctor/supply-chain-outdated-svelte",
+      "severity": "warn",
+      "category": "Security",
+      "message": "svelte 5.56.1 outdated — latest 5.56.10 (fix #18668 SSR double-call, #18625 each batch). Update.",
+      "filePath": "package.json",
+      "line": 1,
+      "column": 1,
+      "tags": [
+        "supply-chain"
+      ]
+    }
+  ],
+  "summary": {
+    "total": 21,
+    "errors": 12,
+    "warnings": 9,
+    "byCategory": {
+      "Security": 2,
+      "Performance": 9,
+      "Correctness": 9,
+      "Accessibility": 0,
+      "Maintainability": 1,
+      "Architecture": 0
+    },
+    "affectedFiles": 13,
+    "distinctRules": 7
+  },
+  "meta": {
+    "svelteVersion": "5.56.1",
+    "scannedAt": "2026-08-29T08:17:07.063Z",
+    "directory": "C:\\Users\\admin\\Downloads\\ProductClient",
+    "durationMs": 419
+  }
+}

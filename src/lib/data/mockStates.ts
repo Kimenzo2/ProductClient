@@ -36,7 +36,7 @@ export const reviews: Review[] = [
 		user: 'Sarah Chen',
 		avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'ChatGPT 6 is a massive leap. The realtime vision is mind-blowing — I used it to debug a CSS layout in seconds. The reasoning chain is way more transparent now.',
+		text: 'ChatGPT 6 feels like a big step forward. I used the camera feature to fix a website layout in seconds, and it is easier to follow how the answer was made.',
 		postedAt: '1 day ago',
 		verified: true
 	},
@@ -46,7 +46,7 @@ export const reviews: Review[] = [
 		user: 'Marcus Webb',
 		avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
 		stars: 4,
-		text: 'Great upgrade. Voice mode feels natural now. Only wish the API pricing was more generous for indie makers.',
+		text: 'Great upgrade. Voice mode feels natural now. I only wish the price was lower for small teams.',
 		postedAt: '2 days ago',
 		verified: false
 	},
@@ -56,7 +56,7 @@ export const reviews: Review[] = [
 		user: 'Julia Park',
 		avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'The new changelog engine is incredible. We switched from Notion and never looked back. Keyboard shortcuts save me 30 min a day.',
+		text: 'The new product updates are much easier to write and read. Keyboard shortcuts save me about 30 minutes a day.',
 		postedAt: '3 days ago',
 		verified: true
 	},
@@ -66,7 +66,7 @@ export const reviews: Review[] = [
 		user: 'Dev Patel',
 		avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'Figma Sites changed how we ship landing pages. From design to live in 2 clicks. Our marketing team loves it.',
+		text: 'Figma Sites changed how we make landing pages. We can go from design to a live page in two clicks. Our marketing team loves it.',
 		postedAt: '1 day ago',
 		verified: true
 	},
@@ -76,7 +76,7 @@ export const reviews: Review[] = [
 		user: 'Alex Rivera',
 		avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
 		stars: 4,
-		text: 'Composer persistence is a game changer. Bug fixes in 0.42 are solid. Autocomplete still needs work on larger codebases though.',
+		text: 'My work stays saved while I edit, which is a big help. The update fixes several problems, but suggestions still need work in large projects.',
 		postedAt: '6 hours ago',
 		verified: false
 	},
@@ -86,7 +86,7 @@ export const reviews: Review[] = [
 		user: 'Priya Sharma',
 		avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'Storage v2 with TUS uploads is exactly what we needed. pgvector 0.7 made our RAG pipeline 3x faster. Supabase keeps shipping.',
+		text: 'File uploads can continue after a break, which is exactly what we needed. Search is also much faster for our team.',
 		postedAt: '5 days ago',
 		verified: true
 	},
@@ -96,7 +96,7 @@ export const reviews: Review[] = [
 		user: 'Tom Fischer',
 		avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
 		stars: 3,
-		text: 'Edge functions are great when they work, but the incident frequency is concerning. 3 outages this quarter. Need better reliability.',
+		text: 'The product works well most of the time, but we had three service interruptions this quarter. We need it to be more reliable.',
 		postedAt: '1 week ago',
 		verified: true
 	},
@@ -106,7 +106,7 @@ export const reviews: Review[] = [
 		user: 'Nina Volkov',
 		avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'Claude 4.1 tool use is phenomenal. The memory system actually works now. Reduced our prompt engineering time by 60%.',
+		text: 'Claude remembers more of our conversation and follows instructions more reliably. We spend less time repeating ourselves.',
 		postedAt: '8 hours ago',
 		verified: true
 	},
@@ -116,7 +116,7 @@ export const reviews: Review[] = [
 		user: 'Jake Morrison',
 		avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop',
 		stars: 4,
-		text: 'Solid as always. Webhook delay was frustrating but the postmortem was transparent. API docs are best-in-class.',
+		text: 'The delayed messages were frustrating, but the team explained what happened clearly. The help pages are also easy to follow.',
 		postedAt: '2 days ago',
 		verified: true
 	},
@@ -126,7 +126,7 @@ export const reviews: Review[] = [
 		user: 'Emily Zhang',
 		avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop',
 		stars: 5,
-		text: 'Clipboard history with secure enclave is exactly the security feature I was waiting for. Performance improvements are noticeable too.',
+		text: 'Clipboard history is now safer, and the app feels faster too.',
 		postedAt: '1 day ago',
 		verified: false
 	}
@@ -320,7 +320,7 @@ export const makers: MakerProfile[] = [
 		name: 'Lorenze',
 		avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
 		banner: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1920&h=400&fit=crop',
-		bio: 'Indie maker building Bento — personal intelligence hub. Shipping fast, learning faster.',
+		bio: 'Indie maker building Bento, a simple home for your work.',
 		verified: false,
 		website: 'https://bento.dev',
 		twitter: '@lorenze',
@@ -401,25 +401,25 @@ export type MockState = {
 export const stateTypes: { value: StateType | 'all'; label: string }[] = [
 	{ value: 'all', label: 'All' },
 	{ value: 'launch', label: 'Launches' },
-	{ value: 'changelog', label: 'Changelogs' },
-	{ value: 'incident', label: 'Incidents' },
-	{ value: 'fix', label: 'Bug Fixes' },
+	{ value: 'changelog', label: 'Product updates' },
+	{ value: 'incident', label: 'Service problems' },
+	{ value: 'fix', label: 'Fixes' },
 	{ value: 'event', label: 'Events' }
 ];
 
 export const mockStates: MockState[] = [
 	{
 		id: '1',
-		title: 'ChatGPT 6 – The most human launch yet. Full breakdown + live demo',
+		title: 'ChatGPT 6: New vision, voice, and reasoning',
 		type: 'launch',
 		product: {
 			name: 'ChatGPT',
 			slug: 'chatgpt',
 			avatar: 'https://cdn.reicon.dev/logos/openai/original.svg',
 			verified: true,
-			category: 'AI & Machine Learning',
-			tags: ['AI', 'LLM', 'Productivity'],
-			tagline: 'The most advanced AI assistant. Reasoning, vision, and voice in one.',
+			category: 'AI tools',
+			tags: ['AI', 'Writing help', 'Productivity'],
+			tagline: 'A helpful assistant for writing, seeing, and talking.',
 			website: 'https://chat.openai.com'
 		},
 		screenshots: [
@@ -432,19 +432,19 @@ export const mockStates: MockState[] = [
 		readTime: '12 min',
 		reads: '2.4M',
 		postedAt: '2 days ago',
-		description: 'We are launching ChatGPT 6 with realtime vision, voice and reasoning. Full keynote breakdown...'
+		description: 'ChatGPT 6 adds live camera, voice, and better answers. Here is what changed.'
 	},
 	{
 		id: '2',
-		title: 'Linear – How we shipped 40% faster changelogs in Q1',
+		title: 'Linear: Faster product updates',
 		type: 'changelog',
 		product: {
 			name: 'Linear',
 			slug: 'linear',
 			avatar: 'https://cdn.reicon.dev/logos/linear/original.svg',
 			verified: true,
-			category: 'Developer Tools',
-			tags: ['DevTool', 'Productivity', 'Project Management'],
+			category: 'Planning tools',
+			tags: ['Planning', 'Teams', 'Productivity'],
 			tagline: 'Plan, build, and ship great software. The issue tracker that keeps up.',
 			website: 'https://linear.app'
 		},
@@ -457,19 +457,19 @@ export const mockStates: MockState[] = [
 		readTime: '4 min',
 		reads: '89K',
 		postedAt: '1 week ago',
-		description: 'New changelog engine, instant sync and keyboard-first workflow.'
+		description: 'Product updates are faster to write, sync, and read.'
 	},
 	{
 		id: '3',
-		title: 'Vercel Incident Report – Edge Network degraded (resolved)',
+		title: 'Vercel: Service problem resolved',
 		type: 'incident',
 		product: {
 			name: 'Vercel',
 			slug: 'vercel',
 			avatar: 'https://cdn.reicon.dev/logos/vercel/original.svg',
 			verified: true,
-			category: 'Cloud & Infrastructure',
-			tags: ['Hosting', 'Edge', 'DevOps'],
+			category: 'Cloud services',
+			tags: ['Hosting', 'Websites', 'Developer tools'],
 			tagline: 'Develop. Preview. Ship. The platform for frontend developers.',
 			website: 'https://vercel.com'
 		},
@@ -478,18 +478,18 @@ export const mockStates: MockState[] = [
 		readTime: '2 min',
 		reads: '14K',
 		postedAt: '5 hours ago',
-		description: 'At 14:32 UTC edge functions in iad1 experienced elevated latency. Mitigated at 15:10 UTC.'
+		description: 'Some requests were slow in one region. The team fixed the problem.'
 	},
 	{
 		id: '4',
-		title: 'Perplexity Comet – Hackathon winners demo day',
+		title: 'Perplexity Comet: Hackathon demos',
 		type: 'event',
 		product: {
 			name: 'Perplexity',
 			slug: 'perplexity',
 			avatar: 'https://cdn.reicon.dev/logos/perplexity/original.svg',
 			verified: true,
-			category: 'AI & Machine Learning',
+			category: 'AI tools',
 			tags: ['AI', 'Search', 'Hackathon'],
 			tagline: 'The answer engine. Ask anything, get cited answers.',
 			website: 'https://perplexity.ai'
@@ -499,20 +499,20 @@ export const mockStates: MockState[] = [
 		readTime: '28 min',
 		reads: '112K',
 		postedAt: '3 days ago',
-		description: 'Top 5 teams from our global hackathon present their Comet agents.'
+		description: 'Five winning teams show what they built with Comet.'
 	},
 	{
 		id: '5',
-		title: 'Cursor 0.42 – Bug fixes: composer, autocomplete, and terminal',
+		title: 'Cursor 0.42: Fixes for editing and terminal',
 		type: 'fix',
 		product: {
 			name: 'Cursor',
 			slug: 'cursor',
 			avatar: 'https://cdn.reicon.dev/logos/cursor/original.svg',
 			verified: true,
-			category: 'Developer Tools',
-			tags: ['Code Editor', 'AI', 'DX'],
-			tagline: 'The AI-first code editor. Build software 10x faster.',
+			category: 'Developer tools',
+			tags: ['Code editor', 'AI', 'Developer tools'],
+			tagline: 'A code editor with built-in help from AI.',
 			website: 'https://cursor.sh'
 		},
 		maker: { name: 'Cursor', handle: 'cursor', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop' },
@@ -520,11 +520,11 @@ export const mockStates: MockState[] = [
 		readTime: '4 min',
 		reads: '46K',
 		postedAt: '6 hours ago',
-		description: 'Patch notes for 0.42 – composers now persistent, terminal timeout fixed.'
+		description: 'This update keeps your work saved and fixes a terminal problem.'
 	},
 	{
 		id: '6',
-		title: 'Figma Sites – From canvas to live site in seconds',
+		title: 'Figma Sites: Turn a design into a live site',
 		type: 'launch',
 		product: {
 			name: 'Figma',
@@ -546,11 +546,11 @@ export const mockStates: MockState[] = [
 		readTime: '8 min',
 		reads: '310K',
 		postedAt: '1 day ago',
-		description: 'Announcing Figma Sites – design and ship without leaving the canvas.'
+		description: 'Create and publish a website without leaving Figma.'
 	},
 	{
 		id: '7',
-		title: 'Notion Mail – Changelog: Super-fast search and offline mode',
+		title: 'Notion Mail: Faster search and offline mode',
 		type: 'changelog',
 		product: {
 			name: 'Notion',
@@ -567,11 +567,11 @@ export const mockStates: MockState[] = [
 		readTime: '6 min',
 		reads: '72K',
 		postedAt: '4 days ago',
-		description: 'Mail is now 3x faster with new Rust indexer.'
+		description: 'Search is faster, and you can read mail without internet.'
 	},
 	{
 		id: '8',
-		title: 'Stripe – Incident: Webhooks delayed for 18 mins (postmortem)',
+		title: 'Stripe: Webhook delays resolved',
 		type: 'incident',
 		product: {
 			name: 'Stripe',
@@ -588,11 +588,11 @@ export const mockStates: MockState[] = [
 		readTime: '6 min',
 		reads: '29K',
 		postedAt: '9 hours ago',
-		description: 'Webhooks at 03:11 UTC queued – root cause DNS failover.'
+		description: 'Some messages arrived late. The team found and fixed the cause.'
 	},
 	{
 		id: '9',
-		title: 'Bento 0.3 – Personal Intelligence hub rethink (Bento launch)',
+		title: 'Bento 0.3: A simpler home for your work',
 		type: 'launch',
 		product: {
 			name: 'Bento',
@@ -609,19 +609,19 @@ export const mockStates: MockState[] = [
 		readTime: '10 min',
 		reads: '18K',
 		postedAt: '12 hours ago',
-		description: 'Introducing Bento as cross-app intelligence – not just a launcher.'
+		description: 'Bento brings your work together in one place.'
 	},
 	{
 		id: '10',
-		title: 'Supabase Launch Week – Day 4: Storage v2 + vector updates',
+		title: 'Supabase launch: Better file uploads and search',
 		type: 'launch',
 		product: {
 			name: 'Supabase',
 			slug: 'supabase',
 			avatar: 'https://cdn.reicon.dev/logos/supabase/original.svg',
 			verified: true,
-			category: 'Cloud & Infrastructure',
-			tags: ['Database', 'Backend', 'Open Source'],
+			category: 'Cloud services',
+			tags: ['Database', 'File storage', 'Open source'],
 			tagline: 'The open source Firebase alternative. Auth, database, storage, edge functions.',
 			website: 'https://supabase.com'
 		},
@@ -634,18 +634,18 @@ export const mockStates: MockState[] = [
 		readTime: '9 min',
 		reads: '203K',
 		postedAt: '6 days ago',
-		description: 'Storage v2 with TUS resumable uploads and pgvector 0.7.'
+		description: 'File uploads can resume after a break. Search is also improved.'
 	},
 	{
 		id: '11',
-		title: 'Raycast – Fix: Clipboard history leak fixed + perf win',
+		title: 'Raycast: Safer clipboard history',
 		type: 'fix',
 		product: {
 			name: 'Raycast',
 			slug: 'raycast',
 			avatar: 'https://cdn.reicon.dev/logos/raycast/original.svg',
 			verified: true,
-			category: 'Developer Tools',
+			category: 'Developer tools',
 			tags: ['Launcher', 'Productivity', 'macOS'],
 			tagline: 'Supercharged productivity. Control your tools with a few keystrokes.',
 			website: 'https://raycast.com'
@@ -655,19 +655,19 @@ export const mockStates: MockState[] = [
 		readTime: '3 min',
 		reads: '33K',
 		postedAt: '1 day ago',
-		description: 'Clip history now encrypted with secure enclave isolation.'
+		description: 'Clipboard history is now encrypted, and performance is better.'
 	},
 	{
 		id: '12',
-		title: 'Claude 4.1 – System prompts, memory, and tool use deep dive',
+		title: 'Claude 4.1: Better memory and tools',
 		type: 'changelog',
 		product: {
 			name: 'Claude',
 			slug: 'claude',
 			avatar: 'https://cdn.reicon.dev/logos/claude/original.svg',
 			verified: true,
-			category: 'AI & Machine Learning',
-			tags: ['AI', 'LLM', 'API'],
+			category: 'AI tools',
+			tags: ['AI', 'Writing help', 'API'],
 			tagline: 'Reliable, interpretable, steerable AI. Built by Anthropic.',
 			website: 'https://claude.ai'
 		},
@@ -676,6 +676,6 @@ export const mockStates: MockState[] = [
 		readTime: '15 min',
 		reads: '540K',
 		postedAt: '8 hours ago',
-		description: 'How we upgraded tool use and reduced hallucinations by 22%.'
+		description: 'Claude follows tools more reliably and makes fewer incorrect claims.'
 	}
 ];

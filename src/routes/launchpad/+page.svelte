@@ -70,7 +70,7 @@
 					<li>Needs a profile — showcase work first</li>
 					<li>Ranked by upvotes, SEO + AI indexed</li>
 				</ul>
-				<Button href="/studio" variant="primary" class="mt-3 w-full justify-center">Launch your product</Button>
+				<Button href="/studio" variant="primary" class="mt-3 w-full justify-center">For makers: launch a product</Button>
 			</Card>
 			<Card padding="md">
 				<p class="text-[12px] font-medium text-[var(--pc-text-muted)] opacity-50">This week</p>

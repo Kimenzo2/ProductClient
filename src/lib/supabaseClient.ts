@@ -1,11 +1,20 @@
-import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$app/env/public';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$app/env/public';
 
 const supabaseUrl = PUBLIC_SUPABASE_URL ?? '';
-const supabaseKey = PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
+const supabaseKey = PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 if (!supabaseUrl || !supabaseKey) {
 	console.warn('Supabase env missing: PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_PUBLISHABLE_KEY');
 }
 
-export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : (null as any);
+export const supabase: SupabaseClient | null = supabaseUrl && supabaseKey
+	? createClient(supabaseUrl, supabaseKey, {
+			auth: {
+				autoRefreshToken: true,
+				persistSession: true,
+				detectSessionInUrl: true,
+				flowType: 'pkce'
+			}
+		})
+	: null;

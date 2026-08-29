@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { MockState } from '$lib/data/mockStates';
-	import { Verified, MoreH } from 'reicon-svelte';
-	import { Avatar, Badge, Button, Card } from '$lib/components/ui';
+	import { Verified } from 'reicon-svelte';
+	import { Avatar } from '$lib/components/ui';
 
 	let { item }: { item: MockState } = $props();
 
@@ -58,14 +58,6 @@
 				by {item.maker.name} • {item.reads} reads • {item.postedAt}
 			</a>
 		</div>
-		<Button variant="icon" size="sm" class="hidden group-hover:grid shrink-0 self-start"
-			onclick={(e: MouseEvent) => {
-				e.preventDefault();
-				e.stopPropagation();
-			}}
-		>
-			<MoreH size={16} weight="Outline" />
-		</Button>
 	</div>
 </div>
 

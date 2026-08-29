@@ -394,6 +394,11 @@ html { scroll-behavior: smooth; }
 .pc-enter-stagger > *:nth-child(5) { animation-delay: 200ms; }
 .pc-enter-stagger > *:nth-child(6) { animation-delay: 240ms; }
 
+@media (prefers-reduced-motion: reduce) {
+	.pc-enter, .pc-enter-stagger > * { animation: none; }
+	*, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
 /* ───────── Components ───────── */
 .pc-bezel {
 	background: var(--pc-surface-2);
@@ -416,7 +421,7 @@ html { scroll-behavior: smooth; }
 	transition: opacity 0.2s;
 }
 .pc-btn-primary:hover { opacity: 0.88; }
-.pc-btn-primary:active { transform: scale(0.98); }
+.pc-btn-primary:active { transform: scale(0.96); }
 
 .pc-btn-ghost {
 	display: inline-flex; align-items: center; gap: 8px;

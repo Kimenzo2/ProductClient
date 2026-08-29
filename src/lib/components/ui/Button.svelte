@@ -29,7 +29,7 @@
 	const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity,transform] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)]';
 
 	const variants: Record<string, string> = {
-		primary: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]',
+		primary: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96]',
 		ghost: 'bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)]',
 		outline: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]',
 		icon: 'bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)]'
@@ -48,17 +48,25 @@
 	};
 
 	let classes = $derived(
-		[base, variant === 'icon' ? iconSizes[size] : sizes[size], variants[variant], loading ? 'pointer-events-none' : '', className].filter(Boolean).join(' ')
+		[base, variant === 'icon' ? iconSizes[size] : sizes[size], variants[variant], disabled || loading ? 'pointer-events-none opacity-50' : '', className].filter(Boolean).join(' ')
 	);
 
 	let isExternal = $derived(href?.startsWith('http'));
+
+	function handleAnchorClick(event: MouseEvent) {
+		if (disabled || loading) {
+			event.preventDefault();
+			return;
+		}
+		onclick?.(event);
+	}
 </script>
 
 {#if href}
 	<a
 		href={href}
 		class={classes}
-		{onclick}
+		onclick={handleAnchorClick}
 		rel={isExternal ? 'noopener noreferrer' : undefined}
 		aria-disabled={disabled || loading}
 		{...restProps}

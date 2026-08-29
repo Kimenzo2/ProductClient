@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ProductLaunchCard from '$lib/components/product/ProductLaunchCard.svelte';
 	import { mockStates } from '$lib/data/mockStates';
-	import { Heart, ArrowRight } from 'reicon-svelte';
-	import { Avatar, Button, Card } from '$lib/components/ui';
+	import { Heart } from 'reicon-svelte';
+	import { Avatar, StatePanel } from '$lib/components/ui';
 
 	let following = mockStates.slice(0, 6);
 	let upvoted = $state<Set<string>>(new Set());
@@ -46,23 +46,9 @@
 		</div>
 
 		<!-- End state — only shows after feed -->
-		<Card padding="lg" class="mt-10 py-12 flex flex-col items-center text-center pc-enter">
-			<div class="mx-auto size-10 rounded-full bg-[var(--pc-surface)] grid place-items-center">
-				<Heart size={16} weight="Outline" class="opacity-65" />
-			</div>
-			<p class="mt-3 text-sm font-medium">You're all caught up</p>
-			<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65 max-w-[40ch] mx-auto text-pretty">Streaks reward daily upvotes — keep visiting to stay top of AI answers.</p>
-			<Button href="/" variant="primary" class="mt-4">Discover launches <ArrowRight size={14} weight="Outline" class="inline" /></Button>
-		</Card>
+		<div class="mt-10"><StatePanel icon={Heart} title="You're all caught up" description="There are no more launches from the products you follow right now." actionLabel="Discover launches" actionHref="/" class="pc-enter" /></div>
 	{:else}
-		<Card padding="lg" class="py-16 flex flex-col items-center text-center pc-enter">
-			<div class="mx-auto size-10 rounded-full bg-[var(--pc-surface)] grid place-items-center">
-				<Heart size={16} weight="Outline" class="opacity-65" />
-			</div>
-			<p class="mt-3 text-sm font-medium">No subscriptions yet</p>
-			<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65 max-w-[40ch] mx-auto text-pretty">Follow products to see their launches, changelogs, and incidents here.</p>
-			<Button href="/" variant="primary" class="mt-4">Discover launches <ArrowRight size={14} weight="Outline" class="inline" /></Button>
-		</Card>
+		<StatePanel icon={Heart} title="You are not following any products yet" description="Follow a product to see its launches, updates, and service problems here." actionLabel="Discover products" actionHref="/" class="pc-enter" />
 	{/if}
 </div>
 

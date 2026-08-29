@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { mockStates } from '$lib/data/mockStates';
 	import { Rocket, Copy, Check } from 'reicon-svelte';
-	import { Avatar, Button, Card } from '$lib/components/ui';
+	import { Avatar, Button, Card, StatePanel } from '$lib/components/ui';
 
 	let slug = $derived(page.params.slug);
 	let states = $derived(mockStates.filter((s) => s.product.slug === slug));
@@ -86,9 +86,5 @@
 		</div>
 	</div>
 {:else}
-	<div class="flex flex-col items-center justify-center py-20 pc-enter">
-		<p class="text-lg font-medium">Product not found</p>
-		<p class="text-sm text-[var(--pc-text-muted)] opacity-65 mt-1">No product with slug "{slug}".</p>
-		<Button href="/" variant="primary" class="mt-4">Go home</Button>
-	</div>
+	<StatePanel size="page" icon={Rocket} title="Product not found" description={`There is no product with the name “${slug}”.`} actionLabel="Go home" actionHref="/" class="pc-enter" />
 {/if}

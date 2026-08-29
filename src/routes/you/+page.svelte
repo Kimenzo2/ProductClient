@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Button, Card } from '$lib/components/ui';
+	import { StatePanel } from '$lib/components/ui';
+	import { Rocket } from 'reicon-svelte';
 </script>
 
 <svelte:head><title>You — Product Client</title></svelte:head>
@@ -8,9 +9,5 @@
 		<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Your profile</h1>
 		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Showcase work, verified experience, and your launched products.</p>
 	</header>
-	<Card padding="lg" class="py-12 flex flex-col items-center text-center pc-enter">
-		<p class="text-sm font-medium">No products launched yet</p>
-		<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">Launch from Studio — get an SEO-ready page for Google & AI.</p>
-		<Button href="/studio" variant="primary" class="mt-4">Go to Studio</Button>
-	</Card>
+	<StatePanel icon={Rocket} title="You have not launched a product yet" description="When you are ready, create a product page and share it with the people who need to see it." actionLabel="Create a product page" actionHref="/studio" class="pc-enter" />
 </div>

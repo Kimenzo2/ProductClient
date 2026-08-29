@@ -17,7 +17,7 @@
 	</p>
 	<div class="mt-8 flex justify-center gap-3">
 		<a href="/" class="pc-btn-primary">Back to Discover <span class="pc-btn-icon"><ArrowRight size={14} weight="Outline" class="inline" /></span></a>
-		<a href="/following" class="pc-btn-ghost">Go to Following</a>
+		<a href="/products" class="pc-btn-ghost">Browse products</a>
 	</div>
 	<p class="mt-10 text-xs text-[var(--pc-text-faint)]">Error code {page.status} • If this persists, report via Feedback inbox.</p>
 </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Verified, Bell, ArrowUp, Rocket, MessageDots, AlertTriangle, CheckCircle } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
-	import { Avatar, Button, Card } from '$lib/components/ui';
+	import { Avatar, Button, StatePanel } from '$lib/components/ui';
 
 	type Notification = {
 		id: string;
@@ -109,13 +109,7 @@
 			{/each}
 		</div>
 	{:else}
-		<div class="py-16 flex flex-col items-center text-center pc-enter">
-			<div class="mx-auto size-10 rounded-full bg-[var(--pc-surface-2)] grid place-items-center">
-				<Bell size={16} weight="Outline" class="opacity-55" />
-			</div>
-			<p class="mt-3 text-sm font-medium">No unread notifications</p>
-			<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">You're all caught up.</p>
-		</div>
+		<StatePanel icon={Bell} title="You're all caught up" description="New activity from products you follow will appear here." class="pc-enter" />
 	{/if}
 </div>
 

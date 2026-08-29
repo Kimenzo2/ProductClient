@@ -1,0 +1,25 @@
+export type AppSurface = 'public' | 'workspace' | 'auth';
+
+const workspacePrefixes = ['/workspace', '/studio', '/notifications', '/following', '/you'];
+const authPrefixes = ['/auth', '/onboarding'];
+
+function matchesPath(pathname: string, prefix: string): boolean {
+	return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+export function isWorkspacePath(pathname: string): boolean {
+	return workspacePrefixes.some((prefix) => matchesPath(pathname, prefix));
+}
+
+export function isAuthPath(pathname: string): boolean {
+	return authPrefixes.some((prefix) => matchesPath(pathname, prefix));
+}
+
+export function surfaceForPath(pathname: string): AppSurface {
+	if (isAuthPath(pathname)) return 'auth';
+	return isWorkspacePath(pathname) ? 'workspace' : 'public';
+}
+
+export function isWorkspaceHref(href: string): boolean {
+	return isWorkspacePath(href.split(/[?#]/, 1)[0] || '/');
+}

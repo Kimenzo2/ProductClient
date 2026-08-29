@@ -9,3 +9,5 @@ export { default as Label } from './Label.svelte';
 export { default as Separator } from './Separator.svelte';
 export { default as Toggle } from './Toggle.svelte';
 export { default as ToggleGroup } from './ToggleGroup.svelte';
+export { default as StatePanel } from './StatePanel.svelte';
+export { default as Select } from './Select.svelte';
