@@ -1,9 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import { env } from '$env/dynamic/public';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$app/env/public';
 
-// Supports both .env.local / .env with PUBLIC_ prefix (no restart needed for dynamic)
-const supabaseUrl = env.PUBLIC_SUPABASE_URL;
-const supabaseKey = env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabaseUrl = PUBLIC_SUPABASE_URL ?? '';
+const supabaseKey = PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
 
 if (!supabaseUrl || !supabaseKey) {
 	console.warn('Supabase env missing: PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_PUBLISHABLE_KEY');
