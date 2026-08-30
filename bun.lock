@@ -16,6 +16,7 @@
         "@sveltejs/adapter-vercel": "^6.3.4",
         "@sveltejs/kit": "^3.0.0-next.25",
         "@sveltejs/vite-plugin-svelte": "^7.1.2",
+        "@unocss/extractor-svelte": "^66.8.1",
         "svelte": "^5.57.0",
         "svelte-5-doctor": "^0.5.6",
         "svelte-check": "^4.6.0",
@@ -259,6 +260,8 @@
     "@unocss/core": ["@unocss/core@66.8.1", "", {}, "sha512-ze/3qTloXZtFn6TXiNjL6ai1vgMvTCXIm8nqTzoU/Dt5d5MRxA86ERfUmgTX70rEBam5l6vnsaEVZO6WnHhdRA=="],
 
     "@unocss/extractor-arbitrary-variants": ["@unocss/extractor-arbitrary-variants@66.8.1", "", { "dependencies": { "@unocss/core": "66.8.1" } }, "sha512-Gm2hInbjPCasx+YXrBpNbmX7ST8Cl4a2DjNjwX2DA7Tayu7mZcqu/KBKv0f7S0Iam/N+XDYgMOMHMWgml0XFXQ=="],
+
+    "@unocss/extractor-svelte": ["@unocss/extractor-svelte@66.8.1", "", {}, "sha512-PU3H4hgaq6Ut1fqYnJArD7J79rf/Nl1n9UhXkZlCohs3YX4TeTkqnxMiMTTmEb3eTIEn3QeCbzdkzOLhwgq80w=="],
 
     "@unocss/inspector": ["@unocss/inspector@66.8.1", "", { "dependencies": { "@unocss/core": "66.8.1", "@unocss/rule-utils": "66.8.1", "colorette": "^2.0.20", "gzip-size": "^6.0.0", "sirv": "^3.0.2" } }, "sha512-umjZXDpbwJ+8YinvTCkmIKYUtjFRSJ/K3s701GFYYA0yShFRTOw2eECUXkry+lAZ5Zphlt8u+DzIDBqdQt2dbg=="],
 
