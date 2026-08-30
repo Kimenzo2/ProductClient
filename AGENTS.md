@@ -60,7 +60,13 @@ Known issues found so far:
 2. **Keyed each blocks on non-id objects** — tool adds `(item.id)` to `{#each}` blocks but many arrays don't have `id`. Tool should introspect the element type first. Static const arrays don't need keyed blocks at all.
 3. **Duplicate `href="#"` injection** — tool adds `href="#"` to `<a>` tags that already have dynamic `href` bindings, causing `attribute_duplicate` errors.
 
-## 7) Verification checklist before finishing any task
+## 7) UnoCSS safelist — classes in script blocks
+- The svelte-scoped extractor only scans `<template>` blocks, NOT `<script>` blocks. Any utility classes defined as string constants in script are invisible to it — no CSS generated, UI breaks.
+- All 7 UI components (`Button`, `Card`, `Badge`, `Chip`, `Input`, `Textarea`, `Toggle`) plus `Sidebar.svelte` and `FilterChips.svelte` define classes in script blocks.
+- These classes MUST be in the `safelist` array in `uno.config.ts`. When adding new UI components or changing class strings in script blocks, update the safelist.
+- Also: Bits UI components, Open Props design tokens, and UnoCSS utilities are all required. Never remove any of these dependencies.
+
+## 8) Verification checklist before finishing any task
 - [ ] `rg -n "<svg" src` → empty
 - [ ] All new icons import from `reicon-svelte` with `weight="Outline"`
 - [ ] `bun run check` → 0 errors, `bun run build` → success
