@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toggleMode, mode } from 'mode-watcher';
+	import { toggleTheme, getTheme } from '$lib/theme';
 	import { CloseCircle, Menu, Message, Moon, Rocket, Search, Sun } from 'reicon-svelte';
 
 	let {
@@ -10,10 +10,10 @@
 	} = $props();
 
 	let menuOpen = $state(false);
-	let themeReady = $state(false);
+	let isDark = $state(true);
 
 	onMount(() => {
-		themeReady = true;
+		isDark = getTheme() === 'dark';
 	});
 
 	function closeMenu() {
@@ -58,8 +58,8 @@
 			<button type="button" onclick={() => (menuOpen = !menuOpen)} class="grid size-9 place-items-center rounded-full transition-[background-color,color] hover:bg-[var(--pc-surface-2)] lg:hidden" aria-label={menuOpen ? 'Close public navigation' : 'Open public navigation'} aria-expanded={menuOpen}>
 				{#if menuOpen}<CloseCircle size={19} weight="Outline" />{:else}<Menu size={19} weight="Outline" />{/if}
 			</button>
-			<button type="button" onclick={toggleMode} aria-label="Toggle theme" title="Toggle theme" class="grid size-9 place-items-center rounded-full transition-[background-color,color] hover:bg-[var(--pc-surface-2)]">
-				{#if !themeReady || mode.current === 'dark'}<Sun size={18} weight="Outline" />{:else}<Moon size={18} weight="Outline" />{/if}
+			<button type="button" onclick={() => { toggleTheme(); isDark = getTheme() === 'dark'; }} aria-label="Toggle theme" title="Toggle theme" class="grid size-9 place-items-center rounded-full transition-[background-color,color] hover:bg-[var(--pc-surface-2)]">
+				{#if isDark}<Sun size={18} weight="Outline" />{:else}<Moon size={18} weight="Outline" />{/if}
 			</button>
 		</div>
 	</div>

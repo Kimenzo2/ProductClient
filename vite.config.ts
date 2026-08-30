@@ -19,6 +19,12 @@ export default defineConfig({
 			adapter: adapter()
 		})
 	],
+	resolve: {
+		alias: {
+			$lib: 'src/lib',
+			'$lib/*': 'src/lib/*'
+		}
+	},
 	server: {
 		port: 3000,
 		host: 'localhost'

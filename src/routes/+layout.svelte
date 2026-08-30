@@ -4,7 +4,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 	import 'virtual:uno.css';
-	import { ModeWatcher } from 'mode-watcher';
+	import { toggleTheme, type Theme } from '$lib/theme';
 	import { Add, Home, Inbox, Search, UserSquare } from 'reicon-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import PublicHeader from '$lib/components/layout/PublicHeader.svelte';
@@ -66,7 +66,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Geist:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 </svelte:head>
 
-<ModeWatcher defaultMode="dark" darkClassNames={['dark']} lightClassNames={['light']} disableTransitions={false} />
+<!-- Theme managed via app.html inline script + $lib/theme -->
 
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--pc-text)] focus:px-5 focus:py-2 focus:text-sm focus:font-700 focus:text-[var(--pc-bg)]">Skip to content</a>
 

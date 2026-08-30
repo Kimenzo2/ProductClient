@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toggleMode, mode } from 'mode-watcher';
+	import { toggleTheme, getTheme } from '$lib/theme';
 	import { Bell, Menu, Moon, Rocket, Search, Sun } from 'reicon-svelte';
 	import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
 
@@ -16,10 +16,10 @@
 		unreadCount?: number;
 	} = $props();
 
-	let themeReady = $state(false);
+	let isDark = $state(true);
 
 	onMount(() => {
-		themeReady = true;
+		isDark = getTheme() === 'dark';
 	});
 </script>
 
@@ -73,12 +73,12 @@
 
 			<button
 				type="button"
-				onclick={toggleMode}
+				onclick={() => { toggleTheme(); isDark = getTheme() === 'dark'; }}
 				aria-label="Toggle theme"
 				title="Toggle theme"
 				class="grid size-9 place-items-center rounded-full transition-[background-color,color] duration-150 hover:bg-[var(--pc-surface-2)]"
 			>
-				{#if !themeReady || mode.current === 'dark'}
+				{#if isDark}
 					<Sun size={18} weight="Outline" />
 				{:else}
 					<Moon size={18} weight="Outline" />
