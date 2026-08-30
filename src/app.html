@@ -4,6 +4,7 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		%unocss-svelte-scoped.global%
 		<script>
 			(function() {
 				var stored = localStorage.getItem('theme');
@@ -15,7 +16,6 @@
 				document.documentElement.style.colorScheme = mode;
 			})();
 		</script>
-		%unocss-svelte-scoped.global%
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
