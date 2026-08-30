@@ -7,7 +7,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [
 		UnoCSS({
-			mode: 'per-module',
 			extractors: [extractorSvelte()],
 		}),
 		sveltekit({
