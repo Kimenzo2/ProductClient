@@ -28,9 +28,12 @@ This file is read by future AI agents working in `C:\Users\admin\Downloads\Produ
 ## 3) Stack — do not reintroduce Tailwind
 - Stack is `Bun 1.4.0 + Svelte 5.56.10 + SvelteKit 3.0.0-next.25 + Open Props + Bits UI + UnoCSS (optional, preflights: [] ) + Supabase`. `open-props` normalize is the reset; `unocss` provides only atomic utilities (`flex`, `grid`, `px-3`, shortcut `pc-chip`), not Tailwind.
 - No `tailwindcss` direct dep, no `@tailwind` directive, no `tailwind.config.*`. Verify with `bun pm ls` (should show `bits-ui/open-props/unocss` only) and `rg tailwind src --glob '!node_modules'` only comments.
+- **UnoCSS requires `extractorSvelte`** — Without `@unocss/extractor-svelte` in the UnoCSS plugin config (`vite.config.ts`), UnoCSS cannot parse `.svelte` template syntax (`class:foo={bar}`, `class={expr}`) during production builds. All atomic CSS utilities silently vanish from the production bundle. The extractor is already configured — do not remove it. Reference: https://unocss.dev/integrations/vite#sveltekit
 
 ## 4) Theme — dark is default
-- `src/app.css:8` defines exact tokens from user dump (`--primary 119 152 18`, `--background-dark 13 13 13` → `#0d0d0d`, grayscale `--gray-*`, typography `--font-inter`, `--font-family-headings-custom: ApfelGrotezk`). Dark is default via `:root`; light is `.light` (mode-watcher adds `html.light`/`html.dark`). `src/routes/+layout.svelte:32` is `<ModeWatcher defaultMode="dark" darkClassNames={['dark']} lightClassNames={['light']} />` — do not change defaults without user approval.
+- `src/app.css:8` defines exact tokens from user dump (`--primary 119 152 18`, `--background-dark 13 13 13` → `#0d0d0d`, grayscale `--gray-*`, typography `--font-inter`, `--font-family-headings-custom: ApfelGrotezk`). Dark is default via `:root`; light is `.light`.
+- Theme is managed by a **inline `<script>` in `src/app.html`** that sets `html.className` before rendering (prevents FOUC). Toggle via `$lib/theme.ts` (`toggleTheme`, `getTheme`, `setTheme`). **Do NOT re-introduce `mode-watcher`** — it injects an inline `<script>` during SSR that swallows SvelteKit 3's CSS `<link>` tags, causing a completely unstyled production site.
+- Do not change defaults without user approval.
 
 ## 5) Project paths
 - Workspace: `C:\Users\admin\Downloads\ProductClient`
