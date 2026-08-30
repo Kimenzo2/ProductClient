@@ -1,4 +1,4 @@
-import { defineConfig, presetUno, presetIcons, transformerDirectives } from 'unocss';
+import { defineConfig, presetUno, presetIcons } from 'unocss';
 
 export default defineConfig({
 	presets: [
@@ -8,7 +8,6 @@ export default defineConfig({
 			extraProperties: { display: 'inline-block', 'vertical-align': 'middle' }
 		})
 	],
-	transformers: [transformerDirectives()],
 	// No Tailwind preflight – we use Open Props normalize
 	preflights: [],
 	shortcuts: {
