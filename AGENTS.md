@@ -26,13 +26,21 @@ This file is read by future AI agents working in `C:\Users\admin\Downloads\Produ
 - Icon mapping reference (product uses these): Header `Menu/Search/Mic/Add/Sun/Moon/Bell/CloseCircle/Play`; Sidebar `Home/Video/Compass/Bell/Box/Heart/History/Inbox/ArrowDown`; VideoCard `Play/Verified/MoreH`; Discover `Sort/Search/Play/Home/Video/Users2/UserSquare`; Watch `Play/Verified/Add/Heart/Dislike/Share/Upload`; Studio `Upload`; Channel `Verified`.
 
 ## 3) Stack — do not reintroduce Tailwind
-- Stack is `Bun 1.4.0 + Svelte 5.56.10 + SvelteKit 3.0.0-next.25 + Open Props + Bits UI + UnoCSS (optional, preflights: [] ) + Supabase`. `open-props` normalize is the reset; `unocss` provides only atomic utilities (`flex`, `grid`, `px-3`, shortcut `pc-chip`), not Tailwind.
+- Stack is `Bun 1.4.0 + Svelte 5.57.0 + SvelteKit 3.0.0-next.25 + Open Props + Bits UI + UnoCSS (global mode, preflights: []) + Supabase`. `open-props` normalize is the reset; `unocss` provides only atomic utilities (`flex`, `grid`, `px-3`, shortcut `pc-chip`), not Tailwind.
 - No `tailwindcss` direct dep, no `@tailwind` directive, no `tailwind.config.*`. Verify with `bun pm ls` (should show `bits-ui/open-props/unocss` only) and `rg tailwind src --glob '!node_modules'` only comments.
-- **UnoCSS uses `@unocss/svelte-scoped/vite`** — SvelteKit 3's Vite Environment API breaks UnoCSS global mode (`transformIndexHtml` not supported) and per-module mode (strips responsive prefixes). The working solution is `@unocss/svelte-scoped/vite` which hooks into Svelte's compiler transform pipeline. Config: `vite.config.ts` uses `import UnoCSS from '@unocss/svelte-scoped/vite'`, `app.html` has `%unocss-svelte-scoped.global%` before `%sveltekit.head%`, and `+layout.svelte` does NOT import `virtual:uno.css`. Do not switch to `unocss/vite` global mode or per-module mode. Reference: https://unocss.dev/integrations/svelte-scoped
+- **UnoCSS config — `unocss/vite` global mode with `@unocss/extractor-svelte`**
+  - `vite.config.ts`: `import UnoCSS from 'unocss/vite'` + `extractors: [extractorSvelte()]`
+  - `+layout.svelte`: `import 'virtual:uno.css'` (this is REQUIRED — it tells Vite to bundle UnoCSS via the module graph instead of relying on `transformIndexHtml`)
+  - `src/app.html`: NO `%unocss-svelte-scoped.global%` placeholder
+  - **Do NOT use `@unocss/svelte-scoped/vite`** — its global CSS uses relative `./_app/...` paths that break on nested routes (e.g. `/auth` loads `/auth/_app/...` → 404)
+  - **Do NOT use per-module mode** — it strips responsive prefixes (`lg:`, `md:`) causing mobile layout on all screens
+  - The earlier production failure (unstyled site) was caused by BOTH mode-watcher AND UnoCSS — mode-watcher was swallowing CSS `<link>` tags. With mode-watcher removed, global mode + extractor works correctly
+  - Reference: https://unocss.dev/integrations/vite
 
 ## 4) Theme — dark is default
 - `src/app.css:8` defines exact tokens from user dump (`--primary 119 152 18`, `--background-dark 13 13 13` → `#0d0d0d`, grayscale `--gray-*`, typography `--font-inter`, `--font-family-headings-custom: ApfelGrotezk`). Dark is default via `:root`; light is `.light`.
-- Theme is managed by a **inline `<script>` in `src/app.html`** that sets `html.className` before rendering (prevents FOUC). Toggle via `$lib/theme.ts` (`toggleTheme`, `getTheme`, `setTheme`). **Do NOT re-introduce `mode-watcher`** — it injects an inline `<script>` during SSR that swallows SvelteKit 3's CSS `<link>` tags, causing a completely unstyled production site.
+- Theme is managed by an **inline `<script>` in `src/app.html`** that sets `html.className` before rendering (prevents FOUC). Toggle via `$lib/theme.ts` (`toggleTheme`, `getTheme`, `setTheme`).
+- **Do NOT re-introduce `mode-watcher`** — it injects an inline `<script>` during SvelteKit 3 SSR that swallows the CSS `<link>` tags. Browsers treat them as JavaScript, not stylesheets → zero CSS loads in production. This was the root cause of the completely unstyled production site.
 - Do not change defaults without user approval.
 
 ## 5) Project paths
@@ -61,7 +69,7 @@ Known issues found so far:
 3. **Duplicate `href="#"` injection** — tool adds `href="#"` to `<a>` tags that already have dynamic `href` bindings, causing `attribute_duplicate` errors.
 
 ## 7) UnoCSS safelist — classes in script blocks
-- The svelte-scoped extractor only scans `<template>` blocks, NOT `<script>` blocks. Any utility classes defined as string constants in script are invisible to it — no CSS generated, UI breaks.
+- The UnoCSS svelte extractor (`@unocss/extractor-svelte`) only scans `<template>` blocks, NOT `<script>` blocks. Any utility classes defined as string constants in script are invisible to it — no CSS generated, UI breaks.
 - All 7 UI components (`Button`, `Card`, `Badge`, `Chip`, `Input`, `Textarea`, `Toggle`) plus `Sidebar.svelte` and `FilterChips.svelte` define classes in script blocks.
 - These classes MUST be in the `safelist` array in `uno.config.ts`. When adding new UI components or changing class strings in script blocks, update the safelist.
 - Also: Bits UI components, Open Props design tokens, and UnoCSS utilities are all required. Never remove any of these dependencies.

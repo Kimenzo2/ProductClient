@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
+	import 'virtual:uno.css';
 	import { toggleTheme, type Theme } from '$lib/theme';
 	import { Add, Home, Inbox, Search, UserSquare } from 'reicon-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
