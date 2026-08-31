@@ -3,11 +3,11 @@
 This file is read by future AI agents working in `C:\Users\admin\Downloads\ProductClient`. Follow it strictly.
 
 ## 1) Dev server — NEVER kill localhost
-- `localhost:3000` is the dev server (`bun run dev` via Vite + SvelteKit 3.0.0-next.25). **Do not kill it** when a task is given.
+- `localhost:3000` is the dev server (`bun run dev` via Vite + SvelteKit 2.70.3). **Do not kill it** when a task is given.
 - The user explicitly said: "When I give you a Task stop killing localhost."
 - If you need to restart for a breaking config change (SvelteKit bump, Vite plugin), ask first. Otherwise use HMR — edits hot-reload without restart.
-- Current process: `node` listening on `[::1]:3000` (PID varies, e.g. 16452) + `bun` watcher. Verify with `netstat -ano | findstr :3000` and `curl -I http://localhost:3000` (expect 200), never `Stop-Process`/`taskkill` unless user approves.
-- If you started a duplicate server, stop only the duplicate, never the primary 3000 listener.
+- Current process: `node` listening on `[::1]:3000` (PID varies) + `bun` watcher. Never `Stop-Process`/`taskkill` unless user approves.
+
 
 ## 2) Icons — ALWAYS use Reicon
 - **All icons must be from `reicon-svelte` Outline weight. Never use inline `<svg>` or other libraries (lucide, heroicons, etc).**
@@ -26,21 +26,19 @@ This file is read by future AI agents working in `C:\Users\admin\Downloads\Produ
 - Icon mapping reference (product uses these): Header `Menu/Search/Mic/Add/Sun/Moon/Bell/CloseCircle/Play`; Sidebar `Home/Video/Compass/Bell/Box/Heart/History/Inbox/ArrowDown`; VideoCard `Play/Verified/MoreH`; Discover `Sort/Search/Play/Home/Video/Users2/UserSquare`; Watch `Play/Verified/Add/Heart/Dislike/Share/Upload`; Studio `Upload`; Channel `Verified`.
 
 ## 3) Stack — do not reintroduce Tailwind
-- Stack is `Bun 1.4.0 + Svelte 5.57.0 + SvelteKit 3.0.0-next.25 + Open Props + Bits UI + UnoCSS (global mode, preflights: []) + Supabase`. `open-props` normalize is the reset; `unocss` provides only atomic utilities (`flex`, `grid`, `px-3`, shortcut `pc-chip`), not Tailwind.
+- Stack is `Bun 1.4.0 + Svelte 5.57.0 + SvelteKit 2.70.3 + Open Props + Bits UI + UnoCSS (svelte-scoped, preflights: []) + Supabase`. `open-props` normalize is the reset; `unocss` provides only atomic utilities (`flex`, `grid`, `px-3`, shortcut `pc-chip`), not Tailwind.
 - No `tailwindcss` direct dep, no `@tailwind` directive, no `tailwind.config.*`. Verify with `bun pm ls` (should show `bits-ui/open-props/unocss` only) and `rg tailwind src --glob '!node_modules'` only comments.
 - **UnoCSS config — `unocss/vite` global mode with `@unocss/extractor-svelte`**
-  - `vite.config.ts`: `import UnoCSS from 'unocss/vite'` + `extractors: [extractorSvelte()]`
-  - `+layout.svelte`: `import 'virtual:uno.css'` (this is REQUIRED — it tells Vite to bundle UnoCSS via the module graph instead of relying on `transformIndexHtml`)
-  - `src/app.html`: NO `%unocss-svelte-scoped.global%` placeholder
-  - **Do NOT use `@unocss/svelte-scoped/vite`** — its global CSS uses relative `./_app/...` paths that break on nested routes (e.g. `/auth` loads `/auth/_app/...` → 404)
-  - **Do NOT use per-module mode** — it strips responsive prefixes (`lg:`, `md:`) causing mobile layout on all screens
-  - The earlier production failure (unstyled site) was caused by BOTH mode-watcher AND UnoCSS — mode-watcher was swallowing CSS `<link>` tags. With mode-watcher removed, global mode + extractor works correctly
+  - `svelte.config.js`: has `vitePreprocess()` and adapter config
+  - `vite.config.ts`: `import { sveltekit } from '@sveltejs/kit/vite'` — no UnoCSS plugin needed, it auto-loads from `uno.config.ts`
+  - `+layout.svelte`: `import 'virtual:uno.css'` (required for global mode)
+  - SvelteKit 2 does NOT use Vite 8's Environment API — global mode `transformIndexHtml` works correctly
   - Reference: https://unocss.dev/integrations/vite
 
 ## 4) Theme — dark is default
 - `src/app.css:8` defines exact tokens from user dump (`--primary 119 152 18`, `--background-dark 13 13 13` → `#0d0d0d`, grayscale `--gray-*`, typography `--font-inter`, `--font-family-headings-custom: ApfelGrotezk`). Dark is default via `:root`; light is `.light`.
 - Theme is managed by an **inline `<script>` in `src/app.html`** that sets `html.className` before rendering (prevents FOUC). Toggle via `$lib/theme.ts` (`toggleTheme`, `getTheme`, `setTheme`).
-- **Do NOT re-introduce `mode-watcher`** — it injects an inline `<script>` during SvelteKit 3 SSR that swallows the CSS `<link>` tags. Browsers treat them as JavaScript, not stylesheets → zero CSS loads in production. This was the root cause of the completely unstyled production site.
+- **Do NOT re-introduce `mode-watcher`** — it injects an inline `<script>` during SSR that swallows CSS `<link>` tags.
 - Do not change defaults without user approval.
 
 ## 5) Project paths
@@ -78,4 +76,4 @@ Known issues found so far:
 - [ ] `rg -n "<svg" src` → empty
 - [ ] All new icons import from `reicon-svelte` with `weight="Outline"`
 - [ ] `bun run check` → 0 errors, `bun run build` → success
-- [ ] `curl -I http://localhost:3000` → 200 (server still alive)
+
