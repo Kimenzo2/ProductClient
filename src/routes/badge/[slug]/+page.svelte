@@ -55,7 +55,7 @@
 				<button onclick={copyEmbed} class="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]">
 																
 					{#if copied}
-						<Check size={12} weight="Outline" color="var(--green-600)" /> Copied
+						<Check size={12} weight="Outline" color="var(--color-green-600)" /> Copied
 					{:else}
 						<Copy size={12} weight="Outline" /> Copy
 					{/if}

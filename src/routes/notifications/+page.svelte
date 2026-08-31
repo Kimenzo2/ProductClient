@@ -36,7 +36,7 @@
 		launch: 'var(--color-blue-600)',
 		upvote: 'var(--pc-accent)',
 		comment: 'var(--pc-text-muted)',
-		incident: 'var(--yellow-600)',
+		incident: 'var(--yellow-7)',
 		milestone: 'var(--pc-accent)'
 	};
 
