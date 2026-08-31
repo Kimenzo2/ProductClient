@@ -1,13 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════
-   Tailwind v4 — theme + utilities ONLY, no preflight (Open Props handles reset)
+   CSS Cascade Layer order: base < theme < utilities
+   Open Props MUST be in base layer, otherwise unlayered CSS
+   beats all Tailwind utilities in the cascade.
    ═══════════════════════════════════════════════════════════════ */
+@layer base, theme, utilities;
+
+@import 'open-props/style' layer(base);
+@import 'open-props/normalize' layer(base);
+
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
-
-/* Open Props — our reset (unlayered, but Tailwind utilities now
-   win via specificity: class selectors beat element selectors) */
-@import 'open-props/style';
-@import 'open-props/normalize';
 
 /* ═══════════════════════════════════════════════════════════════
    Safelist: utility classes defined as string constants in
