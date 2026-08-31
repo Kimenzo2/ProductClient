@@ -88,6 +88,10 @@
 		</nav>
 	{:else if surface === 'auth'}
 		<AuthShell>{@render children()}</AuthShell>
+	{:else if surface === 'landing'}
+		<main id="main" class="bg-[var(--pc-bg)]">
+			{@render children()}
+		</main>
 	{:else}
 		<PublicHeader onOpenSearch={openSearch} />
 		<main id="main" class="mx-auto min-h-[calc(100dvh-var(--pc-header-h))] w-full max-w-[1440px] bg-[var(--pc-bg)] pc-orbs pc-grain">
