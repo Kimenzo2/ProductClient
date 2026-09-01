@@ -26,6 +26,8 @@
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.112.4",
+		"@vercel/analytics": "^2.0.1",
+		"@vercel/speed-insights": "^2.0.0",
 		"bits-ui": "^2.19.0",
 		"open-props": "^1.7.23",
 		"reicon-svelte": "^1.0.103",
