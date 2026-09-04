@@ -1,3 +1,5 @@
+import type { Session } from '@supabase/supabase-js';
+
 const authOrigin = 'https://auth.productclient.com';
 const appOrigin = 'https://app.productclient.com';
 
@@ -36,7 +38,20 @@ export function authHref(destination: AuthDestination, next?: string): string {
 /**
  * Send an authenticated user to the application host after authentication.
  */
-export function appHref(path: string): string {
+export function appHref(path: string, session?: Pick<Session, 'access_token' | 'refresh_token'>): string {
 	const normalizedPath = path.startsWith('/') ? path : '/workspace';
-	return import.meta.env.PROD ? `${appOrigin}${normalizedPath}` : normalizedPath;
+	const href = import.meta.env.PROD ? `${appOrigin}${normalizedPath}` : normalizedPath;
+
+	// Browser storage is isolated by origin. Carry a newly-created production
+	// session to app.* once so the app host can persist it in its own storage.
+	// The fragment is never sent in the HTTP request and is removed immediately
+	// after the app imports the session.
+	if (!session || !import.meta.env.PROD) return href;
+
+	const handoff = new URLSearchParams({
+		pc_session_handoff: '1',
+		pc_access_token: session.access_token,
+		pc_refresh_token: session.refresh_token
+	});
+	return `${href}#${handoff.toString()}`;
 }

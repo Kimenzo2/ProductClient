@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import type { Session } from '@supabase/supabase-js';
 	import { ArrowRight, Lock } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
@@ -18,8 +19,8 @@
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 	let next = $derived(safeNextPath(page.url.searchParams.get('next'), '/workspace'));
 
-	function continueToApp(path: string): void {
-		const destination = appHref(path);
+	function continueToApp(path: string, session?: Session | null): void {
+		const destination = appHref(path, session ?? undefined);
 		if (destination.startsWith('http')) {
 			window.location.assign(destination);
 			return;
@@ -33,7 +34,7 @@
 			return;
 		}
 		void supabase.auth.getSession().then(({ data }) => {
-			if (data.session) continueToApp(next);
+			if (data.session) continueToApp(next, data.session);
 		});
 	});
 
@@ -51,13 +52,13 @@
 		formError = '';
 		if (!validate() || !supabase) return;
 		busy = true;
-		const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+		const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 		if (error) {
 			formError = readableAuthError(error);
 			busy = false;
 			return;
 		}
-		continueToApp(next);
+		continueToApp(next, data.session);
 	}
 
 	async function signInWithGoogle() {

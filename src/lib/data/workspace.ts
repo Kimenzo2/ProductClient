@@ -195,9 +195,10 @@ export type PostIncidentTask = {
 	title: string;
 	description: string;
 	owner: string;
-	status: 'Open' | 'In progress' | 'Done';
+	status: 'Open' | 'Done' | 'Not doing';
 	due: string;
-	kind: 'Timeline review' | 'Customer review' | 'Debrief' | 'Post-mortem decision';
+	phase: 'Documenting' | 'Reviewing';
+	kind: 'Timeline review' | 'Customer review' | 'Debrief' | 'Follow-ups' | 'Post-mortem decision';
 	href?: string;
 };
 
@@ -413,11 +414,11 @@ export const followUps: FollowUpRecord[] = [
 ];
 
 export const postIncidentTasks: PostIncidentTask[] = [
-	{ id: 'post-incident-1', incidentId: 'inc-1', title: 'Review the incident timeline', description: 'Confirm the sequence of detection, mitigation, and recovery before the record is closed.', owner: 'Daniel Kim', status: 'Done', due: 'Today', kind: 'Timeline review' },
-	{ id: 'post-incident-2', incidentId: 'inc-1', title: 'Review the customer explanation', description: 'Make sure the public update explains the impact and what changed in plain language.', owner: 'Nina Volkov', status: 'In progress', due: 'Tomorrow', kind: 'Customer review', href: hostedStatusPage.href },
-	{ id: 'post-incident-3', incidentId: 'inc-1', title: 'Decide whether a post-mortem is needed', description: 'Use the impact and response record to agree on the right learning step for this incident.', owner: 'Daniel Kim', status: 'Open', due: 'Friday', kind: 'Post-mortem decision' },
-	{ id: 'post-incident-4', incidentId: 'inc-3', title: 'Review the sign-in deployment changes', description: 'Bring the relevant change into the response record so the team can compare it with the reports.', owner: 'Daniel Kim', status: 'Open', due: 'Today', kind: 'Timeline review' },
-	{ id: 'post-incident-5', incidentId: 'inc-3', title: 'Schedule a response debrief', description: 'Invite the responders to review what helped, what slowed the response, and what to change next time.', owner: 'Amara Mensah', status: 'Open', due: 'Tomorrow', kind: 'Debrief' }
+	{ id: 'post-incident-1', incidentId: 'inc-1', title: 'Review the incident timeline', description: 'Confirm the sequence of detection, mitigation, and recovery before the record is closed.', owner: 'Daniel Kim', status: 'Done', due: 'Today', phase: 'Documenting', kind: 'Timeline review', href: '/workspace/incidents/inc-1' },
+	{ id: 'post-incident-2', incidentId: 'inc-1', title: 'Review follow-ups', description: 'Confirm the remaining work has a clear owner, due date, and destination after this incident.', owner: 'Daniel Kim', status: 'Open', due: 'Tomorrow', phase: 'Documenting', kind: 'Follow-ups', href: '/workspace/incidents/follow-ups?selected=follow-up-1' },
+	{ id: 'post-incident-3', incidentId: 'inc-1', title: 'Decide whether a post-mortem is needed', description: 'Use the impact and response record to agree on the right learning step for this incident.', owner: 'Daniel Kim', status: 'Open', due: 'Friday', phase: 'Documenting', kind: 'Post-mortem decision' },
+	{ id: 'post-incident-4', incidentId: 'inc-1', title: 'Review the customer update', description: 'Confirm the public update explains the customer impact and what changed in plain language.', owner: 'Nina Volkov', status: 'Open', due: 'Tomorrow', phase: 'Reviewing', kind: 'Customer review', href: hostedStatusPage.href },
+	{ id: 'post-incident-5', incidentId: 'inc-1', title: 'Schedule a response debrief', description: 'Invite the responders to review what helped, what slowed the response, and what to change next time.', owner: 'Amara Mensah', status: 'Open', due: 'Next week', phase: 'Reviewing', kind: 'Debrief' }
 ];
 
 export const searchGaps: SearchGapRecord[] = [
@@ -575,9 +576,6 @@ export function problemsForFeedback(feedbackId: string): ProblemRecord[] {
 	return problems.filter((problem) => problem.feedbackIds.includes(feedbackId));
 }
 
-export function followUpsForIncident(incidentId: string): FollowUpRecord[] {
-	return followUps.filter((followUp) => followUp.incidentId === incidentId);
-}
 
 export function makerByHandle(handle: string) {
 	return makers.find((maker) => maker.handle === handle);

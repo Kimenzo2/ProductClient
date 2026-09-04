@@ -13,7 +13,9 @@ export const supabase: SupabaseClient | null = supabaseUrl && supabaseKey
 			auth: {
 				autoRefreshToken: true,
 				persistSession: true,
-				detectSessionInUrl: true,
+				// Auth callbacks and the cross-host session handoff are processed
+				// explicitly so two clients cannot consume the same refresh token.
+				detectSessionInUrl: false,
 				flowType: 'pkce'
 			}
 		})

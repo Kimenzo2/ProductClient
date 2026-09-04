@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { type EmailOtpType } from '@supabase/supabase-js';
+	import { type EmailOtpType, type Session } from '@supabase/supabase-js';
 	import { ArrowRight, CheckCircle, Lock } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
@@ -21,11 +21,11 @@
 		}
 
 		const next = safeNextPath(page.url.searchParams.get('next'), mode === 'confirm' ? '/reset-password' : '/workspace');
-		const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next);
 		let redirected = false;
-		const redirectIfSignedIn = (session: unknown) => {
+		const redirectIfSignedIn = (session: Session | null) => {
 			if (!session || redirected) return;
 			redirected = true;
+			const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next, session);
 			if (destination.startsWith('http')) {
 				window.location.assign(destination);
 			} else {

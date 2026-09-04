@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import type { Session } from '@supabase/supabase-js';
 	import { ArrowRight, Rocket } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
@@ -19,8 +20,8 @@
 	let busy = $state(false);
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 
-	function continueToApp(path: string): void {
-		const destination = appHref(path);
+	function continueToApp(path: string, session?: Session | null): void {
+		const destination = appHref(path, session ?? undefined);
 		if (destination.startsWith('http')) {
 			window.location.assign(destination);
 			return;
@@ -59,7 +60,7 @@
 			return;
 		}
 		if (data.session) {
-			continueToApp('/onboarding/profile');
+			continueToApp('/onboarding/profile', data.session);
 			return;
 		}
 		confirmationSent = true;

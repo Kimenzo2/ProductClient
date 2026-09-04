@@ -2,8 +2,9 @@ import { browser } from '$app/environment';
 import { postIncidentTasks as seedTasks, type PostIncidentTask } from '$lib/data/workspace';
 
 const STORAGE_KEY = 'productclient.post-incident-flow.preview.v1';
-const statuses: PostIncidentTask['status'][] = ['Open', 'In progress', 'Done'];
-const kinds: PostIncidentTask['kind'][] = ['Timeline review', 'Customer review', 'Debrief', 'Post-mortem decision'];
+const statuses: PostIncidentTask['status'][] = ['Open', 'Done', 'Not doing'];
+const phases: PostIncidentTask['phase'][] = ['Documenting', 'Reviewing'];
+const kinds: PostIncidentTask['kind'][] = ['Timeline review', 'Customer review', 'Debrief', 'Follow-ups', 'Post-mortem decision'];
 
 export type PostIncidentTaskEdit = Pick<PostIncidentTask, 'status' | 'owner' | 'due'>;
 
@@ -23,6 +24,7 @@ function isTask(value: unknown): value is PostIncidentTask {
 		typeof task.due === 'string' &&
 		(typeof task.href === 'string' || task.href === undefined) &&
 		statuses.includes(task.status as PostIncidentTask['status']) &&
+		phases.includes(task.phase as PostIncidentTask['phase']) &&
 		kinds.includes(task.kind as PostIncidentTask['kind'])
 	);
 }
