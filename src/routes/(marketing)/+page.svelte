@@ -17,6 +17,7 @@
 		Play
 	} from 'reicon-svelte';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
+	import { authHref } from '$lib/auth/urls';
 
 	const areas = [
 		{
@@ -108,7 +109,7 @@
 
 		<div class="mx-1 h-4 w-px bg-white/[0.08]"></div>
 
-		<a href="/auth/sign-up" class="ml-1 flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-all hover:opacity-85 active:scale-[0.96]">
+		<a href={authHref('sign-up')} class="ml-1 flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-black transition-all hover:opacity-85 active:scale-[0.96]">
 			Get started
 			<ArrowRight size={13} weight="Outline" />
 		</a>
@@ -223,7 +224,7 @@
 			<a href="/feed" class="transition-colors hover:text-white">Discover</a>
 			<a href="/products" class="transition-colors hover:text-white">Products</a>
 			<a href="/launchpad" class="transition-colors hover:text-white">Launches</a>
-			<a href="/auth" class="transition-colors hover:text-white">Sign in</a>
+		<a href={authHref('login')} class="transition-colors hover:text-white">Sign in</a>
 		</div>
 		<p class="text-[12px] text-[var(--pc-text-faint)]">&copy; 2026 Product Client</p>
 	</div>

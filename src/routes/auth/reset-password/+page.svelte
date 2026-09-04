@@ -5,6 +5,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { passwordError, readableAuthError } from '$lib/auth/utils';
+	import { authHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let password = $state('');
@@ -63,7 +64,7 @@
 		<AuthInput id="reset-confirmation" label="Confirm new password" name="password-confirmation" type="password" autocomplete="new-password" placeholder="Enter it again" bind:value={confirmation} error={confirmationError} required disabled={busy} />
 		<Button type="submit" size="lg" loading={busy} class="auth-primary">Save new password <ArrowRight size={16} weight="Outline" /></Button>
 	</form>
-	<div class="auth-links"><a href="/auth">Back to sign in</a></div>
+	<div class="auth-links"><a href={authHref('login')}>Back to sign in</a></div>
 </section>
 
 <style>

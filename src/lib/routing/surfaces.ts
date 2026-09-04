@@ -1,7 +1,16 @@
 export type AppSurface = 'public' | 'workspace' | 'auth' | 'landing';
 
 const workspacePrefixes = ['/workspace', '/studio', '/notifications', '/following', '/you'];
-const authPrefixes = ['/auth', '/onboarding'];
+const authPrefixes = [
+	'/auth',
+	'/onboarding',
+	'/log-in',
+	'/sign-up',
+	'/forgot-password',
+	'/reset-password',
+	'/callback',
+	'/confirm'
+];
 
 function matchesPath(pathname: string, prefix: string): boolean {
 	return pathname === prefix || pathname.startsWith(`${prefix}/`);

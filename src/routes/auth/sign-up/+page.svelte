@@ -5,6 +5,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { authCallbackUrl, passwordError, readableAuthError } from '$lib/auth/utils';
+	import { authHref, appHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -17,6 +18,15 @@
 	let confirmationSent = $state(false);
 	let busy = $state(false);
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
+
+	function continueToApp(path: string): void {
+		const destination = appHref(path);
+		if (destination.startsWith('http')) {
+			window.location.assign(destination);
+			return;
+		}
+		void goto(destination, { replaceState: true });
+	}
 
 	onMount(() => {
 		if (!supabase) formError = 'Supabase is not configured for this app.';
@@ -49,7 +59,7 @@
 			return;
 		}
 		if (data.session) {
-			await goto('/onboarding/profile', { replaceState: true });
+			continueToApp('/onboarding/profile');
 			return;
 		}
 		confirmationSent = true;
@@ -85,7 +95,7 @@
 		
 		<h1 id="confirmation-title">Confirm your email</h1>
 		<p>We sent a confirmation link to <strong>{email}</strong>. Open it to continue setting up your workspace.</p>
-		<Button href="/auth" size="lg" class="auth-primary">Back to sign in <ArrowRight size={16} weight="Outline" /></Button>
+		<Button href={authHref('login')} size="lg" class="auth-primary">Back to sign in <ArrowRight size={16} weight="Outline" /></Button>
 		<p class="small-note">The link may take a minute to arrive. Check your spam folder if you do not see it.</p>
 	</section>
 {:else}
@@ -113,7 +123,7 @@
 			Continue with Google
 		</Button>
 
-		<div class="auth-links"><p>Already have an account? <a href="/auth">Sign in</a></p></div>
+		<div class="auth-links"><p>Already have an account? <a href={authHref('login')}>Sign in</a></p></div>
 	</section>
 {/if}
 

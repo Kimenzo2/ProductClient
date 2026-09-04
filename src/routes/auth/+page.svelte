@@ -6,6 +6,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { authCallbackUrl, readableAuthError, safeNextPath } from '$lib/auth/utils';
+	import { authHref, appHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -17,13 +18,22 @@
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 	let next = $derived(safeNextPath(page.url.searchParams.get('next'), '/workspace'));
 
+	function continueToApp(path: string): void {
+		const destination = appHref(path);
+		if (destination.startsWith('http')) {
+			window.location.assign(destination);
+			return;
+		}
+		void goto(destination, { replaceState: true });
+	}
+
 	onMount(() => {
 		if (!supabase) {
 			formError = 'Supabase is not configured for this app.';
 			return;
 		}
 		void supabase.auth.getSession().then(({ data }) => {
-			if (data.session) void goto(next, { replaceState: true });
+			if (data.session) continueToApp(next);
 		});
 	});
 
@@ -47,7 +57,7 @@
 			busy = false;
 			return;
 		}
-		await goto(next, { replaceState: true });
+		continueToApp(next);
 	}
 
 	async function signInWithGoogle() {
@@ -97,8 +107,8 @@
 	</Button>
 
 	<div class="auth-links">
-		<a href="/auth/forgot-password">Forgot your password?</a>
-		<p>New to Product Client? <a href="/auth/sign-up">Create an account</a></p>
+		<a href={authHref('forgot-password')}>Forgot your password?</a>
+		<p>New to Product Client? <a href={authHref('sign-up')}>Create an account</a></p>
 	</div>
 </section>
 

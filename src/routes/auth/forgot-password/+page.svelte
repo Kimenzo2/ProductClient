@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { readableAuthError } from '$lib/auth/utils';
+	import { authHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -27,7 +28,7 @@
 		if (!supabase) return;
 		busy = true;
 		const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-			redirectTo: `${window.location.origin}/auth/reset-password`
+			redirectTo: authHref('reset-password')
 		});
 		if (error) {
 			formError = readableAuthError(error);
@@ -50,7 +51,7 @@
 		
 		<h1 id="reset-sent-title">Your reset link is on its way</h1>
 		<p>If an account uses <strong>{email}</strong>, we sent instructions to reset its password.</p>
-		<Button href="/auth" size="lg" class="auth-primary"><ArrowLeft size={16} weight="Outline" /> Back to sign in</Button>
+		<Button href={authHref('login')} size="lg" class="auth-primary"><ArrowLeft size={16} weight="Outline" /> Back to sign in</Button>
 		<p class="small-note">The link expires for your security. Check your spam folder if it does not arrive.</p>
 	</section>
 {:else}
@@ -67,7 +68,7 @@
 			<AuthInput id="forgot-email" label="Email address" name="email" type="email" autocomplete="email" placeholder="you@company.com" bind:value={email} error={emailError} required disabled={busy} />
 			<Button type="submit" size="lg" loading={busy} class="auth-primary">Send reset link <ArrowRight size={16} weight="Outline" /></Button>
 		</form>
-		<div class="auth-links"><a href="/auth"><ArrowLeft size={14} weight="Outline" /> Back to sign in</a></div>
+		<div class="auth-links"><a href={authHref('login')}><ArrowLeft size={14} weight="Outline" /> Back to sign in</a></div>
 	</section>
 {/if}
 

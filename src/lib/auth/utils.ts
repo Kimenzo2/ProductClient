@@ -1,4 +1,5 @@
 import type { AuthError } from '@supabase/supabase-js';
+import { authHref } from '$lib/auth/urls';
 
 export function safeNextPath(value: string | null | undefined, fallback = '/workspace'): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/auth')) return fallback;
@@ -6,7 +7,7 @@ export function safeNextPath(value: string | null | undefined, fallback = '/work
 }
 
 export function authCallbackUrl(next: string): string {
-	const callback = new URL('/auth/callback', window.location.origin);
+	const callback = new URL(authHref('callback'), window.location.origin);
 	callback.searchParams.set('next', safeNextPath(next));
 	return callback.toString();
 }

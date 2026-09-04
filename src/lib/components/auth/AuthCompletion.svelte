@@ -6,6 +6,7 @@
 	import { ArrowRight, CheckCircle, Lock } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
+	import { appHref, authHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let { mode = 'callback' }: { mode?: 'callback' | 'confirm' } = $props();
@@ -19,12 +20,17 @@
 			return;
 		}
 
-		const next = safeNextPath(page.url.searchParams.get('next'), mode === 'confirm' ? '/auth/reset-password' : '/workspace');
+		const next = safeNextPath(page.url.searchParams.get('next'), mode === 'confirm' ? '/reset-password' : '/workspace');
+		const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next);
 		let redirected = false;
 		const redirectIfSignedIn = (session: unknown) => {
 			if (!session || redirected) return;
 			redirected = true;
-			void goto(next, { replaceState: true });
+			if (destination.startsWith('http')) {
+				window.location.assign(destination);
+			} else {
+				void goto(destination, { replaceState: true });
+			}
 		};
 		const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => redirectIfSignedIn(session));
 		const timeout = window.setTimeout(() => {
@@ -88,8 +94,8 @@
 	<p class="description">{status === 'checking' ? 'We are checking the link and opening your workspace.' : message}</p>
 	{#if status === 'error'}
 		<div class="completion-actions">
-			<Button href="/auth" size="lg"><ArrowRight size={16} weight="Outline" /> Start again</Button>
-			<a href="/auth/forgot-password">Reset your password</a>
+			<Button href={authHref('login')} size="lg"><ArrowRight size={16} weight="Outline" /> Start again</Button>
+			<a href={authHref('forgot-password')}>Reset your password</a>
 		</div>
 	{:else}
 		<div class="completion-note"><CheckCircle size={15} weight="Outline" /> Your session is being secured</div>
