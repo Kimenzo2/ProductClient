@@ -55,7 +55,7 @@
 						<Verified size={16} weight="Outline" color="var(--color-blue-600)" />
 					{/if}
 				</div>
-				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)] opacity-65">@{maker.handle}</p>
+				<p class="mt-1 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased">@{maker.handle}</p>
 			</div>
 
 			<!-- Actions — right-aligned -->
@@ -137,7 +137,7 @@
 								<span class="text-[11px] text-[var(--pc-text-faint)] opacity-55">{item.postedAt}</span>
 							</div>
 							<h3 class="mt-1 text-[13px] font-medium leading-snug group-hover:text-[var(--pc-text)] transition-colors">{item.title}</h3>
-							<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-65 line-clamp-2">{item.description}</p>
+							<p class="mt-0.5 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased line-clamp-2">{item.description}</p>
 							<div class="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--pc-text-faint)] opacity-55">
 								<span class="inline-flex items-center gap-1">
 									<img src={item.product.avatar} alt="" class="size-3 rounded-full object-cover" />

@@ -18,14 +18,14 @@
 	const base = 'inline-flex items-center rounded-full font-normal whitespace-nowrap transition-[background-color,color] duration-150';
 
 	const variants: Record<string, string> = {
-		default: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-border-strong)]',
-		accent: 'bg-[rgba(119,152,18,0.15)] text-[rgb(119,152,18)]',
-		ghost: 'bg-transparent text-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)]'
+		default: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-border-strong)] border border-transparent',
+		accent: 'bg-[var(--pc-accent-soft)] text-[var(--pc-accent-strong)] border border-[var(--pc-accent-ring)]',
+		ghost: 'bg-transparent text-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text-muted)]'
 	};
 
 	const sizes: Record<string, string> = {
-		xs: 'px-2 py-0.5 text-[10px]',
-		sm: 'px-2.5 py-1 text-xs'
+		xs: 'px-2.5 py-1 text-[11px] leading-none tracking-[-0.01em] font-medium',
+		sm: 'px-2.5 py-1 text-xs leading-none tracking-[-0.01em] font-medium'
 	};
 
 	let classes = $derived([base, variants[variant], sizes[size], className].filter(Boolean).join(' '));

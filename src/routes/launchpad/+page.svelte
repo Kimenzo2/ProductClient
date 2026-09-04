@@ -23,7 +23,7 @@
 			<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Launchpad</h1>
 			<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-normal" style:background="rgba(119, 152, 18, 0.15)" style:color="rgb(119, 152, 18)">Week 35</span>
 		</div>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Weekly Monday launches — one project per week, ranked by upvotes.</p>
+		<p class="mt-2 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased">Weekly Monday launches — one project per week, ranked by upvotes.</p>
 	</header>
 
 	<!-- Coming Soon -->

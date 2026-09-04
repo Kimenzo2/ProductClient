@@ -52,7 +52,7 @@
 <section class="auth-page" aria-labelledby="reset-title">
 	<div class="auth-intro">
 		<div class="auth-icon"><Lock size={18} weight="Outline" /></div>
-		<p class="auth-eyebrow">Account recovery</p>
+		
 		<h1 id="reset-title">Choose a new password</h1>
 		<p>Use a password you have not used here before.</p>
 	</div>
@@ -67,6 +67,6 @@
 </section>
 
 <style>
-	.auth-page { display: grid; gap: 22px; }.auth-intro { display: grid; gap: 9px; }.auth-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 9px; border-radius: 13px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.auth-eyebrow { margin: 0; color: var(--pc-accent-light); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }.auth-intro h1 { margin: 0; font-size: clamp(29px, 4vw, 42px); font-weight: 500; line-height: 1.02; letter-spacing: -.06em; }.auth-intro > p:last-child { margin: 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; }.form-error { margin: 0; padding: 11px 13px; border: 1px solid rgba(224, 122, 122, .32); border-radius: 12px; color: #f09b9b; background: rgba(224, 122, 122, .08); font-size: 12px; line-height: 1.45; }.auth-page form { display: grid; gap: 16px; }.auth-links { display: flex; justify-content: center; }.auth-links a { color: var(--pc-text-muted); font-size: 12px; }.auth-links a:hover { color: var(--pc-text); }
+	.auth-page { display: grid; gap: 22px; }.auth-intro { display: grid; gap: 9px; }.auth-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 9px; border-radius: 13px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.auth-intro h1 { margin: 0; font-size: clamp(29px, 4vw, 42px); font-weight: 500; line-height: 1.02; letter-spacing: -.06em; }.auth-intro > p:last-child { margin: 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; }.form-error { margin: 0; padding: 11px 13px; border: 1px solid rgba(224, 122, 122, .32); border-radius: 12px; color: #f09b9b; background: rgba(224, 122, 122, .08); font-size: 12px; line-height: 1.45; }.auth-page form { display: grid; gap: 16px; }.auth-links { display: flex; justify-content: center; }.auth-links a { color: var(--pc-text-muted); font-size: 12px; }.auth-links a:hover { color: var(--pc-text); }
 	:global(.auth-primary) { width: 100%; min-height: 48px; }
 </style>

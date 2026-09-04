@@ -17,12 +17,12 @@
 		[key: string]: unknown;
 	} = $props();
 
-	const base = 'rounded-[20px]';
+	const base = 'rounded-[24px]';
 
 	const variants: Record<string, string> = {
 		default: 'bg-[var(--pc-surface-2)]',
 		surface: 'bg-[var(--pc-surface)]',
-		interactive: 'bg-[var(--pc-surface-2)] transition-[background-color] duration-200 hover:bg-[var(--pc-surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)]'
+		interactive: 'bg-[var(--pc-surface-2)] transition-[background-color,border-color] duration-200 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]'
 	};
 
 	const paddings: Record<string, string> = {

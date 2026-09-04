@@ -20,7 +20,7 @@
 		[key: string]: unknown;
 	} = $props();
 
-	const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity] duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)]';
+	const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity] duration-150 cursor-pointer focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]';
 
 	const sizes: Record<string, string> = {
 		sm: 'h-8 px-3 text-xs',

@@ -26,13 +26,13 @@
 		[key: string]: unknown;
 	} = $props();
 
-	const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity,transform] duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)]';
+	const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]';
 
 	const variants: Record<string, string> = {
-		primary: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96]',
-		ghost: 'bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)]',
-		outline: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]',
-		icon: 'bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)]'
+		primary: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96] transition-[background-color,color,opacity,transform] duration-150',
+		ghost: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150',
+		outline: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150',
+		icon: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150'
 	};
 
 	const sizes: Record<string, string> = {

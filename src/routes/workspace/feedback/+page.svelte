@@ -42,8 +42,8 @@
 		</section>
 
 		<aside class="space-y-4">
-			<Card padding="md"><div class="flex items-center gap-2"><Sparkles size={15} weight="Outline" class="opacity-55" aria-hidden="true" /><h2 class="text-[13px] font-medium">Make feedback useful</h2></div><p class="mt-3 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-75">A request tells you what someone wants. It does not always tell you the best fix. Keep the original words, then describe the problem they point to.</p><a href="/workspace/decisions" class="mt-4 inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)]">See product decisions <ArrowRight size={13} weight="Outline" aria-hidden="true" /></a></Card>
-			<Card padding="md"><p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--pc-accent-light)]">Feedback status</p><div class="mt-4 space-y-3 text-xs"><div class="flex items-center justify-between"><span class="text-[var(--pc-text-muted)]">New feedback</span><span class="tabular-nums font-medium">{feedback.filter((item) => item.status === 'New').length}</span></div><div class="flex items-center justify-between"><span class="text-[var(--pc-text-muted)]">Connected to a choice</span><span class="tabular-nums font-medium">2</span></div><div class="flex items-center justify-between"><span class="text-[var(--pc-text-muted)]">Waiting for an answer</span><span class="tabular-nums font-medium text-[var(--pc-accent-light)]">3</span></div></div></Card>
+			<div class="min-h-[180px] py-4" aria-hidden="true"></div>
+			<div class="min-h-[200px] py-4" aria-hidden="true"></div>
 		</aside>
 	</div>
 </div>

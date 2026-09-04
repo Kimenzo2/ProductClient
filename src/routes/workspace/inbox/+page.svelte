@@ -28,6 +28,6 @@
 			{#each filtered as item (item.kind + item.title)}<EntityRow {...item} />{/each}
 			{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
 		</section>
-		<aside><Card padding="md"><p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">How this list works</p><h2 class="mt-2 text-base font-medium">Turn feedback into action.</h2><ul class="mt-3 space-y-2 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-70"><li><strong class="text-[var(--pc-text)]">New</strong> means nobody owns the next step yet.</li><li><strong class="text-[var(--pc-text)]">Reviewed</strong> means the team has added product details.</li><li><strong class="text-[var(--pc-text)]">Planned</strong> means it is connected to upcoming work.</li><li><strong class="text-[var(--pc-text)]">Resolved</strong> means the team has answered it or shipped a fix.</li></ul><Chip variant="accent" size="xs" class="mt-4">Feedback and service problems</Chip></Card></aside>
+		<aside><div class="min-h-[180px] py-4" aria-hidden="true"></div></aside>
 	</div>
 </div>

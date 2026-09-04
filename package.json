@@ -12,7 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo --watch"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-vercel": "^6.3.4",
+		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/vite": "^4.3.3",
@@ -22,10 +22,12 @@
 		"svelte-check": "^4.7.6",
 		"tailwindcss": "^4.3.3",
 		"typescript": "~6.0.3",
-		"vite": "^8.2.2"
+		"vite": "^8.2.2",
+		"wrangler": "^4.129.0"
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.112.4",
+		"@sveltejs/adapter-vercel": "^6.3.4",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
 		"bits-ui": "^2.19.0",

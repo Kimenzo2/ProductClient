@@ -60,7 +60,7 @@
 	.auth-field input { width: 100%; min-height: 48px; border: 1px solid var(--pc-border-strong); border-radius: 13px; background: rgba(251, 251, 251, 0.035); padding: 0 14px; color: var(--pc-text); font: inherit; font-size: 14px; outline: none; transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease; }
 	.auth-field input::placeholder { color: var(--pc-text-faint); }
 	.auth-field input:hover { background: rgba(251, 251, 251, 0.05); }
-	.auth-field input:focus { border-color: var(--pc-accent-light); background: rgba(251, 251, 251, 0.055); box-shadow: 0 0 0 3px rgba(119, 152, 18, 0.18); }
+	.auth-field input:focus { border-color: var(--pc-focus-ring); background: rgba(251, 251, 251, 0.055); box-shadow: 0 0 0 0.5px var(--pc-focus-ring); }
 	.auth-field input.error { border-color: #e07a7a; }
 	.auth-field input:disabled { cursor: not-allowed; opacity: .6; }
 	.auth-hint, .auth-error { margin: 0; font-size: 12px; line-height: 1.45; }

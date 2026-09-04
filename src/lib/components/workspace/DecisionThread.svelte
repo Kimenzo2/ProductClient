@@ -28,7 +28,7 @@
 		</div>
 		<div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 			<div class="min-w-0">
-				<p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">{thread.productName} · {thread.owner}</p>
+				
 				<h2 class="mt-1 max-w-[32ch] text-[20px] font-medium leading-tight tracking-tight sm:text-[23px]">{thread.title}</h2>
 			</div>
 			<div class="flex shrink-0 items-center gap-2 rounded-full bg-[var(--pc-surface)] px-2.5 py-1.5 text-[10px] text-[var(--pc-text-muted)]" title="This is how sure we are, based on the feedback attached to this decision.">

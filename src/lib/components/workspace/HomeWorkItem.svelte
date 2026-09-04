@@ -25,7 +25,7 @@
 <a class="home-work-item" href={href}>
 	<span class="work-icon" aria-hidden="true"><Icon size={17} weight="Outline" /></span>
 	<span class="work-body">
-		<span class="work-topline"><span class="work-kind">{kind}</span><span class="work-detail">{detail}</span></span>
+		<span class="work-topline"><span class="work-detail">{detail}</span></span>
 		<strong>{title}</strong>
 		<span class="work-bottomline"><span>{relation}</span><span class="work-state">{state}</span></span>
 	</span>
@@ -33,13 +33,13 @@
 </a>
 
 <style>
-	.home-work-item { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 13px 14px; border: 1px solid transparent; border-radius: 15px; color: var(--pc-text-muted); background: var(--pc-surface-2); transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease; }
-	.home-work-item:hover { border-color: var(--pc-border-strong); background: rgba(251, 251, 251, .06); transform: translateY(-1px); }
+	.home-work-item { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 13px 14px; border: 1px solid transparent; border-radius: 15px; color: var(--pc-text-muted); background: var(--pc-surface-2); transition: background-color 100ms ease, color 100ms ease; }
+	.home-work-item:hover { color: var(--pc-text); background: var(--pc-surface); }
 	.work-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .12); }
 	.work-body { min-width: 0; }
 	.work-topline, .work-bottomline { display: flex; align-items: center; gap: 8px; min-width: 0; }
 	.work-topline { margin-bottom: 4px; }
-	.work-kind { color: var(--pc-accent-light); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+	
 	.work-detail, .work-bottomline { overflow: hidden; color: var(--pc-text-faint); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 	.work-body strong { display: block; overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 	.work-bottomline { margin-top: 5px; }

@@ -4,6 +4,7 @@
 	import { Verified, Add, Heart, Dislike, Share, Upload, ArrowRight, Book, CheckCircle } from 'reicon-svelte';
 	import { Button, Card, Chip } from '$lib/components/ui';
 	import { publicDocs, publicIncidents } from '$lib/data/public';
+	import { hostedStatusPage } from '$lib/config/tenant';
 
 	let id = $derived(page.params.id);
 	let data = $derived(mockStates.find((s) => s.id === id) ?? mockStates[0]);
@@ -114,41 +115,17 @@
 						<span class="inline-flex items-center gap-1 text-xs font-600" style:color="var(--color-green-600)"><span class="size-2 rounded-full animate-pulse" style:background="var(--color-green-600)"></span> Uptime: 99.98%</span>
 					</div>
 					<p class="mt-3 text-sm leading-relaxed text-[var(--pc-text-muted)]">
-						{data.description} This update ships with markdown changelog and feedback thread. Builders can attach incident notes, roadmap items and tag fixes.
+						{data.description}
 					</p>
-					<div class="mt-3 grid md:grid-cols-3 gap-3 text-xs">
-						<div class="rounded-[10px] bg-[var(--pc-surface)] border border-[var(--pc-border)] p-3">
-							<p class="font-700">Changelog</p>
-							<p class="text-[var(--pc-text-muted)]">3 features • 7 fixes • 2 docs</p>
-						</div>
-						<div class="rounded-[10px] bg-[var(--pc-surface)] border border-[var(--pc-border)] p-3">
-							<p class="font-700">Incident log</p>
-							<p class="text-[var(--pc-text-muted)]">Last incident 9 hours ago • Resolved</p>
-						</div>
-						<div class="rounded-[10px] bg-[var(--pc-surface)] border border-[var(--pc-border)] p-3">
-							<p class="font-700">Feedback</p>
-							<p class="text-[var(--pc-text-muted)]">42 open • Avg response 4h</p>
-						</div>
-					</div>
-					<details class="mt-3">
-						<summary class="cursor-pointer text-sm font-600">Show more …</summary>
-						<pre class="mt-3 whitespace-pre-wrap rounded-[10px] bg-[var(--pc-surface)] border border-[var(--pc-border)] p-3 text-xs leading-5">## Changes
-- Realtime vision pipeline (3x faster)
-- New composer with persistent state
-- Fix: terminal timeout on long runs
-- Fix: status page webhooks delayed (root cause DNS)
-
-Links: github.com • docs • status</pre>
-					</details>
 				</div>
 			</div>
 		</div>
 
 		<!-- Right – connected context -->
 		<aside class="min-w-0 space-y-4">
-			<Card padding="md"><div class="flex items-center gap-2"><CheckCircle size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Keep exploring</h2></div><p class="mt-3 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-70">This update is one part of the product record. Follow the links the team uses to explain and operate it.</p><div class="mt-4 space-y-1"><a href="/p/{data.product.slug}" class="flex items-center gap-2 rounded-[10px] px-2 py-2 text-xs hover:bg-[var(--pc-surface)]"><ArrowRight size={13} weight="Outline" /> Product profile</a><a href="/status/{data.product.slug}" class="flex items-center gap-2 rounded-[10px] px-2 py-2 text-xs hover:bg-[var(--pc-surface)]"><ArrowRight size={13} weight="Outline" /> Status history</a></div></Card>
+			<Card padding="md"><div class="flex items-center gap-2"><CheckCircle size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Keep exploring</h2></div><p class="mt-3 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-70">This update is one part of the product record. Follow the links the team uses to explain and operate it.</p><div class="mt-4 space-y-1"><a href="/p/{data.product.slug}" class="flex items-center gap-2 rounded-[10px] px-2 py-2 text-xs hover:bg-[var(--pc-surface)]"><ArrowRight size={13} weight="Outline" /> Product profile</a><a href={hostedStatusPage.href} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 rounded-[10px] px-2 py-2 text-xs hover:bg-[var(--pc-surface)]"><ArrowRight size={13} weight="Outline" /> Hosted status page</a></div></Card>
 			{#if relatedDocs.length > 0}<Card padding="md"><div class="flex items-center gap-2"><Book size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Related docs</h2></div>{#each relatedDocs as doc (doc.slug)}<a href={doc.publicPath} class="mt-3 block text-xs text-[var(--pc-accent-light)] hover:underline">{doc.title}</a>{/each}</Card>{/if}
-			{#if relatedIncidents.length > 0}<Card padding="md"><div class="flex items-center gap-2"><Chip size="xs" variant="accent">{relatedIncidents.length}</Chip><h2 class="text-[13px] font-medium">Incident context</h2></div>{#each relatedIncidents as incident (incident.id)}<a href={`${incident.publicPath}#${incident.id}`} class="mt-3 block text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]">{incident.title} · {incident.status}</a>{/each}</Card>{/if}
+			{#if relatedIncidents.length > 0}<Card padding="md"><div class="flex items-center gap-2"><Chip size="xs" variant="accent">{relatedIncidents.length}</Chip><h2 class="text-[13px] font-medium">Incident context</h2></div>{#each relatedIncidents as incident (incident.id)}<a href={`${incident.publicPath}#${incident.id}`} target="_blank" rel="noopener noreferrer" class="mt-3 block text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]">{incident.title} · {incident.status}</a>{/each}</Card>{/if}
 		</aside>
 	</div>
 </div>

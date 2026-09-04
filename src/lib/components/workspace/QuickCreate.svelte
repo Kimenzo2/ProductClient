@@ -31,7 +31,6 @@
 		} else {
 			open = true;
 			activeIndex = 0;
-			// Focus first menu item after render
 			requestAnimationFrame(() => {
 				const items = menuEl?.querySelectorAll<HTMLElement>('[role="menuitem"]');
 				items?.[0]?.focus();
@@ -84,7 +83,6 @@
 				close();
 				break;
 			case 'Tab':
-				// Allow Tab to close the menu and move focus naturally
 				close();
 				break;
 		}
@@ -108,9 +106,10 @@
 	<button
 		type="button"
 		bind:this={triggerEl}
-		class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--pc-accent)] text-[13px] font-medium text-white transition-[background-color,transform] duration-150 hover:bg-[var(--pc-accent-hover)] active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)] {compact ? 'size-9 justify-center px-0' : 'px-4'}"
+		class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--pc-accent)] text-[13px] font-medium tracking-[-0.01em] leading-none text-white transition-[background-color,transform] duration-150 hover:bg-[var(--pc-accent-hover)] active:scale-[0.96] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] {compact ? 'size-9 justify-center px-0' : 'px-4'}"
 		aria-haspopup="menu"
 		aria-expanded={open}
+		aria-controls="quickcreate-menu"
 		aria-label={compact ? label : undefined}
 		onclick={toggle}
 		onkeydown={handleTriggerKeydown}
@@ -123,29 +122,48 @@
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<div
 			bind:this={menuEl}
+			id="quickcreate-menu"
 			role="menu"
 			tabindex="-1"
 			aria-label="Create new"
-			class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-24px))] origin-top-right rounded-[20px] bg-[var(--pc-surface-2)] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.38)] ring-1 ring-[var(--pc-border-strong)]/55"
+			class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-24px))] origin-top-right rounded-[20px] bg-[var(--pc-bg)] border border-[var(--pc-border-strong)] p-2"
+			style="overscroll-behavior: contain;"
 			onkeydown={handleMenuKeydown}
 		>
-			<div class="px-3 pb-2 pt-2"><p class="text-xs font-medium">What do you want to add?</p><p class="mt-1 text-[11px] leading-relaxed text-[var(--pc-text-muted)] opacity-70">Start with feedback, a question, an update, or a customer quote.</p></div>
-			<div class="space-y-0.5">
+			<div class="px-3 pb-2 pt-2">
+				<p id="qc-title" class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)] antialiased">What do you want to add?</p>
+				<p class="mt-1 text-xs leading-[1.5] tracking-[-0.01em] text-[var(--pc-text-muted)] max-w-[32ch] text-pretty">Start with feedback, a question, an update, or a customer quote.</p>
+			</div>
+			<div class="mt-1 space-y-1" aria-labelledby="qc-title">
 				{#each createItems as item, i (item.label)}
 					{@const Icon = item.icon}
 					<a
 						href={item.href}
 						role="menuitem"
 						tabindex={i === activeIndex ? 0 : -1}
+						aria-describedby="qc-desc-{i}"
 						onclick={() => (open = false)}
 						onmouseenter={() => (activeIndex = i)}
-						class="flex items-start gap-2.5 rounded-[14px] px-2.5 py-2.5 transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)] focus-visible:bg-[var(--pc-surface)] active:scale-[0.99]"
+						class="flex items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
 					>
-						<span class="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)]"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
-						<span class="min-w-0 flex-1"><span class="block text-xs font-medium">{item.label}</span><span class="mt-0.5 block text-[11px] leading-snug text-[var(--pc-text-muted)] opacity-70">{item.description}</span></span>
+						<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
+						<span class="min-w-0 flex-1 text-left">
+							<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
+							<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
+						</span>
 					</a>
 				{/each}
 			</div>
 		</div>
 	{/if}
 </div>
+
+<style>
+	.line-clamp-1 {
+		display: -webkit-box;
+		-webkit-line-clamp: 1;
+		line-clamp: 1;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+</style>

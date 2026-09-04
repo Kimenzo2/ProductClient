@@ -22,9 +22,9 @@
 	<!-- Header -->
 	<header class="pt-10 pb-5 max-sm:pt-8 max-sm:pb-4">
 		<div class="flex items-baseline gap-3">
-			<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Following</h1>
+			<h1 class="text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">Following</h1>
 		</div>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Your subscriptions, ranked weekly.</p>
+		<p class="mt-2 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">Your subscriptions, ranked weekly.</p>
 	</header>
 
 	<!-- Story circles — horizontal scroll -->

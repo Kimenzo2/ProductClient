@@ -49,15 +49,15 @@
 
 <style>
 	.launcher { width: min(100%, 680px); margin-inline: auto; }
-	.launcher-form { display: flex; align-items: center; gap: 11px; min-height: 62px; padding: 7px 8px 7px 19px; border: 1px solid var(--pc-border-strong); border-radius: 19px; background: var(--pc-surface-2); box-shadow: inset 0 1px 0 rgba(251, 251, 251, .025), 0 14px 38px rgba(0, 0, 0, .14); transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease; }
-	.launcher-form:focus-within { border-color: rgba(198, 254, 30, .42); background: rgba(251, 251, 251, .06); box-shadow: 0 0 0 4px rgba(119, 152, 18, .1), 0 18px 44px rgba(0, 0, 0, .18); }
+	.launcher-form { display: flex; align-items: center; gap: 11px; min-height: 62px; padding: 7px 8px 7px 19px; border: 1px solid var(--pc-border-strong); border-radius: 19px; background: var(--pc-bg); transition: border-color 100ms ease, background-color 100ms ease; }
+	.launcher-form:focus-within { border-color: var(--pc-focus-ring); background: var(--pc-bg); box-shadow: 0 0 0 0.5px var(--pc-focus-ring); }
 	:global(.launcher-icon) { flex: 0 0 auto; color: var(--pc-text-muted); opacity: .72; }
 	.launcher-form input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--pc-text); background: transparent; font-size: 15px; }
 	.launcher-form input::placeholder { color: var(--pc-text-muted); opacity: .8; }
 	.launcher-form button { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 auto; border: 0; border-radius: 14px; color: var(--pc-bg); background: var(--pc-accent-light); cursor: pointer; transition: transform 150ms ease, opacity 150ms ease; }
 	.launcher-form button:hover { opacity: .9; transform: translateX(1px); }
 	.launcher-form button:active { transform: scale(.96); }
-	.launcher-results { display: grid; gap: 2px; margin-top: 8px; padding: 7px; border: 1px solid var(--pc-border-strong); border-radius: 16px; background: rgba(23, 23, 23, .98); box-shadow: 0 18px 44px rgba(0, 0, 0, .28); }
+	.launcher-results { display: grid; gap: 2px; margin-top: 8px; padding: 7px; border: 1px solid var(--pc-border-strong); border-radius: 16px; background: var(--pc-bg); }
 	.launcher-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 11px; border-radius: 11px; color: var(--pc-text-muted); transition: background-color 150ms ease, color 150ms ease; }
 	.launcher-result:hover { color: var(--pc-text); background: var(--pc-surface-2); }
 	.result-copy { min-width: 0; }

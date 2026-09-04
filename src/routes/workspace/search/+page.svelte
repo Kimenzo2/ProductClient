@@ -64,7 +64,7 @@
 
 	{#if !query.trim()}
 		<section class="search-start" aria-labelledby="search-start-title">
-			<p class="section-kicker">Search your workspace</p>
+			
 			<h2 id="search-start-title">Find the context behind the work.</h2>
 			<p>Search the words people used, then open the feedback, decision, update, or help page connected to them.</p>
 		</section>
@@ -74,7 +74,7 @@
 		<section class="results" aria-label="Workspace search results">
 			{#each results as result (result.kind + result.id)}
 				{@const Icon = icons[result.kind]}
-				<a href={result.href} class="result">
+				<a href={result.href} target={result.href.startsWith('http') ? '_blank' : undefined} rel={result.href.startsWith('http') ? 'noopener noreferrer' : undefined} class="result">
 					<span class="result-icon" aria-hidden="true"><Icon size={17} weight="Outline" /></span>
 					<span class="result-copy"><span class="result-title"><strong>{result.title}</strong><Chip size="xs">{labelFor(result)}</Chip>{#if result.status}<small>{result.status}</small>{/if}</span><span class="result-subtitle">{result.subtitle}</span><span class="result-description">{result.description}</span>{#if result.relationPreview}<span class="result-relation">Related: {result.relationPreview}</span>{/if}</span>
 				</a>
@@ -93,7 +93,7 @@
 	.filters button:hover, .filters button[aria-pressed="true"] { color: var(--pc-bg); background: var(--pc-text); }
 	.filters span { margin-left: auto; flex: 0 0 auto; color: var(--pc-text-faint); font-size: 11px; }
 	.search-start { padding: 30px 24px; border-radius: 18px; background: var(--pc-surface-2); }
-	.section-kicker { margin: 0 0 7px; color: var(--pc-accent-light); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+	
 	.search-start h2 { margin: 0; color: var(--pc-text); font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
 	.search-start p:last-child { max-width: 54ch; margin: 9px 0 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.6; }
 	.results { display: grid; gap: 7px; padding-bottom: 40px; }

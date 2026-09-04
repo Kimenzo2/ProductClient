@@ -117,14 +117,14 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 {#if open}
 	<div class="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[calc(var(--pc-header-h)+18px)] sm:pt-[calc(var(--pc-header-h)+32px)]">
-		<button class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick={close} aria-label="Close search"></button>
+			<button class="absolute inset-0 bg-black/40 backdrop-blur-[16px] saturate-[140%] supports-[backdrop-filter]:bg-black/30" onclick={close} aria-label="Close search"></button>
 
 		<dialog
 			open
 			bind:this={dialogEl}
 			aria-modal="true"
 			aria-label="Global search"
-			class="relative z-10 w-full max-w-[720px] overflow-hidden rounded-[22px] bg-[var(--pc-surface-2)] shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-[var(--pc-border-strong)]"
+			class="relative z-10 w-full max-w-[720px] overflow-hidden rounded-[22px] bg-[var(--pc-bg)]/80 backdrop-blur-[20px] saturate-[180%] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-[var(--pc-bg)]/70"
 		>
 			<div class="flex items-center gap-3 px-4 py-3.5">
 				<Search size={20} weight="Outline" class="shrink-0 opacity-60" />
@@ -132,6 +132,10 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 					bind:this={inputEl}
 					bind:value={query}
 					onkeydown={handleKeydown}
+					type="search"
+					autocomplete="off"
+					autocorrect="off"
+					spellcheck="false"
 					placeholder={surface === 'public' ? 'Search products, updates, and help...' : 'Search your product work...'}
 					class="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[var(--pc-text-faint)] sm:text-sm"
 					aria-label={surface === 'public' ? 'Search public Product Client pages' : 'Search workspace Product Client records'}
@@ -139,7 +143,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 				{#if query}
 					<button class="grid size-9 shrink-0 place-items-center rounded-full text-xs text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]" onclick={() => (query = '')} aria-label="Clear search">Clear</button>
 				{/if}
-				<kbd class="hidden shrink-0 rounded-[8px] bg-[var(--pc-surface)] px-2 py-1 text-[10px] text-[var(--pc-text-faint)] sm:inline">Esc</kbd>
+				<kbd class="hidden shrink-0 rounded-[8px] bg-[var(--pc-surface)] px-2 py-1 text-xs text-[var(--pc-text-faint)] sm:inline">Esc</kbd>
 			</div>
 
 			<div class="flex gap-1 overflow-x-auto border-y border-[var(--pc-border-strong)]/50 px-4 py-2 scrollbar-none">
@@ -164,7 +168,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 					<div class="px-3 pb-2 pt-3">
 						<div class="flex items-center justify-between">
 							<p class="text-xs font-medium text-[var(--pc-text-muted)]">Jump back in</p>
-							<span class="text-[10px] text-[var(--pc-text-faint)]">{results.length} available</span>
+							<span class="text-xs text-[var(--pc-text-faint)]">{results.length} available</span>
 						</div>
 						<p class="mt-1 text-xs text-[var(--pc-text-faint)]">{surface === 'public' ? 'Search products, updates, help pages, and customer stories.' : 'Search by product, person, status, or the words in a message.'}</p>
 					</div>
@@ -180,6 +184,8 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 							{@const Icon = icons[result.kind]}
 							<a
 								href={result.href}
+								target={result.href.startsWith('http') ? '_blank' : undefined}
+								rel={result.href.startsWith('http') ? 'noopener noreferrer' : undefined}
 								onclick={close}
 								onmouseenter={() => (selectedIndex = index)}
 								class="flex items-start gap-3 rounded-[14px] px-3 py-3 transition-[background-color] duration-100 {selectedIndex === index ? 'bg-[var(--pc-surface)]' : 'hover:bg-[var(--pc-surface)]'}"
@@ -189,20 +195,20 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 								<span class="min-w-0 flex-1">
 									<span class="flex items-center gap-2">
 										<strong class="min-w-0 truncate text-[13px] font-medium">{result.title}</strong>
-										<span class="shrink-0 text-[10px] uppercase tracking-wide text-[var(--pc-text-faint)]">{labelFor(result)}</span>
+										<span class="shrink-0 text-xs font-semibold tracking-[0.08em] uppercase leading-[1.1] text-[var(--pc-text-faint)]">{labelFor(result)}</span>
 									</span>
 									<span class="mt-0.5 block truncate text-xs text-[var(--pc-text-muted)] opacity-70">{result.subtitle}</span>
 									<span class="mt-1 block line-clamp-1 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-55">{result.description}</span>
-									{#if result.relationPreview}<span class="mt-1 block truncate text-[10px] text-[var(--pc-accent-light)] opacity-80">Related: {result.relationPreview}</span>{/if}
+									{#if result.relationPreview}<span class="mt-1 block truncate text-xs text-[var(--pc-accent-light)] opacity-80">Related: {result.relationPreview}</span>{/if}
 								</span>
-								{#if result.status}<span class="hidden shrink-0 rounded-full bg-[var(--pc-surface-2)] px-2 py-1 text-[10px] text-[var(--pc-text-muted)] sm:inline">{result.status}</span>{/if}
+								{#if result.status}<span class="hidden shrink-0 rounded-full bg-[var(--pc-surface-2)] px-2 py-1 text-xs text-[var(--pc-text-muted)] sm:inline">{result.status}</span>{/if}
 							</a>
 						{/each}
 					</div>
 				{/if}
 			</div>
 
-			<div class="flex items-center justify-between bg-[var(--pc-surface)] px-4 py-2 text-[10px] text-[var(--pc-text-faint)]">
+			<div class="flex items-center justify-between bg-[var(--pc-surface)] px-4 py-2 text-xs text-[var(--pc-text-faint)]">
 				<span role="status" aria-live="polite">{query.trim() ? `${results.length} result${results.length === 1 ? '' : 's'}` : surface === 'public' ? 'Public Product Client search' : 'Workspace search'}</span>
 				<span class="hidden gap-3 sm:inline-flex"><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span></span>
 			</div>

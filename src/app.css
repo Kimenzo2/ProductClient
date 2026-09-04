@@ -11,6 +11,21 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
+/* ── OKLCH brand palette — 9-step, constant H 113, C% 72% of max per L, no hue drift ── */
+@theme {
+	--color-brand-50: oklch(0.968 0.012 113);
+	--color-brand-100: oklch(0.925 0.03 113);
+	--color-brand-200: oklch(0.87 0.058 113);
+	--color-brand-300: oklch(0.802 0.09 113);
+	--color-brand-400: oklch(0.712 0.122 113);
+	--color-brand-500: oklch(0.62 0.145 113);
+	--color-brand-600: oklch(0.545 0.128 113);
+	--color-brand-700: oklch(0.463 0.106 113);
+	--color-brand-800: oklch(0.378 0.084 113);
+	--color-brand-900: oklch(0.304 0.062 113);
+	--color-brand-950: oklch(0.228 0.04 113);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Safelist: utility classes defined as string constants in
    <script> blocks. Tailwind scans templates as plain text but
@@ -19,7 +34,7 @@
    issues with arbitrary-value brackets.
    ═══════════════════════════════════════════════════════════════ */
 
-/* Button base + variants */
+/* Button base + variants — oklch slash for any alpha (per conversion.md) */
 @source inline("inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity,transform] transition-[background-color,color,opacity] transition-[background-color] duration-150 duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96] bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)] bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] h-8 h-9 h-10 px-3 px-4 px-5 text-xs text-[13px] text-sm size-8 size-9 size-10 size-4 size-5 size-6 size-7 size-12 size-20 border-2 border-current border-t-transparent rounded-full animate-spin pointer-events-none opacity-50");
 
 /* Card + Chip */
@@ -59,7 +74,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-	--bg: #070707;
+	--bg: oklch(0.162 0 0);
 	--surface: rgba(251, 251, 251, 0.033);
 	--text: #fbfbfb;
 	--text-muted: rgba(251, 251, 251, 0.6);
@@ -70,28 +85,28 @@
 	--pill-fg: #f8f8f8;
 	--pill-border: rgba(44, 47, 54, 0.52);
 	--pill-shadow: inset 0 0 50px 0 rgba(255, 255, 255, 0.02);
-	--icon-btn-bg: rgba(255, 255, 255, 0.07);
-	--icon-btn-hover: rgba(255, 255, 255, 0.1);
-	--icon-btn-fill: #fbfbfb;
-	--icon-btn-outline: rgba(255, 255, 255, 0.5);
-	--title-color: #fff;
-	--subtitle-color: #cacaca;
-	--section-title-color: #f0f0f0;
-	--section-title-muted: #cacaca;
-	--code-text: #fff;
-	--footer-muted: rgba(251, 251, 251, 0.4);
-	--footer-name: rgba(251, 251, 251, 0.7);
-	--footer-name-hover: rgba(251, 251, 251, 0.9);
-	--chip-bg: rgba(255, 255, 255, 0.04);
-	--chip-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
-	--chip-color: #caccd2;
-	--chip-icon: #8e8e8e;
-	--tab-bg: rgba(255, 255, 255, 0.03);
-	--tab-color: rgba(251, 251, 251, 0.5);
-	--tab-hover-bg: rgba(255, 255, 255, 0.06);
-	--tab-hover-color: rgba(251, 251, 251, 0.7);
-	--tab-active-bg: rgba(255, 255, 255, 0.07);
-	--tab-active-color: #fbfbfb;
+	--icon-btn-bg: oklch(1 0 0 / 0.07);
+	--icon-btn-hover: oklch(1 0 0 / 0.1);
+	--icon-btn-fill: oklch(1 0 0);
+	--icon-btn-outline: oklch(1 0 0 / 0.5);
+	--title-color: oklch(1 0 0);
+	--subtitle-color: oklch(0.829 0 0);
+	--section-title-color: oklch(0.956 0 0);
+	--section-title-muted: oklch(0.829 0 0);
+	--code-text: oklch(1 0 0);
+	--footer-muted: oklch(1 0 0 / 0.4);
+	--footer-name: oklch(1 0 0 / 0.7);
+	--footer-name-hover: oklch(1 0 0 / 0.9);
+	--chip-bg: oklch(1 0 0 / 0.04);
+	--chip-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.02), inset 0 1px 0 0 oklch(1 0 0 / 0.04);
+	--chip-color: oklch(0.828 0.012 268);
+	--chip-icon: oklch(0.592 0 0);
+	--tab-bg: oklch(1 0 0 / 0.03);
+	--tab-color: oklch(1 0 0 / 0.5);
+	--tab-hover-bg: oklch(1 0 0 / 0.06);
+	--tab-hover-color: oklch(1 0 0 / 0.7);
+	--tab-active-bg: oklch(1 0 0 / 0.07);
+	--tab-active-color: oklch(1 0 0);
 	--tab-active-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.02), inset 0 0.5px 0 0 rgba(255, 255, 255, 0.06);
 	--strength-bg: rgba(255, 255, 255, 0.07);
 	--strength-hover: rgba(255, 255, 255, 0.09);
@@ -142,9 +157,22 @@
 	--pc-text: var(--text);
 	--pc-text-muted: var(--text-muted);
 	--pc-text-faint: rgba(251, 251, 251, 0.35);
-	--pc-accent: rgb(var(--primary));
-	--pc-accent-hover: rgb(var(--primary-dark));
-	--pc-accent-light: rgb(var(--primary-light));
+	/* OKLCH olive — perceptual, no hue drift, gamut-checked (P3 fallback via sRGB clamp) */
+	--pc-accent: oklch(0.62 0.145 113);
+	--pc-accent-hover: oklch(0.55 0.13 115);
+	--pc-accent-light: oklch(0.86 0.135 112);
+	--pc-accent-soft: oklch(0.68 0.12 115 / 0.16);
+	--pc-focus-ring: oklch(1 0 0 / 0.18);
+	--pc-accent-strong: oklch(0.84 0.15 115);
+	--pc-accent-ring: oklch(0.86 0.135 112 / 0.45);
+	--pc-text-soft: oklch(0.72 0.01 0);
+	--pc-surface-raised: oklch(0.22 0.005 0);
+	--pc-image-ring: oklch(1 0 0 / 0.08);
+	--pc-status-operational: oklch(0.58 0.19 145);
+	--pc-status-degraded: oklch(0.78 0.16 92);
+	--pc-status-outage: oklch(0.65 0.19 20);
+	--pc-status-maintenance: oklch(0.68 0.18 300);
+	--pc-status-empty: oklch(0.21 0.004 0);
 	--pc-header-h: 56px;
 	--pc-sidebar-w: 240px;
 	--pc-sidebar-collapsed: 72px;
@@ -207,9 +235,9 @@ html.dark, :root.dark, .dark {
 :root.light, html.light, .light {
 	color-scheme: light;
 	--bg: #ffffff;
-	--surface: rgba(0, 0, 0, 0.03);
-	--text: #111111;
-	--text-muted: rgba(0, 0, 0, 0.55);
+	--surface: rgba(0, 0, 0, 0.04);
+	--text: #0f0f0f;
+	--text-muted: oklch(0.32 0.006 0);
 	--heading-fg: #000000;
 	--code-bg: #f5f5f5;
 	--panel-bg: #f5f5f5;
@@ -219,28 +247,29 @@ html.dark, :root.dark, .dark {
 	--pill-shadow: none;
 	--pill-fill: rgba(240, 240, 240, 0.8);
 	--pill-stroke: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-	--icon-btn-bg: rgba(0, 0, 0, 0.05);
-	--icon-btn-hover: rgba(0, 0, 0, 0.08);
-	--icon-btn-fill: #111111;
-	--icon-btn-outline: rgba(0, 0, 0, 0.3);
-	--title-color: #000000;
-	--subtitle-color: #555555;
-	--section-title-color: #111111;
-	--section-title-muted: #555555;
-	--code-text: #111111;
-	--footer-muted: rgba(0, 0, 0, 0.4);
-	--footer-name: rgba(0, 0, 0, 0.7);
-	--footer-name-hover: rgba(0, 0, 0, 0.9);
-	--chip-bg: rgba(0, 0, 0, 0.04);
-	--chip-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-	--chip-color: #333333;
-	--chip-icon: #666666;
-	--tab-bg: rgba(0, 0, 0, 0.04);
-	--tab-color: rgba(0, 0, 0, 0.5);
-	--tab-hover-bg: rgba(0, 0, 0, 0.07);
-	--tab-hover-color: rgba(0, 0, 0, 0.7);
-	--tab-active-bg: rgba(0, 0, 0, 0.08);
-	--tab-active-color: #111111;
+	--icon-btn-bg: oklch(0 0 0 / 0.05);
+	--icon-btn-hover: oklch(0 0 0 / 0.08);
+	--icon-btn-fill: oklch(0.17 0 0);
+	--icon-btn-outline: oklch(0 0 0 / 0.3);
+	--title-color: oklch(0 0 0);
+	--subtitle-color: oklch(0.466 0 0);
+	--section-title-color: oklch(0.17 0 0);
+	--section-title-muted: oklch(0.466 0 0);
+	--code-text: oklch(0.17 0 0);
+	--footer-muted: oklch(0 0 0 / 0.4);
+	--footer-name: oklch(0 0 0 / 0.7);
+	--footer-name-hover: oklch(0 0 0 / 0.9);
+	--chip-bg: oklch(0 0 0 / 0.04);
+	--chip-shadow: inset 0 0 0 1px oklch(0 0 0 / 0.08);
+	--chip-color: oklch(0.321 0 0);
+	--chip-icon: oklch(0.466 0 0);
+	--tab-bg: oklch(0 0 0 / 0.06);
+	--tab-color: oklch(0.38 0.005 0);
+	--tab-hover-bg: oklch(0 0 0 / 0.09);
+	--tab-hover-color: oklch(0.28 0.005 0);
+	--tab-active-bg: oklch(0 0 0 / 0.12);
+	--tab-active-color: oklch(0.17 0 0);
+	--tab-active-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08), inset 0 0.5px 0 0 rgba(0, 0, 0, 0.06);
 	--tab-active-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06), inset 0 0.5px 0 0 rgba(0, 0, 0, 0.04);
 	--strength-bg: rgba(0, 0, 0, 0.06);
 	--strength-hover: rgba(0, 0, 0, 0.08);
@@ -258,16 +287,27 @@ html.dark, :root.dark, .dark {
 	--primary-dark: 60 100 10;
 	--primary-light: 140 200 30;
 	--pc-bg: #ffffff;
-	--pc-surface: rgba(0, 0, 0, 0.03);
-	--pc-surface-2: rgba(0, 0, 0, 0.05);
+	--pc-surface: rgba(0, 0, 0, 0.04);
+	--pc-surface-2: rgba(0, 0, 0, 0.06);
 	--pc-border: transparent;
-	--pc-border-strong: rgba(0, 0, 0, 0.08);
-	--pc-text: #111111;
-	--pc-text-muted: rgba(0, 0, 0, 0.55);
-	--pc-text-faint: rgba(0, 0, 0, 0.35);
-	--pc-accent: rgb(90, 130, 15);
-	--pc-accent-hover: rgb(60, 100, 10);
-	--pc-accent-light: rgb(140, 200, 30);
+	--pc-border-strong: rgba(0, 0, 0, 0.1);
+	--pc-text: #0f0f0f;
+	--pc-text-muted: oklch(0.32 0.006 0);
+	--pc-text-faint: oklch(0.52 0.01 0);
+	--pc-accent: oklch(0.55 0.14 115);
+	--pc-accent-hover: oklch(0.48 0.12 115);
+	--pc-accent-light: oklch(0.88 0.135 112);
+	--pc-accent-soft: oklch(0.95 0.05 115);
+	--pc-focus-ring: oklch(0 0 0 / 0.18);
+	--pc-accent-strong: oklch(0.42 0.13 115);
+	--pc-accent-ring: oklch(0.88 0.135 112 / 0.35);
+	--pc-surface-raised: oklch(0.98 0 0);
+	--pc-image-ring: oklch(0 0 0 / 0.08);
+	--pc-status-operational: oklch(0.55 0.16 145);
+	--pc-status-degraded: oklch(0.68 0.14 92);
+	--pc-status-outage: oklch(0.58 0.16 20);
+	--pc-status-maintenance: oklch(0.58 0.16 300);
+	--pc-status-empty: oklch(0.91 0.004 0);
 	--pc-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
 	--pc-shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.06);
 	scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
@@ -295,18 +335,34 @@ html, body {
 h1, h2, h3, h4, h5, h6 {
 	font-family: var(--font-sans);
 	font-weight: var(--font-weight-medium, 500);
-	letter-spacing: -0.025em;
+	letter-spacing: -0.015em;
 	line-height: 1.25;
 	text-wrap: balance;
 	color: var(--heading-fg);
 }
 
-h1 { font-size: var(--text-4xl, 2.25rem); line-height: 1; letter-spacing: -0.05em; }
-h2 { font-size: var(--text-3xl, 1.875rem); line-height: 1.25; }
-h3 { font-size: var(--text-2xl, 1.5rem); line-height: 1.25; }
-h4 { font-size: var(--text-lg, 1.125rem); }
-h5 { font-size: var(--text-base, 1rem); }
-h6 { font-size: var(--text-sm, 0.875rem); font-weight: var(--font-weight-medium, 500); letter-spacing: 0.025em; text-transform: uppercase; }
+h1 { font-size: var(--text-4xl, 2.25rem); line-height: 1.05; letter-spacing: -0.032em; }
+h2 { font-size: var(--text-3xl, 1.875rem); line-height: 1.15; letter-spacing: -0.025em; }
+h3 { font-size: var(--text-2xl, 1.5rem); line-height: 1.2; letter-spacing: -0.017em; }
+h4 { font-size: var(--text-lg, 1.125rem); line-height: 1.3; letter-spacing: -0.01em; }
+h5 { font-size: var(--text-base, 1rem); line-height: 1.4; letter-spacing: -0.01em; }
+h6 { font-size: var(--text-sm, 0.875rem); font-weight: var(--font-weight-medium, 500); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+
+/* ── Authenticated dashboard — restrained scale (intent: dashboards scanned not read)
+   Research: Minor Second 1.067 for dashboards, 18-24px headers → capped at 20-22px,
+   weight via 600 not size, 14-16px body. Better-Typography: scale descent, 1.1-1.25 tight headings,
+   1.5-1.6 body, -0.015 small negative tracking on ≥18px, balance wrap, tabular-nums for metrics ── */
+.workspace h1 { font-size: 1.25rem; line-height: 1.2; letter-spacing: -0.015em; font-weight: 600; text-wrap: balance; }
+.workspace h2 { font-size: 1rem; line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; text-wrap: balance; }
+.workspace h3 { font-size: 0.875rem; line-height: 1.35; letter-spacing: -0.006em; font-weight: 600; text-wrap: balance; }
+.workspace h4 { font-size: 0.8125rem; line-height: 1.4; letter-spacing: -0.003em; font-weight: 600; text-wrap: balance; }
+.workspace h5 { font-size: 0.75rem; line-height: 1.4; letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase; text-wrap: balance; }
+.workspace h6 { font-size: 0.6875rem; line-height: 1.4; letter-spacing: 0.08em; font-weight: 600; text-transform: uppercase; text-wrap: balance; }
+@media (min-width: 768px) {
+	.workspace h1 { font-size: 1.375rem; }
+}
+.workspace :where(p, li, dd) { font-variant-numeric: tabular-nums; }
+.workspace :where(h1, h2, h3, h4) { overflow-wrap: break-word; }
 
 code, kbd, pre, samp {
 	font-family: var(--default-mono-font-family);
@@ -326,7 +382,7 @@ a:where([href]):active, a:where([href]):visited, a:where([href]):focus-visible {
 }
 
 :focus-visible {
-	outline: 2px solid var(--pc-accent-light);
+	outline: 0.5px solid var(--pc-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -339,17 +395,23 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 @keyframes pc-enter {
-	from { opacity: 0; transform: translateY(16px); }
+	from { opacity: 0; transform: translateY(8px); }
 	to { opacity: 1; transform: translateY(0); }
 }
 .pc-enter { animation: pc-enter 0.5s var(--ease-out) both; }
 .pc-enter-stagger > * { animation: pc-enter 0.5s var(--ease-out) both; }
-.pc-enter-stagger > *:nth-child(1) { animation-delay: 40ms; }
-.pc-enter-stagger > *:nth-child(2) { animation-delay: 80ms; }
-.pc-enter-stagger > *:nth-child(3) { animation-delay: 120ms; }
-.pc-enter-stagger > *:nth-child(4) { animation-delay: 160ms; }
-.pc-enter-stagger > *:nth-child(5) { animation-delay: 200ms; }
-.pc-enter-stagger > *:nth-child(6) { animation-delay: 240ms; }
+.pc-enter-stagger > *:nth-child(1) { animation-delay: 60ms; }
+.pc-enter-stagger > *:nth-child(2) { animation-delay: 140ms; }
+.pc-enter-stagger > *:nth-child(3) { animation-delay: 220ms; }
+.pc-enter-stagger > *:nth-child(4) { animation-delay: 300ms; }
+.pc-enter-stagger > *:nth-child(5) { animation-delay: 380ms; }
+.pc-enter-stagger > *:nth-child(6) { animation-delay: 460ms; }
+.pc-enter-stagger > *:nth-child(7) { animation-delay: 540ms; }
+.pc-enter-stagger > *:nth-child(8) { animation-delay: 620ms; }
+.pc-enter-stagger > *:nth-child(9) { animation-delay: 700ms; }
+.pc-enter-stagger > *:nth-child(10) { animation-delay: 780ms; }
+.pc-enter-stagger > *:nth-child(11) { animation-delay: 860ms; }
+.pc-enter-stagger > *:nth-child(12) { animation-delay: 940ms; }
 
 @media (prefers-reduced-motion: reduce) {
 	.pc-enter, .pc-enter-stagger > * { animation: none; }

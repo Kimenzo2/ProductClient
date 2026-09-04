@@ -1,4 +1,5 @@
 import { makers, mockStates, preLaunchProducts, reviews, type MakerProfile, type MockState, type Review } from '$lib/data/mockStates';
+import { statusPages } from '$lib/data/status';
 import type { SearchRecord } from '$lib/search/types';
 
 export type PublicProductRecord = {
@@ -126,11 +127,7 @@ export const publicDocs: PublicDocRecord[] = [
 	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: '/docs/linear/feedback-loop' }
 ];
 
-export const publicIncidents: PublicIncidentRecord[] = [
-	{ id: 'inc-1', title: 'Some requests were slow', summary: 'Requests were slower than usual in one region. Things are back to normal, and the team is reviewing what happened.', status: 'Resolved', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Yesterday, 08:14', resolvedAt: 'Yesterday, 10:02', publicPath: '/status/vercel' },
-	{ id: 'inc-2', title: 'Some messages arrived late', summary: 'A backlog delayed updates for some teams.', status: 'Monitoring', severity: 'Medium impact', productSlug: 'stripe', productName: 'Stripe', startedAt: 'Today, 07:32', publicPath: '/status/stripe' },
-	{ id: 'inc-3', title: 'Some people could not sign in', summary: 'New reports suggest a deployment problem. The team is investigating.', status: 'Investigating', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Today, 11:06', publicPath: '/status/vercel' }
-];
+export const publicIncidents: PublicIncidentRecord[] = statusPages.flatMap((statusPage) => statusPage.incidents.map(({ affectedComponentIds, updates, ...incident }) => incident));
 
 export const publicProofs: PublicProofRecord[] = [
 	{ id: 'proof-1', quote: 'The new product updates save me 30 minutes every day.', name: 'Julia Park', role: 'Product lead', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', productSlug: 'linear', productName: 'Linear', tags: ['Productivity', 'Teams'] },

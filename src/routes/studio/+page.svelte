@@ -154,7 +154,7 @@
 	<div class="studio-shell">
 		<header class="studio-header">
 			<div class="header-copy">
-				<p class="eyebrow">Studio</p>
+				
 				<h1>Ship an update or product.</h1>
 				<p>Choose a workflow and fill in the essentials.</p>
 			</div>
@@ -182,7 +182,7 @@
 				<main>
 					<Card variant="surface" padding="lg" class="editor-surface">
 						<div class="surface-heading">
-							<div><p class="section-kicker">Update</p><h2>Publish an update.</h2></div>
+							<div><h2>Publish an update.</h2></div>
 							<Chip variant={updateStatus === 'published' ? 'accent' : 'default'} size="xs">{updateStatus === 'published' ? 'Preview ready' : updateStatus === 'saved' ? 'Draft saved' : 'Draft'}</Chip>
 						</div>
 
@@ -223,15 +223,15 @@
 				</main>
 
 				<aside class="inspector" aria-label="Update inspector">
-					<section class="inspector-section readiness-section"><div class="inspector-heading"><div><p class="section-kicker">Publish checks</p><h2>{updateReady ? 'Ready to publish.' : 'Complete required fields.'}</h2></div><span class="check-count">{updateRequiredDone}/3</span></div><ul class="checklist">{#each updateChecks as item (item.label)}<li class:check-complete={item.done}><span class="check-mark">{#if item.done}<Check size={12} weight="Outline" aria-hidden="true" />{/if}</span><span><strong>{item.label}</strong></span></li>{/each}</ul></section>
-					<section class="inspector-section preview-section"><div class="inspector-heading"><div><p class="section-kicker">Preview</p><h2>Update</h2></div></div><div class="preview-window"><div class="preview-bar"><span>Product Client</span><span class="preview-state"><span class="status-dot" aria-hidden="true"></span>{selectedAudience}</span></div><div class="preview-content"><span class="preview-type">{selectedUpdateType}</span><h3>{title.trim() || 'Your update title'}</h3><p>{desc.trim() || 'Your description will appear here.'}</p><div class="preview-meta"><span>{selectedProduct}</span><span>Draft preview</span></div></div></div></section>
+					<section class="inspector-section readiness-section"><div class="inspector-heading"><div><h2>{updateReady ? 'Ready to publish.' : 'Complete required fields.'}</h2></div><span class="check-count">{updateRequiredDone}/3</span></div><ul class="checklist">{#each updateChecks as item (item.label)}<li class:check-complete={item.done}><span class="check-mark">{#if item.done}<Check size={12} weight="Outline" aria-hidden="true" />{/if}</span><span><strong>{item.label}</strong></span></li>{/each}</ul></section>
+					<section class="inspector-section preview-section"><div class="inspector-heading"><div><h2>Update</h2></div></div><div class="preview-window"><div class="preview-bar"><span>Product Client</span><span class="preview-state"><span class="status-dot" aria-hidden="true"></span>{selectedAudience}</span></div><div class="preview-content"><h3>{title.trim() || 'Your update title'}</h3><p>{desc.trim() || 'Your description will appear here.'}</p><div class="preview-meta"><span>{selectedProduct}</span><span>Draft preview</span></div></div></div></section>
 				</aside>
 			</div>
 		{:else}
 			<div class="studio-grid">
 				<main>
 					<Card variant="surface" padding="lg" class="editor-surface">
-						<div class="surface-heading"><div><p class="section-kicker">Launch</p><h2>Prepare a launch page.</h2></div><Chip variant={launchStatus === 'prepared' ? 'accent' : 'default'} size="xs">{launchStatus === 'prepared' ? 'Preview ready' : launchStatus === 'saved' ? 'Draft saved' : 'Draft'}</Chip></div>
+						<div class="surface-heading"><div><h2>Prepare a launch page.</h2></div><Chip variant={launchStatus === 'prepared' ? 'accent' : 'default'} size="xs">{launchStatus === 'prepared' ? 'Preview ready' : launchStatus === 'saved' ? 'Draft saved' : 'Draft'}</Chip></div>
 						{#if launchStatus !== 'idle'}<div class="status-message" role="status"><span class="status-icon"><Check size={15} weight="Outline" aria-hidden="true" /></span><span><strong>{launchStatus === 'prepared' ? 'Launch preview ready.' : 'Draft saved.'}</strong><small>{launchStatus === 'prepared' ? `Proposed path: /launch/${createdSlug}. Backend publishing connects later.` : 'Saved in this prototype.'}</small></span></div>{/if}
 						<form class="editor-form" onsubmit={(event) => { event.preventDefault(); prepareLaunch(); }}>
 							<section class="form-block" aria-labelledby="product-details-title"><div class="step-heading"><span class="step-number">01</span><h3 id="product-details-title">Basics</h3></div><div class="field-stack"><div class="field-grid"><div class="field"><Label for="pc-product-name" required>Product name</Label><Input id="pc-product-name" bind:value={productName} placeholder="Example: Bento" /></div><div class="field"><Label for="pc-tagline" required>Tagline</Label><Input id="pc-tagline" bind:value={tagline} placeholder="What does it do?" /></div></div><div class="field-grid"><div class="field"><Label for="pc-category" required>Category</Label><Select id="pc-category" bind:value={category} options={categoryOptions} placeholder="Choose a category" /></div><div class="field"><Label for="pc-date" required>Launch date</Label><Input id="pc-date" type="date" bind:value={launchDate} /></div></div><div class="field-grid"><div class="field"><Label for="pc-logo">Logo URL</Label><Input id="pc-logo" bind:value={logoUrl} placeholder="https://..." /></div><div class="field"><Label for="pc-website">Website URL</Label><Input id="pc-website" bind:value={websiteUrl} placeholder="https://..." /></div></div></div></section>
@@ -243,8 +243,8 @@
 				</main>
 
 				<aside class="inspector" aria-label="Launch inspector">
-					<section class="inspector-section readiness-section"><div class="inspector-heading"><div><p class="section-kicker">Launch checks</p><h2>{launchReady ? 'Ready to review.' : 'Complete required fields.'}</h2></div><span class="check-count">{launchRequiredDone}/5</span></div><ul class="checklist">{#each launchChecks as item (item.label)}<li class:check-complete={item.done}><span class="check-mark">{#if item.done}<Check size={12} weight="Outline" aria-hidden="true" />{/if}</span><span><strong>{item.label}</strong></span></li>{/each}</ul></section>
-					<section class="inspector-section preview-section"><div class="inspector-heading"><div><p class="section-kicker">Preview</p><h2>Launch page</h2></div></div><div class="launch-preview"><div class="launch-preview-top"><span class="launch-mark">{#if logoUrl}<img src={logoUrl} alt="" />{:else}<ImagePlus size={19} weight="Outline" aria-hidden="true" />{/if}</span><span class="preview-state"><span class="status-dot" aria-hidden="true"></span>Launching soon</span></div><h3>{productName.trim() || 'Your product'}</h3><p class="launch-tagline">{tagline.trim() || 'Your tagline'}</p><div class="launch-preview-meta"><span>{selectedCategory}</span>{#if launchDate}<span>Launches {new Date(launchDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>{/if}</div><p class="launch-preview-description">{launchDesc.trim() || 'Your description'}</p></div></section>
+					<section class="inspector-section readiness-section"><div class="inspector-heading"><div><h2>{launchReady ? 'Ready to review.' : 'Complete required fields.'}</h2></div><span class="check-count">{launchRequiredDone}/5</span></div><ul class="checklist">{#each launchChecks as item (item.label)}<li class:check-complete={item.done}><span class="check-mark">{#if item.done}<Check size={12} weight="Outline" aria-hidden="true" />{/if}</span><span><strong>{item.label}</strong></span></li>{/each}</ul></section>
+					<section class="inspector-section preview-section"><div class="inspector-heading"><div><h2>Launch page</h2></div></div><div class="launch-preview"><div class="launch-preview-top"><span class="launch-mark">{#if logoUrl}<img src={logoUrl} alt="" />{:else}<ImagePlus size={19} weight="Outline" aria-hidden="true" />{/if}</span><span class="preview-state"><span class="status-dot" aria-hidden="true"></span>Launching soon</span></div><h3>{productName.trim() || 'Your product'}</h3><p class="launch-tagline">{tagline.trim() || 'Your tagline'}</p><div class="launch-preview-meta"><span>{selectedCategory}</span>{#if launchDate}<span>Launches {new Date(launchDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>{/if}</div><p class="launch-preview-description">{launchDesc.trim() || 'Your description'}</p></div></section>
 				</aside>
 			</div>
 		{/if}
@@ -255,9 +255,10 @@
 	.studio-page { width: 100%; padding: 34px clamp(18px, 4vw, 58px) 80px; box-sizing: border-box; }
 	.studio-shell { width: min(100%, 1180px); margin-inline: auto; }
 	.studio-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 32px; padding-bottom: 28px; border-bottom: 1px solid rgba(251, 251, 251, .1); }
-	.eyebrow, .section-kicker { margin: 0; color: var(--pc-accent-light); font-size: 10px; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; }
-	.header-copy h1 { max-width: 19ch; margin: 10px 0 0; color: var(--pc-text); font-size: clamp(32px, 4vw, 48px); font-weight: 500; line-height: 1.04; letter-spacing: -.06em; text-wrap: balance; }
-	.header-copy > p:last-child { max-width: 54ch; margin: 14px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; text-wrap: pretty; }
+	
+	.header-copy h1 { max-width: 32ch; margin: 10px 0 0; color: var(--pc-text); font-size: 1.25rem; font-weight: 600; line-height: 1.2; letter-spacing: -.015em; text-wrap: balance; }
+	@media (min-width: 768px) { .header-copy h1 { font-size: 1.375rem; } }
+	.header-copy > p:last-child { max-width: 60ch; margin: 10px 0 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.6; letter-spacing: -.003em; text-wrap: pretty; }
 	.header-actions { display: flex; align-items: center; gap: 14px; padding-bottom: 2px; }
 	.prototype-state, .preview-state { display: inline-flex; align-items: center; gap: 7px; color: var(--pc-text-faint); font-size: 11px; white-space: nowrap; }
 	.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--pc-accent-light); box-shadow: 0 0 0 3px rgba(198, 254, 30, .08); }
@@ -265,7 +266,7 @@
 	:global(.studio-tab-list) { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); width: min(100%, 560px); gap: 3px; padding: 4px; border-radius: 16px; background: var(--pc-surface-2); }
 	:global(.studio-tab) { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 8px 12px; border: 0; border-radius: 12px; color: var(--pc-text-muted); background: transparent; text-align: start; outline: none; cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 150ms ease; }
 	:global(.studio-tab:hover) { color: var(--pc-text); }
-	:global(.studio-tab:focus-visible) { box-shadow: 0 0 0 2px var(--pc-accent-light); }
+	:global(.studio-tab:focus-visible) { box-shadow: 0 0 0 0.5px var(--pc-focus-ring); }
 	:global(.studio-tab[data-state='active']) { color: var(--pc-text); background: var(--pc-surface); box-shadow: 0 0 0 1px rgba(251, 251, 251, .08); }
 	.tab-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 10px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .12); }
 	:global(.studio-tab strong) { display: block; }
@@ -274,7 +275,7 @@
 	:global(.editor-surface) { min-width: 0; padding: clamp(22px, 3vw, 34px); border-radius: 22px; background: var(--pc-surface-2); box-shadow: inset 0 1px 0 rgba(251, 251, 251, .035); }
 	.surface-heading, .inspector-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 	.surface-heading { padding-bottom: 25px; border-bottom: 1px solid rgba(251, 251, 251, .08); }
-	.surface-heading h2 { max-width: 24ch; margin: 8px 0 0; color: var(--pc-text); font-size: 22px; font-weight: 500; line-height: 1.12; letter-spacing: -.04em; text-wrap: balance; }
+	.surface-heading h2 { max-width: 32ch; margin: 6px 0 0; color: var(--pc-text); font-size: 1rem; font-weight: 600; line-height: 1.3; letter-spacing: -.01em; text-wrap: balance; }
 	.editor-form { display: grid; gap: 0; }
 	.status-message { display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: start; gap: 10px; margin: 22px 0 -1px; padding: 11px 12px; border-radius: 12px; color: var(--pc-text); background: rgba(119, 152, 18, .1); }
 	.status-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .18); }
@@ -284,7 +285,7 @@
 	.form-block { padding: 28px 0; }
 	.step-heading { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 11px; align-items: start; }
 	.step-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); font-family: var(--font-family-mono, monospace); font-size: 10px; font-weight: 600; }
-	.step-heading h3 { margin: 7px 0 0; color: var(--pc-text); font-size: 16px; font-weight: 550; letter-spacing: -.025em; }
+	.step-heading h3 { margin: 6px 0 0; color: var(--pc-text); font-size: 0.875rem; font-weight: 600; line-height: 1.35; letter-spacing: -.006em; text-wrap: balance; }
 	.field-stack { display: grid; gap: 17px; margin: 24px 0 0 41px; }
 	.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 17px; }
 	.audience-grid { margin: 24px 0 0 41px; }
@@ -294,8 +295,8 @@
 	.field-note strong, .field-note small { display: block; }
 	.field-note strong { color: var(--pc-text); font-size: 11px; font-weight: 550; }
 	.field-note small { margin-top: 3px; color: var(--pc-text-muted); font-size: 10px; }
-	.media-drop, .invitation-note { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 11px; margin: 24px 0 0 41px; padding: 13px; border: 1px dashed rgba(251, 251, 251, .18); border-radius: 13px; background: rgba(13, 13, 13, .2); }
-	.media-drop:hover { border-color: rgba(198, 254, 30, .4); }
+	.media-drop, .invitation-note { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 11px; margin: 24px 0 0 41px; padding: 13px; border: 1px dashed var(--pc-border-strong); border-radius: 13px; background: rgba(13, 13, 13, .2); }
+	.media-drop:hover { background: var(--pc-surface); }
 	.media-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .12); }
 	.media-drop strong, .media-drop small, .invitation-note strong, .invitation-note small { display: block; }
 	.media-drop strong, .invitation-note strong { color: var(--pc-text); font-size: 12px; font-weight: 550; }
@@ -311,7 +312,7 @@
 	.inspector { position: sticky; top: calc(var(--pc-header-h) + 24px); min-width: 0; }
 	.inspector-section { padding: 0 0 30px; }
 	.inspector-section + .inspector-section { padding-top: 29px; border-top: 1px solid rgba(251, 251, 251, .1); }
-	.inspector-heading h2 { max-width: 22ch; margin: 8px 0 0; color: var(--pc-text); font-size: 18px; font-weight: 500; line-height: 1.15; letter-spacing: -.035em; text-wrap: balance; }
+	.inspector-heading h2 { max-width: 32ch; margin: 6px 0 0; color: var(--pc-text); font-size: 0.9375rem; font-weight: 600; line-height: 1.35; letter-spacing: -.006em; text-wrap: balance; }
 	.check-count { color: var(--pc-accent-light); font-family: var(--font-family-mono, monospace); font-size: 12px; font-weight: 600; }
 	.checklist { display: grid; gap: 17px; margin: 23px 0 0; padding: 0; list-style: none; }
 	.checklist li { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 9px; }
@@ -323,8 +324,8 @@
 	.preview-window, .launch-preview { margin-top: 18px; overflow: hidden; border-radius: 17px; background: var(--pc-surface-2); box-shadow: 0 0 0 1px rgba(251, 251, 251, .08), inset 0 1px 0 rgba(251, 251, 251, .03); }
 	.preview-bar, .launch-preview-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; color: var(--pc-text-faint); font-size: 10px; }
 	.preview-content { padding: 28px 20px 22px; background: var(--pc-surface); }
-	.preview-type { color: var(--pc-accent-light); font-size: 9px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
-	.preview-content h3, .launch-preview h3 { margin: 12px 0 0; color: var(--pc-text); font-size: 19px; font-weight: 500; line-height: 1.12; letter-spacing: -.04em; text-wrap: balance; }
+	
+	.preview-content h3, .launch-preview h3 { margin: 10px 0 0; color: var(--pc-text); font-size: 0.9375rem; font-weight: 600; line-height: 1.3; letter-spacing: -.008em; text-wrap: balance; }
 	.preview-content p, .launch-preview-description { margin: 10px 0 0; color: var(--pc-text-muted); font-size: 11px; line-height: 1.55; }
 	.preview-meta, .launch-preview-meta { display: flex; flex-wrap: wrap; gap: 7px 12px; margin-top: 20px; color: var(--pc-text-faint); font-size: 10px; }
 	.preview-meta span + span, .launch-preview-meta span + span { padding-inline-start: 12px; border-inline-start: 1px solid rgba(251, 251, 251, .12); }
@@ -336,6 +337,6 @@
 	.launch-preview-meta { margin-top: 18px; }
 	.launch-preview-description { padding-top: 17px; border-top: 1px solid rgba(251, 251, 251, .1); }
 	@media (max-width: 940px) { .studio-grid { grid-template-columns: minmax(0, 1fr); }.inspector { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }.inspector-section, .inspector-section + .inspector-section { padding: 0; border: 0; }.inspector-section + .inspector-section { border-inline-start: 1px solid rgba(251, 251, 251, .1); padding-inline-start: 28px; } }
-	@media (max-width: 680px) { .studio-page { padding: 24px 16px 56px; }.studio-header { grid-template-columns: 1fr; gap: 18px; padding-bottom: 22px; }.header-copy h1 { max-width: 16ch; font-size: clamp(30px, 9vw, 42px); }.header-actions { justify-content: space-between; }:global(.studio-tabs) { padding: 18px 0 22px; }.studio-grid { gap: 34px; }.surface-heading h2 { font-size: 20px; }.field-grid { grid-template-columns: 1fr; gap: 17px; }.field-stack, .media-drop, .invitation-note { margin-inline-start: 0; }.editor-actions { align-items: stretch; flex-direction: column; }.editor-actions > div { justify-content: stretch; }.editor-actions > div :global(a), .editor-actions > div :global(button) { flex: 1; }.inspector { display: block; }.inspector-section + .inspector-section { margin-top: 29px; padding-top: 29px; border-top: 1px solid rgba(251, 251, 251, .1); border-inline-start: 0; padding-inline-start: 0; } }
+	@media (max-width: 680px) { .studio-page { padding: 24px 16px 56px; }.studio-header { grid-template-columns: 1fr; gap: 18px; padding-bottom: 22px; }.header-copy h1 { max-width: 32ch; font-size: 1.25rem; }.header-actions { justify-content: space-between; }:global(.studio-tabs) { padding: 18px 0 22px; }.studio-grid { gap: 34px; }.surface-heading h2 { font-size: 1rem; }.field-grid { grid-template-columns: 1fr; gap: 17px; }.field-stack, .media-drop, .invitation-note { margin-inline-start: 0; }.editor-actions { align-items: stretch; flex-direction: column; }.editor-actions > div { justify-content: stretch; }.editor-actions > div :global(a), .editor-actions > div :global(button) { flex: 1; }.inspector { display: block; }.inspector-section + .inspector-section { margin-top: 29px; padding-top: 29px; border-top: 1px solid rgba(251, 251, 251, .1); border-inline-start: 0; padding-inline-start: 0; } }
 	@media (prefers-reduced-motion: reduce) { :global(.studio-tab), .file-action { transition: none; } }
 </style>

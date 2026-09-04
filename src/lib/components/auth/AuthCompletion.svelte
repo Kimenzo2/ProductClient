@@ -83,7 +83,7 @@
 			<Lock size={22} weight="Outline" />
 		{/if}
 	</div>
-	<p class="eyebrow">{status === 'checking' ? 'One moment' : 'Sign-in link problem'}</p>
+	
 	<h1>{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>
 	<p class="description">{status === 'checking' ? 'We are checking the link and opening your workspace.' : message}</p>
 	{#if status === 'error'}
@@ -97,5 +97,5 @@
 </section>
 
 <style>
-	.completion { max-width: 420px; margin: 0 auto; text-align: center; }.completion-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 23px; border-radius: 18px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.completion-icon.error { color: #f09b9b; background: rgba(224, 122, 122, .12); }.completion-spinner { width: 20px; height: 20px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: completion-spin .8s linear infinite; }.eyebrow { margin: 0 0 12px; color: var(--pc-accent-light); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }.completion h1 { margin: 0; color: var(--pc-text); font-size: clamp(28px, 4vw, 38px); font-weight: 500; line-height: 1.06; letter-spacing: -.055em; }.description { max-width: 38ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }.completion-actions { display: grid; gap: 18px; margin-top: 28px; }.completion-actions a { color: var(--pc-text-muted); font-size: 13px; }.completion-actions a:hover { color: var(--pc-text); }.completion-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; color: var(--pc-text-faint); font-size: 12px; }@keyframes completion-spin { to { transform: rotate(360deg); } }@media (prefers-reduced-motion: reduce) { .completion-spinner { animation: none; } }
+	.completion { max-width: 420px; margin: 0 auto; text-align: center; }.completion-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 23px; border-radius: 18px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.completion-icon.error { color: #f09b9b; background: rgba(224, 122, 122, .12); }.completion-spinner { width: 20px; height: 20px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: completion-spin .8s linear infinite; }.completion h1 { margin: 0; color: var(--pc-text); font-size: clamp(28px, 4vw, 38px); font-weight: 500; line-height: 1.06; letter-spacing: -.055em; }.description { max-width: 38ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }.completion-actions { display: grid; gap: 18px; margin-top: 28px; }.completion-actions a { color: var(--pc-text-muted); font-size: 13px; }.completion-actions a:hover { color: var(--pc-text); }.completion-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; color: var(--pc-text-faint); font-size: 12px; }@keyframes completion-spin { to { transform: rotate(360deg); } }@media (prefers-reduced-motion: reduce) { .completion-spinner { animation: none; } }
 </style>

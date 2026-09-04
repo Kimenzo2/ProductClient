@@ -29,14 +29,14 @@
 {#if product}
 	<div class="max-w-[883px] mx-auto px-6 max-sm:px-4 py-10 pc-enter">
 		<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Embeddable Badge</h1>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Add this badge to your website to show your Product Client listing.</p>
+		<p class="mt-2 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased">Add this badge to your website to show your Product Client listing.</p>
 
 		<!-- Preview -->
 		<div class="mt-8">
 			<p class="text-xs font-medium tracking-wide uppercase text-[var(--pc-text-faint)] mb-3">Preview</p>
 			<div class="inline-block rounded-[14px] bg-[var(--pc-surface)] p-1">
 				<div class="flex items-center gap-3 px-4 py-3 rounded-[12px] bg-[var(--pc-surface-2)]">
-					<Avatar src={product.avatar} alt={product.name} size="md" shape="square" />
+					<Avatar src={product.avatar} alt={product.name} size="md" shape="square" class="!ring-0 ring-0 border-0" />
 					<div class="min-w-0 flex-1">
 						<p class="text-[13px] font-medium leading-tight truncate">{product.name}</p>
 						<p class="text-xs text-[var(--pc-text-muted)]">Listed on Product Client</p>

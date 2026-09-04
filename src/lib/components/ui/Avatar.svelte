@@ -27,7 +27,7 @@
 
 	const radiuses: Record<string, string> = {
 		circle: 'rounded-full',
-		square: 'rounded-[12px]'
+		square: 'rounded-[8px]'
 	};
 
 	let sizeClass = $derived(sizes[size] || sizes.md);
@@ -39,7 +39,7 @@
 	);
 </script>
 
-<Avatar.Root class="{sizeClass} {radiusClass} overflow-hidden bg-[var(--pc-surface-2)] {className}">
+<Avatar.Root class="{sizeClass} {radiusClass} overflow-hidden bg-[var(--pc-surface-2)] ring-1 ring-[var(--pc-image-ring)] {className}">
 	<Avatar.Image {src} {alt} class="w-full h-full object-cover" loading="lazy" decoding="async" />
 	<Avatar.Fallback class="w-full h-full grid place-items-center text-[var(--pc-text-muted)] text-xs font-medium select-none">
 		{initials}

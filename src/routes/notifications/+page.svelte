@@ -53,61 +53,64 @@
 	<title>Notifications — Product Client</title>
 </svelte:head>
 
-<div class="w-full max-w-[883px] mx-auto px-6 max-sm:px-4">
-	<!-- Header -->
-	<header class="pt-10 pb-5 max-sm:pt-8 max-sm:pb-4">
+<div class="w-full max-w-[883px] mx-auto px-6 max-sm:px-4 ps-[max(1.5rem,env(safe-area-inset-left))] pe-[max(1.5rem,env(safe-area-inset-right))]">
+	<!-- Header — 30px display, 15/16 body, tabular -->
+	<header class="pt-10 pb-8 max-sm:pt-8 max-sm:pb-6">
 		<div class="flex items-baseline justify-between gap-4">
-			<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Notifications</h1>
+			<h1 class="text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">Notifications</h1>
 			{#if unreadCount > 0}
-			<Button variant="ghost" size="sm" onclick={markAllRead} class="!text-[var(--pc-accent)]">Mark all read</Button>
+			<Button variant="ghost" size="sm" onclick={markAllRead} class="!text-[var(--pc-accent-strong)]">Mark all read</Button>
 			{/if}
 		</div>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">
+		<p class="mt-3 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">
 			{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
 		</p>
 	</header>
 
-	<!-- Filter tabs -->
+	<!-- Filter tabs — gap 12, mask peek, 44 hit -->
 	<Tabs.Root value={filter} onValueChange={(v) => { if (v) filter = v as typeof filter; }} class="pb-4">
-		<Tabs.List class="flex items-center gap-1">
-			<Tabs.Trigger value="all" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
+		<Tabs.List class="flex items-center gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-ps-6 pe-6 [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]">
+			<Tabs.Trigger value="all" class="inline-flex items-center justify-center h-9 px-3.5 rounded-full text-[13px] font-medium leading-none tracking-[-0.01em] whitespace-nowrap snap-start shrink-0 transition-[background-color,color,transform] duration-150 active:scale-[0.96] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
 				All
 			</Tabs.Trigger>
-			<Tabs.Trigger value="unread" class="h-8 px-3 rounded-lg text-[13px] font-normal transition-[background-color,color] duration-150 data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
-				Unread {#if unreadCount > 0}<span class="text-[11px] opacity-65">{unreadCount}</span>{/if}
+			<Tabs.Trigger value="unread" class="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-medium leading-none tracking-[-0.01em] whitespace-nowrap snap-start shrink-0 transition-[background-color,color,transform] duration-150 active:scale-[0.96] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] data-[state=active]:bg-[var(--tab-active-bg)] data-[state=active]:text-[var(--tab-active-color)] data-[state=active]:shadow-[var(--tab-active-shadow)] data-[state=inactive]:bg-[var(--tab-bg)] data-[state=inactive]:text-[var(--tab-color)] data-[state=inactive]:hover:bg-[var(--tab-hover-bg)] data-[state=inactive]:hover:text-[var(--tab-hover-color)]">
+				Unread {#if unreadCount > 0}<span class="text-xs tabular-nums">{unreadCount}</span>{/if}
 			</Tabs.Trigger>
 		</Tabs.List>
 	</Tabs.Root>
 
-	<!-- Notifications list -->
+	<!-- List — flat, opaque, no opacity wash, 60ch, concentric -->
 	{#if filtered.length > 0}
-		<div class="space-y-1 pc-enter-stagger">
+		<ul class="space-y-3 pc-enter-stagger list-none p-0 m-0" role="list" aria-label="Notifications">
 			{#each filtered as n (n.id)}
 				{@const Icon = typeIcon[n.type]}
-				<div class={[
-					'flex items-start gap-3 p-3 rounded-[14px] transition-[background-color] duration-100',
-					n.read ? 'bg-transparent' : 'bg-[var(--pc-surface-2)]'
-				].join(' ')}>
-					<!-- Icon -->
-				<div class="shrink-0 size-9 rounded-full bg-[var(--pc-surface-2)] grid place-items-center mt-0.5">
-					<span style:color={typeColor[n.type]}><Icon size={14} weight="Outline" /></span>
-				</div>
-
-					<!-- Content -->
-					<div class="min-w-0 flex-1">
-						<div class="flex items-center gap-2">
-							<Avatar src={n.productAvatar} alt="" size="xs" shape="square" />
-							<span class="text-[13px] font-medium">{n.product}</span>
-							{#if !n.read}
-								<span class="size-1.5 rounded-full bg-[var(--pc-accent)] shrink-0"></span>
-							{/if}
+				<li role="listitem">
+					<div class={[
+						'flex items-start gap-3 p-3 rounded-[20px] transition-[background-color] duration-150',
+						n.read ? 'bg-transparent hover:bg-[var(--pc-surface)]' : 'bg-[var(--pc-surface-2)]'
+					].join(' ')}>
+						<!-- Icon — 36 hit, muted bg, neutral -->
+						<div class="shrink-0 grid size-9 place-items-center rounded-full bg-[var(--pc-surface)] ring-1 ring-[var(--pc-border-strong)] mt-0.5" aria-hidden="true">
+							<span style:color={typeColor[n.type]}><Icon size={14} weight="Outline" aria-hidden="true" /></span>
 						</div>
-						<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-60 line-clamp-2">{n.message}</p>
-						<span class="mt-1 block text-[11px] text-[var(--pc-text-faint)] opacity-60">{n.time}</span>
+
+						<!-- Content — no opacity, 14/15 body, tabular -->
+						<div class="min-w-0 flex-1">
+							<div class="flex items-center gap-2">
+								<Avatar src={n.productAvatar} alt={n.product} size="xs" shape="square" class="!ring-0 ring-0 border-0" />
+								<span class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] truncate">{n.product}</span>
+								{#if !n.read}
+									<span class="size-1.5 rounded-full bg-[var(--pc-accent)] shrink-0" aria-hidden="true"></span>
+									<span class="sr-only">Unread</span>
+								{/if}
+							</div>
+							<p class="mt-1 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.01em] text-[var(--pc-text)] max-w-[60ch] text-pretty line-clamp-2 break-words [overflow-wrap:break-word]">{n.message}</p>
+							<span class="mt-1 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-faint)] tabular-nums">{n.time}</span>
+						</div>
 					</div>
-				</div>
+				</li>
 			{/each}
-		</div>
+		</ul>
 	{:else}
 		<StatePanel icon={Bell} title="You're all caught up" description="New activity from products you follow will appear here." class="pc-enter" />
 	{/if}
@@ -121,4 +124,6 @@
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
+	.scrollbar-none { scrollbar-width: none; }
+	.scrollbar-none::-webkit-scrollbar { display: none; }
 </style>

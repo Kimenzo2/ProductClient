@@ -82,7 +82,7 @@
 		<section class="home-work" aria-labelledby="home-work-title">
 			<div class="section-heading">
 				<div>
-					<p class="section-kicker">{mode === 'build' ? 'Your work' : 'For you'}</p>
+					
 					<h2 id="home-work-title">{mode === 'build' ? 'Work connected to what you are building.' : 'Start with what needs a reply or decision.'}</h2>
 				</div>
 				<a href={mode === 'build' ? '/workspace/feedback' : '/workspace/inbox'}>View all <ArrowRight size={13} weight="Outline" aria-hidden="true" /></a>
@@ -107,8 +107,8 @@
 	.starter-area { width: 100%; margin-top: 21px; text-align: center; }
 	.starter-label { margin: 0 0 9px; color: var(--pc-text-faint); font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 	.starter-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-	.starter-action { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px; border: 1px solid transparent; border-radius: 13px; color: var(--pc-text-muted); background: var(--pc-surface-2); text-align: start; transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease; }
-	.starter-action:hover { border-color: var(--pc-border-strong); color: var(--pc-text); background: rgba(251, 251, 251, .06); transform: translateY(-1px); }
+	.starter-action { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px; border: 1px solid transparent; border-radius: 13px; color: var(--pc-text-muted); background: var(--pc-surface-2); text-align: start; transition: background-color 100ms ease, color 100ms ease; }
+	.starter-action:hover { color: var(--pc-text); background: var(--pc-surface); }
 	.starter-icon { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 auto; border-radius: 10px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .12); }
 	.starter-action strong, .starter-action small { display: block; }
 	.starter-action strong { color: inherit; font-size: 11px; font-weight: 500; }
@@ -116,7 +116,7 @@
 	.home-work { width: min(100%, 760px); margin: clamp(58px, 9vh, 88px) auto 0; }
 	.section-heading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; text-align: center; }
 	.section-heading > div { display: grid; justify-items: center; }
-	.section-kicker { margin: 0 0 5px; color: var(--pc-accent-light); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+	
 	.section-heading h2 { max-width: 32ch; margin: 0; color: var(--pc-text); font-size: 19px; font-weight: 500; letter-spacing: -.035em; text-wrap: balance; }
 	.section-heading > a { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; color: var(--pc-accent-light); font-size: 11px; }
 	.work-list { display: grid; gap: 7px; }

@@ -25,7 +25,7 @@
 		[key: string]: unknown;
 	} = $props();
 
-	const base = 'w-full rounded-[10px] bg-[var(--pc-surface)] px-3 py-2.5 text-[13px] outline-none transition-[background-color,box-shadow,border-color] duration-200 placeholder:text-[var(--pc-text-faint)] focus:ring-2 focus:ring-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed';
+	const base = 'w-full rounded-[10px] bg-[var(--pc-surface)] px-3 py-2.5 text-[13px] outline-none transition-[background-color,box-shadow,border-color] duration-200 placeholder:text-[var(--pc-text-faint)] focus:ring-[0.5px] focus:ring-[var(--pc-focus-ring)] disabled:opacity-50 disabled:cursor-not-allowed';
 </script>
 
 <input

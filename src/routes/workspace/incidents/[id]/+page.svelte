@@ -1,48 +1,161 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ArrowLeft, ArrowRight, AlertTriangle, CheckCircle, Clock, Export } from 'reicon-svelte';
-	import { Button, Card, Chip, StatePanel, Textarea } from '$lib/components/ui';
-	import RelationList from '$lib/components/workspace/RelationList.svelte';
-	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
-	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
-	import { incidents, productBySlug, releasesForProduct, docs, roadmapItems, feedbackForProduct, followUpsForIncident, type ThreadRelation } from '$lib/data/workspace';
+	import { ArrowLeft, ArrowRight, CheckCircle, Export } from 'reicon-svelte';
+	import { Button, StatePanel } from '$lib/components/ui';
+	import { hostedStatusPage } from '$lib/config/tenant';
+	import { statusPages, type PublicIncidentStatus, type StatusIncident, type StatusIncidentUpdate } from '$lib/data/status';
+	import { followUpsForIncident } from '$lib/data/followUps.svelte';
 
+	const incidents = statusPages.flatMap((statusPage) => statusPage.incidents);
 	let id = $derived(page.params.id);
 	let incident = $derived(incidents.find((record) => record.id === id));
-	let product = $derived(incident ? productBySlug(incident.productSlug) : undefined);
-	let relatedRelease = $derived(incident ? releasesForProduct(incident.productSlug)[0] : undefined);
-	let relatedDoc = $derived(incident ? docs.find((doc) => doc.productSlug === incident.productSlug && doc.section === 'Operations') : undefined);
-	let relatedRoadmap = $derived(incident ? roadmapItems.find((item) => item.productSlug === incident.productSlug && item.status !== 'Shipped') : undefined);
-	let relatedFeedback = $derived(incident ? feedbackForProduct(incident.productSlug).slice(0, 1) : []);
+	let statusPage = $derived(statusPages.find((record) => record.incidents.some((item) => item.id === id)));
+	let affectedComponents = $derived(statusPage?.components.filter((component) => incident?.affectedComponentIds.includes(component.id)) ?? []);
 	let followUps = $derived(incident ? followUpsForIncident(incident.id) : []);
-	let updateText = $state('');
-	let updateAudience = $state<'Team' | 'Customers'>('Team');
-	let updateAdded = $state(false);
-	let incidentRelations = $derived([
-		...(relatedRelease ? [{ kind: 'Release' as const, title: relatedRelease.title, detail: `${relatedRelease.productName} · ${relatedRelease.postedAt}`, href: relatedRelease.workspacePath, status: relatedRelease.status }] : []),
-		...(relatedDoc ? [{ kind: 'Doc' as const, title: relatedDoc.title, detail: `${relatedDoc.section} · updated ${relatedDoc.updatedAt}`, href: relatedDoc.publicPath, status: 'Published' }] : []),
-		...(relatedRoadmap ? [{ kind: 'Roadmap' as const, title: relatedRoadmap.title, detail: `${relatedRoadmap.status} · ${relatedRoadmap.owner}`, href: `/workspace/roadmap#${relatedRoadmap.id}`, status: relatedRoadmap.status }] : []),
-		...relatedFeedback.map((item) => ({ kind: 'Feedback' as const, title: item.title, detail: `${item.from} · ${item.priority} priority`, href: item.workspacePath, status: item.status }))
-	] as ThreadRelation[]);
-	let statusTone = $derived((incident?.status === 'Resolved' ? 'success' : incident?.status === 'Monitoring' ? 'warning' : 'danger') as 'success' | 'warning' | 'danger');
+	let draftUpdates = $state<StatusIncidentUpdate[]>([]);
+	let updateStatus = $state<PublicIncidentStatus>('Identified');
+	let updateMessage = $state('');
+	let updateError = $state('');
+	let updateTimestamp = $state('');
+	let visibleUpdates = $derived([...(incident?.updates ?? []), ...draftUpdates]);
 
-	function addUpdate() {
-		if (!updateText.trim()) return;
-		updateAdded = true;
-		updateText = '';
+	function stageUpdate() {
+		updateError = '';
+		if (!updateMessage.trim()) {
+			updateError = 'Write the message customers or the team need next.';
+			return;
+		}
+		const update: StatusIncidentUpdate = {
+			id: `draft-${draftUpdates.length + 1}`,
+			status: updateStatus,
+			timestamp: updateTimestamp.trim() || 'Drafted just now',
+			message: updateMessage.trim()
+		};
+		draftUpdates = [...draftUpdates, update];
+		updateMessage = '';
+		updateTimestamp = '';
+	}
+
+	function statusTone(status: PublicIncidentStatus | StatusIncident['status']) {
+		return status === 'Resolved' ? 'resolved' : status === 'Monitoring' ? 'monitoring' : 'active';
 	}
 </script>
 
-<svelte:head><title>{incident?.title ?? 'Service problem'} | Product Client</title></svelte:head>
+<svelte:head>
+	<title>{incident?.title ?? 'Incident'} | Product Client</title>
+	<meta name="description" content="Coordinate an incident response and its customer-facing updates." />
+</svelte:head>
 
 {#if incident}
-	<div class="mx-auto w-full max-w-[920px] px-4 sm:px-6">
-		<header class="pb-6 pt-8 sm:pt-10"><a href="/workspace/incidents" class="inline-flex items-center gap-1 text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]"><ArrowLeft size={13} weight="Outline" aria-hidden="true" /> Service problems</a><div class="mt-5 flex flex-wrap items-center gap-2"><StatusBadge label={incident.status} tone={statusTone} /><Chip size="xs">{incident.severity}</Chip><VisibilityBadge label="Public preview" /><span class="text-xs text-[var(--pc-text-faint)]">Started {incident.startedAt}</span></div><h1 class="mt-3 max-w-[36ch] text-[26px] font-medium leading-tight tracking-tight md:text-[34px]">{incident.title}</h1><p class="mt-2 text-xs text-[var(--pc-text-muted)] opacity-70">{incident.productName} · Response owner {incident.owner}</p></header>
-		<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
-			<main class="space-y-4"><Card padding="lg"><div class="flex items-start gap-3"><span class="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)]">{#if incident.status === 'Resolved'}<CheckCircle size={17} weight="Outline" aria-hidden="true" />{:else}<AlertTriangle size={17} weight="Outline" aria-hidden="true" />{/if}</span><p class="text-sm leading-7 text-[var(--pc-text-muted)]">{incident.summary}</p></div><div class="mt-6 flex flex-wrap gap-2"><Button href={incident.publicPath} variant="primary" size="sm"><Export size={14} weight="Outline" aria-hidden="true" /> Public status page</Button><Button href="#add-update" variant="outline" size="sm">Add an update</Button></div></Card><Card padding="md"><div class="flex items-center gap-2"><Clock size={15} weight="Outline" class="opacity-55" aria-hidden="true" /><h2 class="text-[13px] font-medium">Service problem timeline</h2></div><div class="mt-4 space-y-4"><div class="flex gap-3"><span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--pc-accent)]" aria-hidden="true"></span><div><p class="text-xs font-medium">Team started looking into it</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">{incident.startedAt} · {incident.owner} opened the record.</p></div></div>{#if incident.status !== 'Investigating'}<div class="flex gap-3"><span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--color-green-600)]" aria-hidden="true"></span><div><p class="text-xs font-medium">Customers have an update</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">The public status page shows the latest information.</p></div></div>{/if}{#if incident.resolvedAt}<div class="flex gap-3"><span class="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--color-green-600)]" aria-hidden="true"></span><div><p class="text-xs font-medium">Problem fixed</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">{incident.resolvedAt} · The team can now record what it learned.</p></div></div>{/if}</div></Card>{#if followUps.length > 0}<Card padding="md"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--pc-accent-light)]">After the problem</p><h2 class="mt-1 text-[15px] font-medium">Follow-up work</h2></div><span class="text-[10px] text-[var(--pc-text-faint)]">{followUps.length} item{followUps.length === 1 ? '' : 's'}</span></div><div class="mt-4 space-y-2">{#each followUps as followUp (followUp.id)}<a href={followUp.href} class="block rounded-[12px] bg-[var(--pc-surface)] p-3 transition-colors hover:bg-[var(--pc-surface-2)]"><div class="flex flex-wrap items-center gap-2"><span class="text-xs font-medium">{followUp.title}</span><Chip size="xs">{followUp.status}</Chip><span class="ml-auto text-[10px] text-[var(--pc-text-faint)]">Due {followUp.due}</span></div><p class="mt-1 text-[11px] leading-relaxed text-[var(--pc-text-muted)] opacity-75">{followUp.description}</p><p class="mt-2 text-[10px] text-[var(--pc-text-faint)]">{followUp.kind} · {followUp.owner}</p></a>{/each}</div></Card>{/if}<Card padding="md" id="add-update"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--pc-accent-light)]">Keep the record current</p><h2 class="mt-1 text-[15px] font-medium">Add an update</h2></div><span class="text-[10px] text-[var(--pc-text-faint)]">Prototype only</span></div><p class="mt-2 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-75">Write the next thing the team or customers need to know. It will appear here until the backend is connected.</p><form onsubmit={(event) => { event.preventDefault(); addUpdate(); }} class="mt-4"><label for="incident-audience" class="text-xs font-medium">Who is this for?</label><select id="incident-audience" bind:value={updateAudience} class="mt-2 h-9 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 text-xs outline-none focus:ring-2 focus:ring-[var(--pc-accent)]"><option value="Team">Team only</option><option value="Customers">Customers</option></select><label for="incident-update" class="mt-4 block text-xs font-medium">Update</label><Textarea id="incident-update" bind:value={updateText} rows={4} placeholder="For example: The service is working again, and we are checking why this happened." class="mt-2" /><div class="mt-3 flex items-center justify-between gap-3">{#if updateAdded}<span class="text-[11px] text-[var(--pc-accent-light)]" role="status">Update added to this preview.</span>{:else}<span class="text-[10px] text-[var(--pc-text-faint)]">Audience: {updateAudience === 'Team' ? 'team only' : 'customers'}</span>{/if}<Button type="submit" variant="outline" size="sm" disabled={!updateText.trim()}>Add update</Button></div></form></Card><Card padding="md"><RelationList relations={incidentRelations} label="Related pages" /></Card></main>
-			<aside class="space-y-4"><Card padding="md"><p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">About this problem</p>{#if product}<a href={product.workspacePath} class="mt-3 block text-sm font-medium hover:text-[var(--pc-accent-light)]">{product.name}</a>{/if}<p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">{incident.owner} is responsible for the response.</p></Card>{#if relatedRelease}<Card padding="md"><p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">Related update</p><a href={relatedRelease.workspacePath} class="mt-2 block text-[13px] font-medium">{relatedRelease.title}</a><a href="/workspace/releases" class="mt-3 inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)]">Review product updates <ArrowRight size={13} weight="Outline" /></a></Card>{/if}</aside>
+	<div class="incident-detail">
+		<header class="detail-header">
+			<a class="back-link" href="/workspace/incidents"><ArrowLeft size={14} weight="Outline" aria-hidden="true" /> Incidents</a>
+			<div class="detail-meta"><span class="state {statusTone(incident.status)}">{incident.status}</span><span>{incident.severity}</span><span>Started {incident.startedAt}</span></div>
+			<h1>{incident.title}</h1>
+			<p class="detail-lede">{incident.summary}</p>
+			<p class="detail-context">{incident.productName} · owned by {incident.owner}</p>
+		</header>
+
+		<div class="detail-layout">
+			<main>
+				<section class="response-section" aria-labelledby="timeline-title">
+					<div class="section-heading"><div><h2 id="timeline-title">Updates</h2></div><span>{visibleUpdates.length} entries</span></div>
+					<div class="timeline">
+						{#each [...visibleUpdates].reverse() as update (update.id)}
+							<article class="timeline-entry">
+								<span class="timeline-marker {statusTone(update.status)}" aria-hidden="true">{update.status === 'Resolved' ? '✓' : '•'}</span>
+								<div class="timeline-content"><div class="update-heading"><strong>{update.status}</strong><time>{update.timestamp}</time></div><p>{update.message}</p></div>
+							</article>
+						{/each}
+					</div>
+				</section>
+
+				<section class="composer" aria-labelledby="composer-title">
+					<div class="section-heading"><div><h2 id="composer-title">Stage an update</h2></div><span>Draft</span></div>
+					<p class="section-note">Choose the lifecycle state and write the next factual update. Publishing remains a deliberate step.</p>
+					<form onsubmit={(event) => { event.preventDefault(); stageUpdate(); }}>
+						<div class="form-grid"><label>Status<select bind:value={updateStatus}><option value="Investigating">Investigating</option><option value="Identified">Identified</option><option value="Monitoring">Monitoring</option><option value="Resolved">Resolved</option></select></label><label>Timestamp<input bind:value={updateTimestamp} placeholder="Sep 2, 2026 at 2:18 PM GMT+3" /></label></div>
+						<label class="message-label">Message<textarea bind:value={updateMessage} rows="5" placeholder="What has changed, and what should people expect next?"></textarea></label>
+						<div class="composer-footer">{#if updateError}<p class="form-error" role="alert">{updateError}</p>{:else}<p>This draft is local to the preview until persistence is connected.</p>{/if}<Button type="submit" variant="outline" size="sm">Stage update</Button></div>
+					</form>
+				</section>
+
+				{#if followUps.length > 0}
+					<section class="follow-ups" aria-labelledby="follow-up-title"><div class="section-heading"><div><h2 id="follow-up-title">Follow-up work</h2></div><span>{followUps.length} item{followUps.length === 1 ? '' : 's'}</span></div>{#each followUps as followUp (followUp.id)}<a href={followUp.href} target={followUp.href.startsWith('http') ? '_blank' : undefined} rel={followUp.href.startsWith('http') ? 'noopener noreferrer' : undefined} class="follow-up"><span><strong>{followUp.title}</strong><small>{followUp.description}</small></span><span>{followUp.status} · {followUp.owner}</span></a>{/each}</section>
+				{/if}
+			</main>
+
+			<aside class="detail-aside">
+				<section class="aside-section">{#if affectedComponents.length > 0}<ul>{#each affectedComponents as component (component.id)}<li><span class="service-dot"></span><span><strong>{component.name}</strong><small>{component.description}</small></span></li>{/each}</ul>{:else}<p class="aside-copy">No component has been linked to this incident yet.</p>{/if}</section>
+				<section class="aside-section"><p class="aside-copy">This response can be published to the hosted status page for {incident.productName}.</p><a class="aside-link" href={hostedStatusPage.href} target="_blank" rel="noopener noreferrer">Open hosted status page <Export size={13} weight="Outline" aria-hidden="true" /></a></section>
+				<section class="aside-section"><p class="owner">{incident.owner}</p><p class="aside-copy">The owner keeps the timeline current and decides when the next update is ready.</p></section>
+			</aside>
 		</div>
 	</div>
 {:else}
-	<div class="px-4 sm:px-6"><StatePanel size="page" icon={AlertTriangle} title="Service problem not found" description="This service problem is not in the current workspace list." actionLabel="Back to service problems" actionHref="/workspace/incidents" class="pc-enter" /></div>
+	<div class="missing-detail"><StatePanel size="page" icon={CheckCircle} title="Incident not found" description="This response record is not in the current workspace." actionLabel="Back to incidents" actionHref="/workspace/incidents" /></div>
 {/if}
+
+<style>
+	.incident-detail { width: min(100% - 32px, 1080px); margin: 0 auto; padding: 36px 0 72px; }
+	.detail-header { padding-bottom: 32px; border-bottom: 1px solid var(--pc-border-strong); }
+	.back-link, .aside-link { display: inline-flex; align-items: center; gap: 6px; color: var(--pc-text-muted); font-size: 12px; text-decoration: none; }
+	.back-link:hover, .aside-link:hover { color: var(--pc-text); }
+	.detail-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; color: var(--pc-text-muted); font-size: 11px; }
+	.detail-meta > span:not(.state) + span:not(.state)::before { margin-right: 10px; content: '·'; color: var(--pc-text-faint); }
+	.state { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; color: var(--pc-status-outage); background: color-mix(in oklch, var(--pc-status-outage) 14%, transparent); }
+	.state.monitoring { color: var(--pc-status-degraded); background: color-mix(in oklch, var(--pc-status-degraded) 14%, transparent); }
+	.state.resolved { color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 14%, transparent); }
+	h1 { max-width: 24ch; margin: 14px 0 0; font-size: clamp(30px, 5vw, 48px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
+	.detail-lede { max-width: 68ch; margin: 14px 0 0; color: var(--pc-text-muted); font-size: 15px; line-height: 1.65; }
+	.detail-context { margin: 12px 0 0; color: var(--pc-text-faint); font-size: 12px; }
+	.detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 64px; padding-top: 42px; }
+	main { min-width: 0; }
+	.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+	.section-heading h2 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
+	.section-heading > span { color: var(--pc-text-faint); font-size: 11px; }
+	.kicker { margin: 0 0 7px; color: var(--pc-accent-light); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+	.timeline { position: relative; padding-left: 28px; }
+	.timeline::before { position: absolute; top: 10px; bottom: 10px; left: 6px; width: 1px; content: ''; background: var(--pc-border-strong); }
+	.timeline-entry { position: relative; display: grid; grid-template-columns: 1fr; padding: 0 0 30px; }
+	.timeline-marker { position: absolute; top: 0; left: -28px; display: grid; width: 14px; height: 14px; place-items: center; border: 2px solid var(--pc-status-outage); border-radius: 50%; color: transparent; background: var(--pc-bg); font-size: 9px; line-height: 1; }
+	.timeline-marker.monitoring { border-color: var(--pc-status-degraded); }
+	.timeline-marker.resolved { border-color: var(--pc-status-operational); color: var(--pc-status-operational); }
+	.timeline-content { padding-bottom: 2px; }
+	.update-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+	.update-heading strong { font-size: 14px; font-weight: 600; }
+	.update-heading time { color: var(--pc-text-faint); font-size: 11px; }
+	.timeline-content p { max-width: 68ch; margin: 8px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.65; }
+	.composer, .follow-ups { margin-top: 12px; padding-top: 32px; border-top: 1px solid var(--pc-border-strong); }
+	.section-note { max-width: 68ch; margin: -3px 0 18px; color: var(--pc-text-muted); font-size: 12px; line-height: 1.6; }
+	.form-grid { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 12px; }
+	form label { display: grid; gap: 7px; color: var(--pc-text-muted); font-size: 11px; }
+	select, input, textarea { width: 100%; border: 1px solid var(--pc-border-strong); border-radius: 10px; color: var(--pc-text); background: var(--pc-surface-2); font: inherit; font-size: 12px; outline: none; }
+	select, input { min-height: 40px; padding: 0 11px; }
+	textarea { resize: vertical; min-height: 118px; padding: 11px; line-height: 1.55; }
+	select:focus-visible, input:focus-visible, textarea:focus-visible { border-color: var(--pc-focus-ring); outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
+	.message-label { margin-top: 14px; }
+	.composer-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; }
+	.composer-footer p { margin: 0; color: var(--pc-text-faint); font-size: 11px; }
+	.form-error { color: var(--pc-status-outage) !important; }
+	.follow-up { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 0; border-top: 1px solid var(--pc-border-strong); color: var(--pc-text); text-decoration: none; }
+	.follow-up:last-child { border-bottom: 1px solid var(--pc-border-strong); }
+	.follow-up:hover strong { color: var(--pc-accent-light); }
+	.follow-up strong, .follow-up small { display: block; }
+	.follow-up strong { font-size: 13px; font-weight: 500; }
+	.follow-up small { max-width: 48ch; margin-top: 4px; color: var(--pc-text-muted); font-size: 11px; line-height: 1.45; }
+	.follow-up > span:last-child { flex: 0 0 auto; color: var(--pc-text-faint); font-size: 11px; }
+	.detail-aside { padding-top: 2px; }
+	.aside-section { padding: 0 0 26px; margin-bottom: 26px; border-bottom: 1px solid var(--pc-border-strong); }
+	.aside-section ul { display: grid; gap: 14px; padding: 0; margin: 0; list-style: none; }
+	.aside-section li { display: flex; gap: 9px; }
+	.service-dot { width: 7px; height: 7px; flex: 0 0 auto; margin-top: 4px; border-radius: 50%; background: var(--pc-status-outage); }
+	.aside-section li strong, .aside-section li small { display: block; }
+	.aside-section li strong, .owner { font-size: 13px; font-weight: 500; }
+	.aside-section li small, .aside-copy { margin: 5px 0 0; color: var(--pc-text-muted); font-size: 11px; line-height: 1.55; }
+	.aside-link { margin-top: 14px; color: var(--pc-text); text-decoration: underline; text-underline-offset: 4px; }
+	.owner { margin: 0; }
+	.missing-detail { width: min(100% - 32px, 960px); margin: 0 auto; padding-top: 48px; }
+	@media (max-width: 760px) { .incident-detail { width: min(100% - 24px, 1080px); padding-top: 28px; } .detail-layout { grid-template-columns: 1fr; gap: 34px; } .detail-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } .aside-section { margin: 0; } }
+	@media (max-width: 540px) { .detail-aside { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } .follow-up { align-items: start; flex-direction: column; gap: 7px; } .composer-footer { align-items: start; flex-direction: column; } }
+</style>

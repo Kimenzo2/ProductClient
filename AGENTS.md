@@ -77,3 +77,35 @@ Known issues found so far:
 - [ ] All new icons import from `reicon-svelte` with `weight="Outline"`
 - [ ] `bun run check` → 0 errors, `bun run build` → success
 
+## 9) Internal Hover to Expand — Supabase-style secondary sidebar
+- **Feature:** Hover on a heavy workspace icon (Docs, Incidents, etc.) in the primary rail (72px collapsed / 240px expanded at `src/lib/components/layout/Sidebar.svelte:1`) expands an internal secondary panel (240px, flat, opaque). Pinned when on that route, preview on hover otherwise. Mimics Supabase project nav: narrow rail + second column.
+- **Structure — NEVER bloat `Sidebar.svelte`:**
+  - `src/lib/components/layout/sidebar/types.ts` — `PanelDef`, `PanelLink`, `PanelRecent` types only
+  - `src/lib/components/layout/sidebar/panels/*.ts` — one file per heavy route (`docs.ts`, `incidents.ts`, `feedback.ts`, `products.ts`, `releases.ts`, `decisions.ts`, `roadmap.ts`, `proof.ts`, `inbox.ts`, `analytics.ts`). Each exports `export const xxxPanel: PanelDef` and imports only its own data (`$lib/data/workspace`) and icon.
+  - `src/lib/components/layout/sidebar/panelRegistry.ts` — single import map `panelRegistry: Record<string, PanelDef>` that `Sidebar.svelte` imports. This is the ONLY place `Sidebar.svelte` touches panel data.
+  - `src/lib/components/layout/sidebar/WorkspaceHoverPanel.svelte` — generic renderer (header + description + quick links + Recent + action). `Sidebar.svelte` only handles rail + hover state (`hoveredHref` 70ms enter / 120ms leave at `Sidebar.svelte:216`, `pinnedHref` derived from `isActive`, `displayHref = hovered ?? pinned`, `isPreview = hovered !== pinned`) and outer wrapper (`fixed top-0 z-[100]` for preview at `left: 72/240px` vs `relative` for pinned). It delegates all panel UI to `WorkspaceHoverPanel`.
+- **Rules for adding new internal navigation:**
+  1. **Create `src/lib/components/layout/sidebar/panels/<route>.ts`** — never add a new `panelDefs` entry directly in `Sidebar.svelte`. Use `PanelDef` shape: `{ label, icon, description, links: PanelLink[], recent: PanelRecent[], action? }`. Keep `links` to 3-4 items, `recent` to 3-4 items, data derived from `$lib/data/workspace` (e.g., `docs.slice(0,4)`). Icon must be `reicon-svelte` `weight="Outline"` only.
+  2. **Register in `panelRegistry.ts`** — add `'/workspace/<route>': <route>Panel` import. No other file should import panel files directly.
+  3. **Never add shadows or blurs to internal panels** — internal panels are flat: `border-r` `border-[var(--pc-border-strong)]`, `background: var(--pc-bg)` solid opaque (`style:background-color="var(--pc-bg)"` + `bg-[var(--pc-bg)]` + `opacity-100` + `backdrop-filter: none`), `z-[100]` for preview, no `shadow`/`backdrop-blur`. The only `backdrop-blur-sm` + `shadow` allowed is the mobile drawer at `Sidebar.svelte:421` (`lg:hidden` only).
+  4. **Icons:** All panel icons via `reicon-svelte` `weight="Outline"`, `size` 16 for header, 12 for recent rows, `aria-hidden="true"`. Verify `rg -n "<svg" src` still empty after adding.
+  5. **Styling tokens:** Use `var(--pc-bg)`, `var(--pc-surface-2)`, `var(--pc-text)`, `var(--pc-text-muted)`, `var(--pc-border-strong)`, `--pc-accent` only. Panel width fixed `240px`, `h-dvh`, `overflow-y-auto` inner, `focusClass = focus-visible:outline-[0.5px] ...`.
+  6. **Behavior:** Hover logic stays in `Sidebar.svelte` (`setHovered`, `keepHovered`, `onRailKeydown` Esc clears). Do not duplicate hover timers inside panel files. Preview is `fixed` (overlay, does not push content); pinned is `relative` (pushes flex layout via outer `lg:flex` container at `Sidebar.svelte:250`). Keep `transition:fly {{ x: -8, duration: 150, easing: cubicOut }}` on outer panel wrapper only.
+  7. **Data:** Panels may import from `$lib/data/workspace` but must not fetch async or create stores — keep synchronous derived from mock data so SSR is deterministic. For real navigation (filters, sub-routes like `/workspace/docs/[slug]`), the route's own `+page.svelte`/`+layout.svelte` remains source of truth; panel is preview/nav shortcut only, not replacement.
+  8. **Checklist when adding a panel:** `rg -n "<svg" src` → empty, `bun run check` 0 errors, `bun run build` success (ignore Windows `adapter-vercel` symlink EPERM at `closeBundle` — Vite client/server chunks must still build), manual hover test on `localhost:5175/workspace/<route>` in both dark/light (panel must be fully opaque and sit above roadmap/cards, no bleed-through).
+# ProductClient Agent Rules
+
+## NON-NEGOTIABLE BRANDING RULE
+
+Every Product Client brand lockup must use the exact shared logo created for the Documentation Starter Kit.
+
+- Use `src/lib/components/brand/ProductClientLogo.svelte` for every brand lockup.
+- Treat `src/lib/assets/productclient-logo.svg` as the canonical Product Client logo asset.
+- The canonical SVG must remain byte-for-byte identical to `C:\Users\admin\Downloads\Documentation Starter Kit\src\lib\assets\favicon.svg`.
+- This rule applies anywhere the Product Client logo appears beside the Product Client name: headers, navigation, sidebars, mobile drawers, landing pages, footers, authentication surfaces, empty states, metadata, and future routes.
+- Never recreate the mark with a green square, Rocket icon, inline SVG, CSS shapes, emoji, text glyph, alternate icon, or a new approximation.
+- Never change the logo's geometry, colors, corner radius, path data, or proportions without an explicit product-owner instruction.
+- Do not replace unrelated Rocket or other icons that are functioning as ordinary interface/content icons; this rule concerns Product Client brand identity only.
+- Before adding or modifying a brand surface, search the repository for existing brand usages and reuse the shared component. If the exact asset is unavailable or differs from the canonical SVG, stop and report the mismatch instead of improvising.
+
+This is a hard implementation constraint, not a style suggestion.

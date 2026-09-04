@@ -29,7 +29,7 @@
 			<div class="flex items-start gap-3">
 				<span class="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--pc-accent)] text-white"><Map size={18} weight="Outline" aria-hidden="true" /></span>
 				<div>
-					<p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">How this works</p>
+					
 					<h2 id="thread-principle-title" class="mt-1 text-base font-medium">One product story, from feedback to change.</h2>
 					<p class="mt-1 max-w-[58ch] text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-75">Each product decision keeps the original feedback, the choice the team makes, the update, and the help page together.</p>
 				</div>

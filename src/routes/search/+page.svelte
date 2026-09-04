@@ -51,12 +51,12 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 <div class="mx-auto w-full max-w-[920px] px-4 sm:px-6">
 	<header class="pb-5 pt-8 sm:pt-10">
-		<p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">Product Client index</p>
+		
 		<h1 class="mt-2 text-[24px] font-medium leading-tight tracking-tight md:text-[30px]">Find the answer, not just the page.</h1>
 		<p class="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-[var(--pc-text-muted)] opacity-75">Search products, product updates, customer feedback, help pages, and customer stories in one place.</p>
 	</header>
 
-	<form class="flex items-center gap-2 rounded-[16px] bg-[var(--pc-surface-2)] p-2 transition-[background-color,box-shadow] duration-150 focus-within:bg-[var(--pc-surface)] focus-within:ring-2 focus-within:ring-[var(--pc-accent)]/40" onsubmit={(event) => { event.preventDefault(); submitSearch(); }}>
+	<form class="flex items-center gap-2 rounded-[16px] bg-[var(--pc-surface-2)] p-2 transition-[background-color,box-shadow] duration-150 focus-within:bg-[var(--pc-surface)] focus-within:ring-[0.5px] focus-within:ring-[var(--pc-focus-ring)]/40" onsubmit={(event) => { event.preventDefault(); submitSearch(); }}>
 		<Search size={18} weight="Outline" class="ml-2 shrink-0 opacity-55" />
 		<label class="sr-only" for="search-input">Search all Product Client records</label>
 		<Input id="search-input" bind:value={q} onkeydown={handleKeydown} placeholder='Try "AI", "release notes", "customer feedback", or a product name' class="!bg-transparent !px-1 !py-2.5 !ring-0" />
@@ -73,7 +73,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 	{#if !q.trim()}
 		<section class="rounded-[18px] bg-[var(--pc-surface-2)] p-5 sm:p-6" aria-labelledby="popular-title">
-			<div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--pc-accent-light)]">Start with a question</p><h2 id="popular-title" class="mt-1 text-lg font-medium">Common searches</h2></div><span class="text-xs text-[var(--pc-text-faint)]">{results.length} available</span></div>
+			<div class="flex items-center justify-between gap-3"><div><h2 id="popular-title" class="mt-1 text-lg font-medium">Common searches</h2></div><span class="text-xs text-[var(--pc-text-faint)]">{results.length} available</span></div>
 			<div class="mt-4 flex flex-wrap gap-2">{#each popularSearches() as term}<button type="button" onclick={() => { q = term; submitSearch(); }} class="rounded-full bg-[var(--pc-surface)] px-3 py-2 text-xs text-[var(--pc-text-muted)] transition-[background-color,color] duration-150 hover:bg-[var(--pc-border-strong)] hover:text-[var(--pc-text)]">{term}</button>{/each}</div>
 		</section>
 	{:else if results.length === 0}
@@ -82,7 +82,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 		<section class="space-y-1.5 pb-10" aria-label="Search results">
 			{#each results as result (result.kind + result.id)}
 				{@const Icon = icons[result.kind]}
-				<a href={result.href} class="group flex items-start gap-3 rounded-[16px] bg-[var(--pc-surface-2)] p-3 transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface)] active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-accent-light)]">
+				<a href={result.href} target={result.href.startsWith('http') ? '_blank' : undefined} rel={result.href.startsWith('http') ? 'noopener noreferrer' : undefined} class="group flex items-start gap-3 rounded-[16px] bg-[var(--pc-surface-2)] p-3 transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface)] active:scale-[0.99] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">
 					<span class="grid size-10 shrink-0 place-items-center rounded-[11px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)]"><Icon size={17} weight="Outline" /></span>
 					<span class="min-w-0 flex-1"><span class="flex flex-wrap items-center gap-2"><strong class="text-[13px] font-medium group-hover:text-[var(--pc-accent-light)]">{result.title}</strong><Chip size="xs">{labelFor(result)}</Chip>{#if result.status}<span class="text-[10px] text-[var(--pc-text-faint)]">{result.status}</span>{/if}</span><span class="mt-0.5 block truncate text-xs text-[var(--pc-text-muted)] opacity-70">{result.subtitle}</span><span class="mt-1 block line-clamp-2 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-60">{result.description}</span>{#if result.relationPreview}<span class="mt-1 block truncate text-[10px] text-[var(--pc-accent-light)] opacity-80">Related: {result.relationPreview}</span>{/if}</span>
 				</a>

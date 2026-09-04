@@ -16,6 +16,7 @@
 		ArrowRight,
 		Play
 	} from 'reicon-svelte';
+	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
 
 	const areas = [
 		{
@@ -91,12 +92,11 @@
 	<meta name="description" content="A calm product operating system. Releases, feedback, docs, and incidents — in one place, built for humans and machines." />
 </svelte:head>
 
-
 <!-- ─── Floating nav ─── -->
 <nav class="fixed top-0 left-0 z-50 flex w-full justify-center pt-5" aria-label="Landing navigation">
 	<div class="nav-glass flex items-center gap-1 px-2 py-2">
 		<a href="/" class="flex items-center gap-2.5 rounded-full px-3.5 py-2 transition-colors hover:bg-white/[0.06]" aria-label="Product Client home">
-			<span class="grid size-7 place-items-center rounded-[9px] bg-[var(--pc-accent)] text-white"><Rocket size={14} weight="Outline" color="white" /></span>
+			<ProductClientLogo size={28} />
 			<span class="text-[13px] font-medium tracking-tight text-white">Product Client</span>
 		</a>
 
@@ -155,7 +155,7 @@
 <!-- ─── Product areas ─── -->
 <section class="relative z-10 mx-auto w-full max-w-[1200px] px-6" style="padding-top: 12rem; padding-bottom: 16rem;">
 	<div class="mb-28 mx-auto max-w-[52ch] text-center" data-animate>
-		<p class="eyebrow">Product operating system</p>
+		
 		<h2 class="mt-4 text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-[1.1] tracking-[-0.03em] text-white">
 			Everything your product needs.<br />Nothing it doesn't.
 		</h2>
@@ -186,7 +186,7 @@
 <!-- ─── Capabilities ─── -->
 <section class="relative z-10 mx-auto w-full max-w-[1200px] px-6" style="padding-top: 12rem; padding-bottom: 16rem;">
 	<div class="mb-28 mx-auto max-w-[52ch] text-center" data-animate>
-		<p class="eyebrow mx-auto">Built for scale</p>
+		
 		<h2 class="mt-4 text-[clamp(1.75rem,3.5vw,2.75rem)] font-medium leading-[1.1] tracking-[-0.03em] text-white">
 			Enterprise-grade from day one.
 		</h2>
@@ -216,7 +216,7 @@
 <footer class="relative z-10" style="border-top: 1px solid rgba(255,255,255,0.05);">
 	<div class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-8 px-6 py-16 sm:flex-row sm:justify-between sm:items-center">
 		<div class="flex items-center gap-2.5">
-			<span class="grid size-7 place-items-center rounded-[9px] bg-[var(--pc-accent)] text-white"><Rocket size={14} weight="Outline" color="white" /></span>
+			<ProductClientLogo size={28} />
 			<span class="text-[13px] font-medium tracking-tight text-white">Product Client</span>
 		</div>
 		<div class="flex flex-wrap items-center justify-center gap-6 text-[13px] text-[var(--pc-text-muted)]">
@@ -254,21 +254,7 @@
 	}
 
 	/* ── Eyebrow tag ── */
-	.eyebrow {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		padding: 5px 14px;
-		border-radius: 999px;
-		font-size: 11px;
-		font-weight: 500;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--pc-accent-light);
-		background: rgba(119, 152, 18, 0.08);
-		width: fit-content;
-		margin-inline: auto;
-	}
+	
 
 	/* ── Hero ── */
 	.hero-badge {

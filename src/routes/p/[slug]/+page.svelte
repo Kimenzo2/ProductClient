@@ -7,6 +7,7 @@
 	import { Tabs } from 'bits-ui';
 	import { Avatar, Badge, Button, Card, Chip, Separator, StatePanel, Toggle } from '$lib/components/ui';
 	import { publicDocs, publicIncidents, publicProductStories, publicProofs } from '$lib/data/public';
+	import { hostedStatusPage } from '$lib/config/tenant';
 
 	let slug = $derived(page.params.slug);
 	let active: StateType | 'all' = $state('all');
@@ -57,7 +58,7 @@
 		<div class="flex items-start gap-4">
 			<!-- Logo -->
 			<div class="shrink-0">
-				<Avatar src={product.avatar} alt="{product.name} logo" size="xl" shape="square" class="!size-16 md:!size-[72px] !rounded-[18px]" />
+				<Avatar src={product.avatar} alt="{product.name} logo" size="xl" shape="square" class="!size-16 md:!size-[72px] !rounded-[18px] !ring-0 ring-0 border-0" />
 			</div>
 
 			<!-- Info block -->
@@ -72,7 +73,7 @@
 
 				<!-- Tagline -->
 				{#if product.tagline}
-					<p class="mt-1.5 text-[13px] leading-relaxed text-[var(--pc-text-muted)] opacity-65 max-w-[48ch]" style="text-wrap: pretty">{product.tagline}</p>
+					<p class="mt-1.5 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased max-w-[48ch]" style="text-wrap: pretty">{product.tagline}</p>
 				{/if}
 
 				<!-- Meta row — clean, single-line -->
@@ -109,7 +110,7 @@
 						</Button>
 					{/if}
 					<Button variant="outline" size="sm" href="/badge/{slug}">Embed badge</Button>
-					<Button variant="outline" size="sm" href="/status/{slug}"><AlertTriangle size={12} weight="Outline" class="opacity-50" /> Status</Button>
+					<Button variant="outline" size="sm" href={hostedStatusPage.href} target="_blank"><AlertTriangle size={12} weight="Outline" class="opacity-50" /> Status</Button>
 					{#if publicDoc}<Button variant="outline" size="sm" href={publicDoc.publicPath}><FileText size={12} weight="Outline" class="opacity-50" /> Docs</Button>{/if}
 					{#if hasProof}<Button variant="outline" size="sm" href="/wall/{slug}-proof">Customer stories</Button>{/if}
 				</div>
@@ -189,7 +190,7 @@
 							<span class="text-[11px] text-[var(--pc-text-faint)] opacity-55">{item.postedAt}</span>
 						</div>
 						<h3 class="mt-1 text-[13px] font-medium leading-snug group-hover:text-[var(--pc-text)] transition-colors">{item.title}</h3>
-						<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-65 line-clamp-2">{item.description}</p>
+						<p class="mt-0.5 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased line-clamp-2">{item.description}</p>
 					</div>
 					<span class="shrink-0 text-[11px] text-[var(--pc-text-faint)] opacity-50 self-center">{item.reads}</span>
 				</a>
@@ -217,7 +218,7 @@
 						<span class="text-[11px] text-[var(--pc-text-faint)] opacity-50">{item.postedAt}</span>
 					</div>
 					<h3 class="mt-1 text-[13px] font-medium">{item.title}</h3>
-					<p class="mt-0.5 text-[13px] text-[var(--pc-text-muted)] opacity-65">{item.description}</p>
+					<p class="mt-0.5 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased">{item.description}</p>
 				</div>
 			{/each}
 			{#if filtered.filter((s) => s.type === 'incident' || s.type === 'fix').length === 0}

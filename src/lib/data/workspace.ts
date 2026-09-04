@@ -1,4 +1,5 @@
 import { makers, mockStates, preLaunchProducts, reviews } from '$lib/data/mockStates';
+import { hostedStatusPage } from '$lib/config/tenant';
 import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 export type LifecycleStatus = 'Live' | 'Beta' | 'Planned' | 'Resolved' | 'In progress' | 'Draft';
@@ -188,6 +189,18 @@ export type FollowUpRecord = {
 	href: string;
 };
 
+export type PostIncidentTask = {
+	id: string;
+	incidentId: string;
+	title: string;
+	description: string;
+	owner: string;
+	status: 'Open' | 'In progress' | 'Done';
+	due: string;
+	kind: 'Timeline review' | 'Customer review' | 'Debrief' | 'Post-mortem decision';
+	href?: string;
+};
+
 export type SearchGapRecord = {
 	id: string;
 	query: string;
@@ -331,9 +344,9 @@ export const docs: DocRecord[] = [
 ];
 
 export const incidents: IncidentRecord[] = [
-	{ id: 'inc-1', title: 'Some requests were slow', summary: 'Requests were slower than usual in one region. Things are back to normal, and the team is reviewing what happened.', status: 'Resolved', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Yesterday, 08:14', resolvedAt: 'Yesterday, 10:02', owner: 'Daniel Kim', publicPath: '/status/vercel', workspacePath: '/workspace/incidents/inc-1' },
-	{ id: 'inc-2', title: 'Some messages arrived late', summary: 'A backlog delayed updates for some teams.', status: 'Monitoring', severity: 'Medium impact', productSlug: 'stripe', productName: 'Stripe', startedAt: 'Today, 07:32', owner: 'Amara Mensah', publicPath: '/status/stripe', workspacePath: '/workspace/incidents/inc-2' },
-	{ id: 'inc-3', title: 'Some people could not sign in', summary: 'New reports suggest a deployment problem. The team is investigating.', status: 'Investigating', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Today, 11:06', owner: 'Daniel Kim', publicPath: '/status/vercel', workspacePath: '/workspace/incidents/inc-3' }
+	{ id: 'inc-1', title: 'Some requests were slow', summary: 'Requests were slower than usual in one region. Things are back to normal, and the team is reviewing what happened.', status: 'Resolved', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Yesterday, 08:14', resolvedAt: 'Yesterday, 10:02', owner: 'Daniel Kim', publicPath: hostedStatusPage.href, workspacePath: '/workspace/incidents/inc-1' },
+	{ id: 'inc-2', title: 'Some messages arrived late', summary: 'A backlog delayed updates for some teams.', status: 'Monitoring', severity: 'Medium impact', productSlug: 'stripe', productName: 'Stripe', startedAt: 'Today, 07:32', owner: 'Amara Mensah', publicPath: hostedStatusPage.href, workspacePath: '/workspace/incidents/inc-2' },
+	{ id: 'inc-3', title: 'Some people could not sign in', summary: 'New reports suggest a deployment problem. The team is investigating.', status: 'Investigating', severity: 'High impact', productSlug: 'vercel', productName: 'Vercel', startedAt: 'Today, 11:06', owner: 'Daniel Kim', publicPath: hostedStatusPage.href, workspacePath: '/workspace/incidents/inc-3' }
 ];
 
 export const problems: ProblemRecord[] = [
@@ -394,9 +407,17 @@ export const problems: ProblemRecord[] = [
 ];
 
 export const followUps: FollowUpRecord[] = [
-	{ id: 'follow-up-1', incidentId: 'inc-1', title: 'Explain what caused the slow requests', description: 'Add a plain-language explanation to the service status page.', owner: 'Daniel Kim', status: 'In progress', due: 'Tomorrow', kind: 'Customer update', href: '/status/vercel' },
+	{ id: 'follow-up-1', incidentId: 'inc-1', title: 'Explain what caused the slow requests', description: 'Add a plain-language explanation to the service status page.', owner: 'Daniel Kim', status: 'In progress', due: 'Tomorrow', kind: 'Customer update', href: hostedStatusPage.href },
 	{ id: 'follow-up-2', incidentId: 'inc-1', title: 'Check the help page', description: 'Make sure the help page explains what customers should do when this happens.', owner: 'Nina Volkov', status: 'Open', due: 'Friday', kind: 'Help page', href: '/docs/vercel/status-and-incidents' },
 	{ id: 'follow-up-3', incidentId: 'inc-3', title: 'Find why sign-in sends people back', description: 'Review the sign-in change and record the cause when it is known.', owner: 'Daniel Kim', status: 'Open', due: 'Today', kind: 'Product work', href: '/workspace/problems/problem-sign-in' }
+];
+
+export const postIncidentTasks: PostIncidentTask[] = [
+	{ id: 'post-incident-1', incidentId: 'inc-1', title: 'Review the incident timeline', description: 'Confirm the sequence of detection, mitigation, and recovery before the record is closed.', owner: 'Daniel Kim', status: 'Done', due: 'Today', kind: 'Timeline review' },
+	{ id: 'post-incident-2', incidentId: 'inc-1', title: 'Review the customer explanation', description: 'Make sure the public update explains the impact and what changed in plain language.', owner: 'Nina Volkov', status: 'In progress', due: 'Tomorrow', kind: 'Customer review', href: hostedStatusPage.href },
+	{ id: 'post-incident-3', incidentId: 'inc-1', title: 'Decide whether a post-mortem is needed', description: 'Use the impact and response record to agree on the right learning step for this incident.', owner: 'Daniel Kim', status: 'Open', due: 'Friday', kind: 'Post-mortem decision' },
+	{ id: 'post-incident-4', incidentId: 'inc-3', title: 'Review the sign-in deployment changes', description: 'Bring the relevant change into the response record so the team can compare it with the reports.', owner: 'Daniel Kim', status: 'Open', due: 'Today', kind: 'Timeline review' },
+	{ id: 'post-incident-5', incidentId: 'inc-3', title: 'Schedule a response debrief', description: 'Invite the responders to review what helped, what slowed the response, and what to change next time.', owner: 'Amara Mensah', status: 'Open', due: 'Tomorrow', kind: 'Debrief' }
 ];
 
 export const searchGaps: SearchGapRecord[] = [
@@ -531,7 +552,7 @@ export const decisionThreads: DecisionThread[] = [
 export const workspaceActivity = [
 	{ id: 'activity-1', label: 'Release published', detail: 'ChatGPT 6 update', time: '2 hours ago', href: '/update/1', kind: 'Release' },
 	{ id: 'activity-2', label: 'Feedback reviewed', detail: 'Add a way to compare two releases', time: '18 min ago', href: '/feedback/fb-1', kind: 'Feedback' },
-	{ id: 'activity-3', label: 'Service problem is being watched', detail: 'Some messages arrived late', time: '46 min ago', href: '/status/stripe', kind: 'Incident' },
+	{ id: 'activity-3', label: 'Service problem is being watched', detail: 'Some messages arrived late', time: '46 min ago', href: hostedStatusPage.href, kind: 'Incident' },
 	{ id: 'activity-4', label: 'Customer story approved', detail: 'The new file uploads are exactly what our team needed.', time: 'Yesterday', href: '/workspace/proof', kind: 'Proof' }
 ];
 

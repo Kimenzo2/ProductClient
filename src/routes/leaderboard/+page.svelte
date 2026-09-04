@@ -40,7 +40,7 @@
 	<!-- Header -->
 	<header class="pt-10 pb-5 max-sm:pt-8 max-sm:pb-4">
 		<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">Leaderboard</h1>
-		<p class="mt-2 text-[13px] text-[var(--pc-text-muted)] opacity-65">Rolling rankings — votes count at any time.</p>
+		<p class="mt-2 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)] text-pretty antialiased">Rolling rankings — votes count at any time.</p>
 	</header>
 
 	<!-- Period tabs -->
