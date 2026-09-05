@@ -15,6 +15,7 @@
 		Clock,
 		ArrowRight,
 		Play,
+		Home,
 		Check,
 		CloseCircle,
 		Feed,
@@ -160,13 +161,6 @@
 		}
 	];
 
-	const previewTabs = [
-		{ id: 'releases', label: 'Release' },
-		{ id: 'feedback', label: 'Feedback' },
-		{ id: 'docs', label: 'Doc' },
-		{ id: 'incidents', label: 'Incident' }
-	];
-
 	const loopSteps = [
 		{
 			icon: Mic,
@@ -305,7 +299,6 @@
 		}
 	];
 
-	let activeTab = $state('releases');
 	let openFaq = $state<number | null>(null);
 
 	const faqsIndexed = faqs.map((f, idx) => ({ ...f, idx }));
@@ -314,10 +307,6 @@
 
 	function toggleFaq(idx: number) {
 		openFaq = openFaq === idx ? null : idx;
-	}
-
-	function selectTab(id: string) {
-		activeTab = id;
 	}
 
 	onMount(() => {
@@ -374,14 +363,12 @@
 </svelte:head>
 
 <!-- ─── Floating nav ─── -->
-<nav class="fixed top-0 left-0 z-50 flex w-full justify-center pt-5" aria-label="Landing navigation">
-	<div class="nav-glass flex items-center gap-1 px-2 py-2">
-		<a href="/" class="flex items-center gap-2.5 rounded-full px-3.5 py-2 transition-colors hover:bg-[var(--pc-surface-2)]" aria-label="Product Client home">
+<nav class="landing-bar" aria-label="Landing navigation">
+	<div class="landing-bar-inner">
+		<a href="/" class="flex items-center gap-2.5 rounded-full px-3 py-2 transition-colors hover:bg-[var(--pc-surface-2)]" aria-label="Product Client home">
 			<ProductClientLogo size={28} />
 			<span class="text-[13px] font-medium tracking-tight text-[var(--pc-text)]">Product Client</span>
 		</a>
-
-		<div class="mx-1 hidden h-4 w-px bg-[var(--pc-border-strong)] sm:block" aria-hidden="true"></div>
 
 		<div class="hidden items-center gap-1 sm:flex">
 			<a href="#product" class="nav-link">Product</a>
@@ -390,13 +377,13 @@
 			<a href="/launchpad" class="nav-link">Launches</a>
 		</div>
 
-		<div class="mx-1 hidden h-4 w-px bg-[var(--pc-border-strong)] sm:block" aria-hidden="true"></div>
-
-		<a href={authHref('login')} class="nav-link hidden sm:block">Sign in</a>
-		<a href={authHref('sign-up')} class="ml-1 flex items-center gap-1.5 rounded-full bg-[var(--pc-text)] px-4 py-2 text-[13px] font-medium text-[var(--pc-bg)] transition-all hover:opacity-85 active:scale-[0.96]">
-			Get started
-			<ArrowRight size={13} weight="Outline" />
-		</a>
+		<div class="flex items-center gap-1">
+			<a href={authHref('login')} class="nav-link hidden sm:block">Sign in</a>
+			<a href={authHref('sign-up')} class="ml-1 flex items-center gap-1.5 rounded-full bg-[var(--pc-text)] px-4 py-2 text-[13px] font-medium text-[var(--pc-bg)] transition-all hover:opacity-85 active:scale-[0.96]">
+				Get started
+				<ArrowRight size={13} weight="Outline" />
+			</a>
+		</div>
 	</div>
 </nav>
 
@@ -418,63 +405,20 @@
 		ProductClient is an interactive product management surface to boost distribution, conversion, ranking, accessibility, turnover and user engagement with interactive launches, feedback, engaging roadmaps, beautiful automated documentation and incident tracking status pages. Get seen, ship more, bring back the beauty of building as we pace toward AGI and boost Innovation.
 	</p>
 
-	<!-- Interactive product preview (static mock — sells the product, no live data needed) -->
-	<div class="hero-preview" data-animate data-delay="240" role="region" aria-label="Product Client preview">
-		<div class="hero-preview-bar">
-			<div class="flex items-center gap-1.5" aria-hidden="true">
-				<span class="size-2.5 rounded-full bg-[var(--pc-border-strong)]"></span>
-				<span class="size-2.5 rounded-full bg-[var(--pc-border-strong)]"></span>
-				<span class="size-2.5 rounded-full bg-[var(--pc-border-strong)]"></span>
-			</div>
-			<p class="truncate text-[12px] text-[var(--pc-text-faint)]">productclient — acme / v2.4</p>
-			<div class="hidden items-center gap-1.5 sm:flex" aria-hidden="true">
-				<span class="text-[11px] font-medium text-[var(--pc-text-muted)]">Live</span>
-			</div>
+	<!-- Hero product shot -->
+	<div class="feature-visual hero-card" data-animate data-delay="240">
+		<div class="feature-visual-head">
+			<Home size={18} weight="Outline" class="text-[var(--pc-accent-strong)]" aria-hidden="true" />
+			<span class="text-[13px] font-medium text-[var(--pc-text)]">Workspace</span>
 		</div>
-
-		<div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-			<div class="flex items-center gap-2" role="tablist" aria-label="Preview surfaces">
-				{#each previewTabs as tab (tab.id)}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={activeTab === tab.id}
-						onclick={() => selectTab(tab.id)}
-						class="preview-tab"
-						class:preview-tab-active={activeTab === tab.id}
-					>
-						{tab.label}
-					</button>
-				{/each}
-			</div>
-			<p class="hidden text-[12px] text-[var(--pc-text-faint)] md:block">Interactive ranking. Built to boost visibility.</p>
-		</div>
-
-		<div class="grid gap-3 p-5 text-left" role="tabpanel" aria-live="polite">
-			{#each previewContent[activeTab] as row (row.title)}
-				<div class="preview-row">
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="preview-badge">{row.badge}</span>
-						<p class="text-[14px] font-medium text-[var(--pc-text)]">{row.title}</p>
-					</div>
-					<p class="mt-1 text-[12px] text-[var(--pc-text-faint)]">{row.meta}</p>
-					<p class="mt-2 text-[13px] leading-relaxed text-[var(--pc-text-muted)]">{row.desc}</p>
-					{#if row.bullets}
-						<ul class="mt-3 space-y-1.5">
-							{#each row.bullets as bullet (bullet)}
-								<li class="flex items-start gap-2 text-[13px] leading-relaxed text-[var(--pc-text-muted)]">
-									<span class="mt-1.5 size-1 shrink-0 rounded-full bg-[var(--pc-accent)]" aria-hidden="true"></span>
-									{bullet}
-								</li>
-							{/each}
-						</ul>
-					{/if}
-					{#if row.stat}
-						<p class="mt-3 text-[12px] font-medium text-[var(--pc-text-muted)]">{row.stat}</p>
-					{/if}
-				</div>
-			{/each}
-		</div>
+		<img
+			src="/images/hero-workspace.png"
+			alt="Product Client workspace showing releases, feedback, docs, and incidents in one home"
+			class="feature-shot"
+			loading="eager"
+			decoding="async"
+		/>
+		<p class="mt-4 text-[12px] text-[var(--pc-text-faint)]">Releases, feedback, docs, and incidents — one home.</p>
 	</div>
 </header>
 
@@ -566,17 +510,35 @@
 					<feature.icon size={18} weight="Outline" class="text-[var(--pc-accent-strong)]" />
 					<span class="text-[13px] font-medium text-[var(--pc-text)]">{feature.eyebrow}</span>
 				</div>
-				<div class="mt-4 space-y-3">
-					{#each previewContent[feature.id] as row (row.title)}
-						<div class="preview-row">
-							<div class="flex flex-wrap items-center gap-2">
-								<span class="preview-badge">{row.badge}</span>
-								<p class="text-[13px] font-medium text-[var(--pc-text)]">{row.title}</p>
+				{#if feature.id === 'incidents'}
+					<img
+						src="/images/incidents-status.png"
+						alt="Product Client status page showing component uptime bars at 100 percent"
+						class="feature-shot"
+						loading="lazy"
+						decoding="async"
+					/>
+				{:else if feature.id === 'releases'}
+					<img
+						src="/images/releases-page.png"
+						alt="Product Client release page preview"
+						class="feature-shot"
+						loading="lazy"
+						decoding="async"
+					/>
+				{:else}
+					<div class="mt-4 space-y-3">
+						{#each previewContent[feature.id] as row (row.title)}
+							<div class="preview-row">
+								<div class="flex flex-wrap items-center gap-2">
+									<span class="preview-badge">{row.badge}</span>
+									<p class="text-[13px] font-medium text-[var(--pc-text)]">{row.title}</p>
+								</div>
+								<p class="mt-1 text-[12px] text-[var(--pc-text-faint)]">{row.meta}</p>
 							</div>
-							<p class="mt-1 text-[12px] text-[var(--pc-text-faint)]">{row.meta}</p>
-						</div>
-					{/each}
-				</div>
+						{/each}
+					</div>
+				{/if}
 				<p class="mt-4 text-[12px] text-[var(--pc-text-faint)]">0{i + 1} — boost {feature.eyebrow.toLowerCase()} visibility & ranking</p>
 			</div>
 		</article>
@@ -811,13 +773,24 @@
 </footer>
 
 <style>
-	/* ── Floating glass nav (theme-aware) ── */
-	.nav-glass {
-		background: color-mix(in srgb, var(--pc-bg) 72%, transparent);
-		backdrop-filter: blur(20px) saturate(1.4);
-		-webkit-backdrop-filter: blur(20px) saturate(1.4);
-		border-radius: 999px;
-		max-width: calc(100vw - 2rem);
+	/* ── Top bar (flat, solid — no blur, same in every browser) ── */
+	.landing-bar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		z-index: 50;
+		width: 100%;
+		background: var(--pc-bg);
+	}
+	.landing-bar-inner {
+		margin-inline: auto;
+		width: 100%;
+		max-width: 1200px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.9rem 1.5rem;
 	}
 
 	.nav-link {
@@ -902,43 +875,11 @@
 		color: var(--pc-text);
 	}
 
-	/* ── Hero preview mock ── */
-	.hero-preview {
+	/* ── Hero card ── */
+	.hero-card {
 		margin-top: 4rem;
 		width: 100%;
-		max-width: 860px;
-		text-align: left;
-		border-radius: 20px;
-		background: var(--pc-surface);
-		overflow: hidden;
-	}
-	.hero-preview-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 0.8rem 1.25rem;
-	}
-	.preview-tab {
-		padding: 7px 13px;
-		border-radius: 999px;
-		font-size: 12.5px;
-		font-weight: 500;
-		color: var(--pc-text-muted);
-		transition: background-color 0.18s, color 0.18s;
-	}
-	.preview-tab:hover {
-		background: var(--pc-surface-2);
-		color: var(--pc-text);
-	}
-	.preview-tab-active {
-		background: var(--pc-text);
-		color: var(--pc-bg);
-	}
-	.preview-tab-active:hover {
-		background: var(--pc-text);
-		color: var(--pc-bg);
-		opacity: 0.9;
+		max-width: 1020px;
 	}
 	.preview-row {
 		padding: 1rem 1.1rem;
@@ -1020,6 +961,13 @@
 		align-items: center;
 		gap: 0.6rem;
 		padding-bottom: 1rem;
+	}
+	.feature-shot {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin-top: 1rem;
+		border-radius: 12px;
 	}
 
 	/* ── Loop cards ── */
