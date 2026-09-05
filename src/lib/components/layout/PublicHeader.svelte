@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toggleTheme, getTheme } from '$lib/theme';
-	import { CloseCircle, Menu, Message, Moon, Search, Sun } from 'reicon-svelte';
+	import { CloseCircle, Menu, Moon, Search, Sun } from 'reicon-svelte';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
 	import { authHref } from '$lib/auth/urls';
 
@@ -56,7 +56,6 @@
 		</button>
 
 		<div class="ms-auto flex items-center gap-3">
-			<a href="/feedback/new" class="hidden items-center gap-1.5 rounded-full px-3 py-2 text-[13px] text-[var(--pc-text-muted)] transition-[background-color,color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] lg:inline-flex"><Message size={15} weight="Outline" aria-hidden="true" /> Share feedback</a>
 			<a href={authHref('login')} class="hidden rounded-full px-3 py-2 text-[13px] text-[var(--pc-text-muted)] transition-[background-color,color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] lg:inline-flex">Sign in</a>
 			<a href={authHref('sign-up')} class="hidden rounded-full bg-[var(--pc-text)] px-3.5 py-2 text-[13px] font-medium text-[var(--pc-bg)] transition-opacity hover:opacity-85 lg:inline-flex">Create account</a>
 			<button type="button" onclick={openSearch} class="grid size-9 place-items-center rounded-full transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface-2)] active:scale-[0.96] md:hidden" aria-label="Search public pages"><Search size={18} weight="Outline" aria-hidden="true" /></button>
@@ -74,7 +73,6 @@
 			<a href="/" onclick={closeMenu} class="flex items-center rounded-xl px-3 py-2.5 text-sm text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]">Discover</a>
 			<a href="/products" onclick={closeMenu} class="flex items-center rounded-xl px-3 py-2.5 text-sm text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]">Products</a>
 			<a href="/launchpad" onclick={closeMenu} class="flex items-center rounded-xl px-3 py-2.5 text-sm text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]">Launches</a>
-			<a href="/feedback/new" onclick={closeMenu} class="mt-1 flex items-center gap-2 rounded-xl bg-[var(--pc-surface-2)] px-3 py-2.5 text-sm text-[var(--pc-text)]"><Message size={16} weight="Outline" aria-hidden="true" /> Share feedback</a>
 			<a href={authHref('login')} onclick={closeMenu} class="flex items-center rounded-xl px-3 py-2.5 text-sm text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]">Sign in</a>
 			<a href={authHref('sign-up')} onclick={closeMenu} class="flex items-center rounded-xl bg-[var(--pc-text)] px-3 py-2.5 text-sm font-medium text-[var(--pc-bg)]">Create account</a>
 		</nav>

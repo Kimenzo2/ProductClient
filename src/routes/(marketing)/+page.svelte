@@ -371,7 +371,6 @@
 		</a>
 
 		<div class="hidden items-center gap-1 sm:flex">
-			<a href="#product" class="nav-link">Product</a>
 			<a href="/feed" class="nav-link">Discover</a>
 			<a href="/products" class="nav-link">Products</a>
 			<a href="/launchpad" class="nav-link">Launches</a>
