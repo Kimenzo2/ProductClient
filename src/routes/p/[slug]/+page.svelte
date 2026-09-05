@@ -3,10 +3,10 @@
 	import { mockStates, makers, reviews, type StateType } from '$lib/data/mockStates';
 	import StateCard from '$lib/components/video/StateCard.svelte';
 	import ReviewsSection from '$lib/components/product/ReviewsSection.svelte';
-	import { Verified, Globe, FileText, AlertTriangle, Star, ArrowUp, ArrowRight, Map as MapIcon } from 'reicon-svelte';
+	import { Verified, Globe, FileText, AlertTriangle, Star, ArrowUp, ArrowRight, Map as MapIcon, Box } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
 	import { Avatar, Badge, Button, Card, Chip, Separator, StatePanel, Toggle } from '$lib/components/ui';
-	import { publicDocs, publicIncidents, publicProductStories, publicProofs } from '$lib/data/public';
+	import { publicDocs, publicIncidents, publicProductStories, publicProofs, publicProducts } from '$lib/data/public';
 	import { hostedStatusPage } from '$lib/config/tenant';
 
 	let slug = $derived(page.params.slug);
@@ -16,7 +16,8 @@
 
 	let productStates = $derived(mockStates.filter((s) => s.product.slug === slug));
 	let displayStates = $derived(productStates);
-	let product = $derived(displayStates[0]?.product ?? { name: slug, slug, avatar: '', verified: false });
+	let productExists = $derived(publicProducts.some((p) => p.slug === slug));
+	let product = $derived(displayStates[0]?.product ?? publicProducts.find((p) => p.slug === slug) ?? { name: slug, slug, avatar: '', verified: false });
 	let maker = $derived(makers.find((m) => m.handle === displayStates[0]?.maker.handle));
 	let filtered = $derived(displayStates.filter((s) => (active === 'all' ? true : s.type === active)));
 	let publicDoc = $derived(publicDocs.find((doc) => doc.productSlug === slug));
@@ -50,6 +51,11 @@
 	<title>{product.name} | Product Client</title>
 </svelte:head>
 
+{#if !productExists}
+	<div class="w-full max-w-[883px] mx-auto px-6 max-sm:px-4">
+		<StatePanel size="page" icon={Box} title="Product not found" description={`There is no public page for “${slug}”.`} actionLabel="Discover products" actionHref="/products" class="pc-enter" />
+	</div>
+{:else}
 <div class="w-full max-w-[883px] mx-auto px-6 max-sm:px-4">
 
 	<!-- ─── Hero ─── -->
@@ -227,6 +233,7 @@
 		</div>
 	{/if}
 </div>
+{/if}
 
 <style>
 	.line-clamp-2 {

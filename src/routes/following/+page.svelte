@@ -4,6 +4,11 @@
 	import { Heart } from 'reicon-svelte';
 	import { Avatar, StatePanel } from '$lib/components/ui';
 
+	// Product identity comes from the shared mock data — never duplicate names or avatars here.
+	const followedSlugs = ['bento', 'tetra', 'mossbit', 'quillpost'] as const;
+	const productBySlug = new Map(mockStates.map((s) => [s.product.slug, s.product]));
+	const followedProducts = followedSlugs.map((slug) => productBySlug.get(slug)).filter((p) => p !== undefined);
+
 	let following = mockStates.slice(0, 6);
 	let upvoted = $state<Set<string>>(new Set());
 	function toggleUpvote(id: string) {
@@ -29,9 +34,9 @@
 
 	<!-- Story circles — horizontal scroll -->
 	<div class="flex gap-3 overflow-x-auto scrollbar-none pb-4">
-		{#each [{name:'OpenAI',img:'https://cdn.reicon.dev/logos/openai/original.svg'}, {name:'Linear',img:'https://cdn.reicon.dev/logos/linear/original.svg'}, {name:'Vercel',img:'https://cdn.reicon.dev/logos/vercel/original.svg'}, {name:'Perplexity',img:'https://cdn.reicon.dev/logos/perplexity/original.svg'}] as c}
+		{#each followedProducts as c (c.slug)}
 		<div class="flex flex-col items-center gap-1.5 shrink-0 w-[72px]">
-			<Avatar src={c.img} alt={c.name} size="lg" />
+			<Avatar src={c.avatar} alt={c.name} size="lg" />
 			<span class="text-[11px] text-[var(--pc-text-muted)] opacity-50 truncate w-full text-center">{c.name}</span>
 		</div>
 		{/each}

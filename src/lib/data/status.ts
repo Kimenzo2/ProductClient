@@ -97,22 +97,22 @@ function incidentWithUpdates(
 	return { ...sourceIncident(id), affectedComponentIds, updates };
 }
 
-const vercelSignInHistory = history(
+const mossbitSignInHistory = history(
 	{ 89: 'outage' },
 	{ 89: 'The sign-in service is unavailable' }
 );
 
-const vercelDashboardHistory = history(
+const mossbitDashboardHistory = history(
 	{ 63: 'degraded' },
 	{ 63: 'A short increase in workspace loading time' }
 );
 
-const vercelRequestHistory = history(
+const mossbitRequestHistory = history(
 	{ 63: 'degraded' },
 	{ 63: 'A short increase in request latency' }
 );
 
-const vercelIncidents: StatusIncident[] = [
+const mossbitIncidents: StatusIncident[] = [
 	incidentWithUpdates('inc-3', ['sign-in'], [
 		{
 			id: 'inc-3-update-1',
@@ -149,7 +149,7 @@ const vercelIncidents: StatusIncident[] = [
 	])
 ];
 
-const stripeIncidents: StatusIncident[] = [
+const papercraneIncidents: StatusIncident[] = [
 	incidentWithUpdates('inc-2', ['message-delivery'], [
 		{
 			id: 'inc-2-update-1',
@@ -168,19 +168,19 @@ const stripeIncidents: StatusIncident[] = [
 
 export const statusPages: StatusPageConfig[] = [
 	{
-		productSlug: 'vercel',
-		pageTitle: 'Vercel status',
+		productSlug: 'mossbit',
+		pageTitle: 'Mossbit status',
 		pageDescription: 'See what is working, what is being fixed, and what happened before.',
 		components: [
-			{ id: 'sign-in', name: 'Sign in', description: 'Authentication and account access.', status: 'Outage', uptime: '99.00%', barHistory: vercelSignInHistory },
-			{ id: 'dashboard', name: 'Dashboard', description: 'Workspace loading and saved changes.', status: 'Operational', uptime: '100.00%', barHistory: vercelDashboardHistory },
-			{ id: 'api-requests', name: 'API requests', description: 'API v1 and API v2 request handling.', status: 'Operational', uptime: '99.99%', barHistory: vercelRequestHistory },
+			{ id: 'sign-in', name: 'Sign in', description: 'Authentication and account access.', status: 'Outage', uptime: '99.00%', barHistory: mossbitSignInHistory },
+			{ id: 'dashboard', name: 'Dashboard', description: 'Workspace loading and saved changes.', status: 'Operational', uptime: '100.00%', barHistory: mossbitDashboardHistory },
+			{ id: 'api-requests', name: 'API requests', description: 'API v1 and API v2 request handling.', status: 'Operational', uptime: '99.99%', barHistory: mossbitRequestHistory },
 			{ id: 'file-uploads', name: 'File uploads', description: 'Uploads and file processing.', status: 'Operational', uptime: '100.00%', barHistory: history() }
 		],
-		incidents: vercelIncidents,
+		incidents: mossbitIncidents,
 		maintenanceWindows: [
 			{
-				id: 'maintenance-vercel-1',
+				id: 'maintenance-mossbit-1',
 				title: 'Authentication infrastructure maintenance',
 				description: 'Planned work on authentication infrastructure. Sign in may be briefly unavailable.',
 				status: 'Scheduled',
@@ -192,15 +192,15 @@ export const statusPages: StatusPageConfig[] = [
 		]
 	},
 	{
-		productSlug: 'stripe',
-		pageTitle: 'Stripe status',
+		productSlug: 'papercrane',
+		pageTitle: 'Papercrane status',
 		pageDescription: 'See what is working, what is being fixed, and what happened before.',
 		components: [
 			{ id: 'message-delivery', name: 'Message delivery', description: 'Updates and notifications sent to your team.', status: 'Degraded', uptime: '99.70%', barHistory: history({ 87: 'degraded', 88: 'degraded' }, { 87: 'Message delivery is slower than usual', 88: 'Message delivery is slower than usual' }) },
 			{ id: 'payments', name: 'Payments', description: 'Payment processing and account activity.', status: 'Operational', uptime: '100.00%', barHistory: history() },
 			{ id: 'dashboard', name: 'Dashboard', description: 'Workspace loading and saved changes.', status: 'Operational', uptime: '100.00%', barHistory: history() }
 		],
-		incidents: stripeIncidents,
+		incidents: papercraneIncidents,
 		maintenanceWindows: []
 	}
 ];

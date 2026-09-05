@@ -37,7 +37,7 @@
 		upvoted = next;
 	}
 
-	const week = { label: 'Week 35, 2026', live: 33, upvotes: 256, products: mockStates.length };
+	const week = { label: 'Week 36, 2026', live: mockStates.length, upvotes: 189, products: mockStates.length };
 </script>
 
 <svelte:head>
@@ -72,7 +72,7 @@
 		</div>
 
 		<p class="mt-3 text-[14px] md:text-[15px] leading-[1.6] text-[var(--pc-text-muted)] max-w-[60ch] text-pretty antialiased">
-			Launch your tool, get found on Google and in ChatGPT answers.
+			Launch your tool, get found on Google and in AI answers.
 		</p>
 	</header>
 

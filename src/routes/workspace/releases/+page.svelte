@@ -18,8 +18,8 @@
 		return status === 'Published' ? 'Public' : status === 'Ready' ? 'Preview' : 'Internal';
 	}
 
-	// Workspace scope: this workspace owns Bento (Lorenze). In production this is workspace_id via RLS.
-	let productFilter = $state('bento');
+	// Workspace scope: this workspace owns all 12 products (Lorenze). In production this is workspace_id via RLS.
+	let productFilter = $state('all');
 	let productOptions = $derived([
 		{ value: 'all', label: 'All workspace products' },
 		...products.map((p) => ({ value: p.slug, label: p.name }))
@@ -58,7 +58,7 @@
 		</div>
 		<span class="ml-auto text-xs text-[var(--pc-text-faint)] tabular-nums">{filtered.length} internal</span>
 	</div>
-	<p class=" -mt-2 mb-4 text-xs leading-relaxed text-[var(--pc-text-faint)] max-w-[60ch]">You’re viewing <strong class="text-[var(--pc-text)] font-medium">{productFilter === 'all' ? 'all products in this workspace' : productOptions.find(p=>p.value===productFilter)?.label}</strong> — GPT/Linear live elsewhere. In production this list is scoped by <code class="rounded bg-[var(--pc-surface)] px-1 py-0.5">workspace_id</code> via RLS, not global mock.</p>
+	<p class=" -mt-2 mb-4 text-xs leading-relaxed text-[var(--pc-text-faint)] max-w-[60ch]">You’re viewing <strong class="text-[var(--pc-text)] font-medium">{productFilter === 'all' ? 'all products in this workspace' : productOptions.find(p=>p.value===productFilter)?.label}</strong>. In production this list is scoped by <code class="rounded bg-[var(--pc-surface)] px-1 py-0.5">workspace_id</code> via RLS, not global mock.</p>
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Internal release timeline">
 			{#each filtered as release (release.id)}

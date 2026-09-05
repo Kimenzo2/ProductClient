@@ -17,7 +17,7 @@
 <svelte:head><title>Customer stories | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Workspace" title="Customer stories" description="Turn real customer quotes into approved stories people can understand and share." actionLabel="Preview customer stories" actionHref="/wall/linear-proof" />
+	<WorkspaceHeader eyebrow="Workspace" title="Customer stories" description="Turn real customer quotes into approved stories people can understand and share." actionLabel="Preview customer stories" actionHref="/wall/tetra-proof" />
 	<div class="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between"><div class="relative w-full sm:max-w-[380px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="proof-filter" class="sr-only">Search customer stories</label><Input id="proof-filter" bind:value={query} placeholder="Find a quote, person, or product" class="pl-9 text-base sm:text-sm" /></div><span class="text-xs text-[var(--pc-text-faint)]">{filtered.length} stor{filtered.length === 1 ? 'y' : 'ies'}</span></div>
 	<div class="flex flex-wrap items-center gap-2 pb-5" role="group" aria-label="Proof filters">{#each ['All', 'Approved', 'Needs review'] as item}<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 items-center rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{item}</button>{/each}</div>
 	<div class="grid gap-3 pb-10 md:grid-cols-2">
@@ -33,5 +33,5 @@
 		{/each}
 		{#if filtered.length === 0}<StatePanel icon={Heart} title="No customer stories match" description="Try a different product, person, or status." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} class="col-span-full" />{/if}
 	</div>
-	<div class="flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/30 py-6"><Heart size={17} weight="Outline" class="opacity-55" /><p class="text-xs text-[var(--pc-text-muted)] opacity-70">Approved quotes can appear on a Wall of Love, product page, case study, or product update.</p><Button href="/wall/linear-proof" variant="ghost" size="sm">Preview public stories <ArrowRight size={13} weight="Outline" /></Button></div>
+	<div class="flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/30 py-6"><Heart size={17} weight="Outline" class="opacity-55" /><p class="text-xs text-[var(--pc-text-muted)] opacity-70">Approved quotes can appear on a Wall of Love, product page, case study, or product update.</p><Button href="/wall/tetra-proof" variant="ghost" size="sm">Preview public stories <ArrowRight size={13} weight="Outline" /></Button></div>
 </div>

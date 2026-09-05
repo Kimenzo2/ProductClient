@@ -114,10 +114,10 @@ export const publicReleases: PublicReleaseRecord[] = mockStates.map((state) => (
 }));
 
 export const publicFeedback: PublicFeedbackRecord[] = [
-	{ id: 'fb-1', title: 'Add a way to compare two releases', body: 'I want to understand what changed between the last two updates without opening several tabs.', type: 'Request', status: 'Reviewed', productSlug: 'linear', productName: 'Linear', from: 'Maya Okafor', postedAt: '18 min ago', publicPath: '/feedback/fb-1' },
-	{ id: 'fb-2', title: 'Some people cannot sign in', body: 'Two people were sent back to the sign-in page after trying to log in.', type: 'Bug', status: 'New', productSlug: 'vercel', productName: 'Vercel', from: 'Daniel Kim', postedAt: '42 min ago', publicPath: '/feedback/fb-2' },
-	{ id: 'fb-3', title: 'The new voice mode feels natural', body: 'The handoff between speaking and typing is finally quick enough for daily work.', type: 'Praise', status: 'Resolved', productSlug: 'chatgpt', productName: 'ChatGPT', from: 'Sarah Chen', postedAt: 'Yesterday', publicPath: '/feedback/fb-3' },
-	{ id: 'fb-4', title: 'File uploads now fail less often', body: 'A customer approved this quote for use in a public customer story.', type: 'Testimonial', status: 'Planned', productSlug: 'supabase', productName: 'Supabase', from: 'Priya Sharma', postedAt: '2 days ago', publicPath: '/feedback/fb-4' }
+	{ id: 'fb-1', title: 'Add a way to compare two releases', body: 'I want to understand what changed between the last two updates without opening several tabs.', type: 'Request', status: 'Reviewed', productSlug: 'tetra', productName: 'Tetra', from: 'Maya Okafor', postedAt: '18 min ago', publicPath: '/feedback/fb-1' },
+	{ id: 'fb-2', title: 'Some people cannot sign in', body: 'Two people were sent back to the sign-in page after trying to log in.', type: 'Bug', status: 'New', productSlug: 'mossbit', productName: 'Mossbit', from: 'Daniel Kim', postedAt: '42 min ago', publicPath: '/feedback/fb-2' },
+	{ id: 'fb-3', title: 'The new voice commands feel natural', body: 'The handoff between speaking and typing is finally quick enough for daily work.', type: 'Praise', status: 'Resolved', productSlug: 'bento', productName: 'Bento', from: 'Sarah Chen', postedAt: 'Yesterday', publicPath: '/feedback/fb-3' },
+	{ id: 'fb-4', title: 'Feedback imports now fail less often', body: 'A customer approved this quote for use in a public customer story.', type: 'Testimonial', status: 'Planned', productSlug: 'hearth', productName: 'Hearth', from: 'Priya Sharma', postedAt: '2 days ago', publicPath: '/feedback/fb-4' }
 ];
 
 export const publicDocs: PublicDocRecord[] = [
@@ -125,23 +125,19 @@ export const publicDocs: PublicDocRecord[] = [
 	// a tenant-specific documentation URL for each customer workspace.
 	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: hostedDocsPage.href },
 	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: hostedDocsPage.href },
-	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'supabase', productName: 'Supabase', updatedAt: 'Aug 27', publicPath: hostedDocsPage.href },
-	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'vercel', productName: 'Vercel', updatedAt: 'Aug 26', publicPath: hostedDocsPage.href },
-	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: hostedDocsPage.href }
+	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'hearth', productName: 'Hearth', updatedAt: 'Aug 27', publicPath: hostedDocsPage.href },
+	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'mossbit', productName: 'Mossbit', updatedAt: 'Aug 26', publicPath: hostedDocsPage.href },
+	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'tetra', productName: 'Tetra', updatedAt: 'Aug 22', publicPath: hostedDocsPage.href }
 ];
 
-export const publicIncidents: PublicIncidentRecord[] = statusPages.flatMap((statusPage) => statusPage.incidents.map(({ affectedComponentIds, updates, ...incident }) => incident));
-
-export const publicProofs: PublicProofRecord[] = [
-	{ id: 'proof-1', quote: 'The new product updates save me 30 minutes every day.', name: 'Julia Park', role: 'Product lead', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', productSlug: 'linear', productName: 'Linear', tags: ['Productivity', 'Teams'] },
-	{ id: 'proof-2', quote: 'The new file uploads are exactly what our team needed.', name: 'Priya Sharma', role: 'Founder', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop', productSlug: 'supabase', productName: 'Supabase', tags: ['File uploads', 'Technical teams'] },
-	{ id: 'proof-4', quote: 'Keeping my work saved while I edit is a big improvement for large projects.', name: 'Alex Rivera', role: 'Staff engineer', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', productSlug: 'cursor', productName: 'Cursor', tags: ['Code', 'AI'] }
-];
-
-export const publicProductStories: PublicProductStory[] = [
-	{ productSlug: 'linear', title: 'See what changed between releases', outcome: 'One product story that explains the change, the customer feedback behind it, and the help page in under two minutes.', updatedAt: '18 min ago' },
-	{ productSlug: 'vercel', title: 'Explain past service problems', outcome: 'A clear history of service problems that links the public update, the fix, and the help page.', updatedAt: '46 min ago' }
-];
+export const publicIncidents: PublicIncidentRecord[] = statusPages.flatMap((statusPage) => statusPage.incidents.map(({ affectedComponentIds, updates, ...incident }) => incident));	export const publicProofs: PublicProofRecord[] = [
+		{ id: 'proof-1', quote: 'The new product updates save me 30 minutes every day.', name: 'Julia Park', role: 'Product lead', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', productSlug: 'tetra', productName: 'Tetra', tags: ['Productivity', 'Teams'] },
+		{ id: 'proof-2', quote: 'The new feedback imports are exactly what our team needed.', name: 'Priya Sharma', role: 'Founder', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop', productSlug: 'hearth', productName: 'Hearth', tags: ['Feedback imports', 'Technical teams'] },
+		{ id: 'proof-4', quote: 'Keeping my drafts saved while I edit is a big improvement for large projects.', name: 'Alex Rivera', role: 'Staff engineer', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', productSlug: 'inkwell', productName: 'Inkwell', tags: ['Writing', 'Editing'] }
+	];	export const publicProductStories: PublicProductStory[] = [
+		{ productSlug: 'tetra', title: 'See what changed between releases', outcome: 'One product story that explains the change, the customer feedback behind it, and the help page in under two minutes.', updatedAt: '18 min ago' },
+		{ productSlug: 'mossbit', title: 'Explain past service problems', outcome: 'A clear history of service problems that links the public update, the fix, and the help page.', updatedAt: '46 min ago' }
+	];
 
 export const publicMakers: MakerProfile[] = makers;
 export const publicStates: MockState[] = mockStates;

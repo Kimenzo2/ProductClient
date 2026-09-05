@@ -11,5 +11,5 @@ export function publicSearchRecords(query: string, kind: 'All' | SearchKind = 'A
 }
 
 export function popularSearches(): string[] {
-	return ['AI', 'Developer tools', 'Release notes', 'Customer feedback', 'Service problems', 'Supabase'];
+	return ['AI', 'Developer tools', 'Release notes', 'Customer feedback', 'Service problems', 'Bento'];
 }

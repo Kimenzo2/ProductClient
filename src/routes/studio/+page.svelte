@@ -39,8 +39,8 @@
 
 	const productOptions = [
 		{ value: 'bento', label: 'Bento' },
-		{ value: 'chatgpt', label: 'ChatGPT' },
-		{ value: 'linear', label: 'Linear' }
+		{ value: 'driftlog', label: 'Driftlog' },
+		{ value: 'quillpost', label: 'Quillpost' }
 	];
 
 	const audienceOptions = [

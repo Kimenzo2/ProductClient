@@ -2,26 +2,35 @@
 	import { Verified, Bell, ArrowUp, Rocket, MessageDots, AlertTriangle, CheckCircle } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
 	import { Avatar, Button, StatePanel } from '$lib/components/ui';
+	import { mockStates } from '$lib/data/mockStates';
+
+	// Product identity comes from the shared mock data — never duplicate names or avatars here.
+	const productBySlug = new Map(mockStates.map((s) => [s.product.slug, s.product]));
+	function productName(slug: string): string {
+		return productBySlug.get(slug)?.name ?? slug;
+	}
+	function productAvatar(slug: string): string {
+		return productBySlug.get(slug)?.avatar ?? '';
+	}
 
 	type Notification = {
 		id: string;
 		type: 'upvote' | 'launch' | 'comment' | 'incident' | 'milestone';
-		product: string;
-		productAvatar: string;
+		productSlug: string;
 		message: string;
 		time: string;
 		read: boolean;
 	};
 
 	let notifications: Notification[] = $state([
-		{ id: '1', type: 'launch', product: 'ChatGPT', productAvatar: 'https://cdn.reicon.dev/logos/openai/original.svg', message: 'ChatGPT 6 launched — realtime vision, voice and reasoning', time: '2 hours ago', read: false },
-		{ id: '2', type: 'upvote', product: 'Linear', productAvatar: 'https://cdn.reicon.dev/logos/linear/original.svg', message: 'Your upvote pushed Linear to #2 on the weekly leaderboard', time: '5 hours ago', read: false },
-		{ id: '3', type: 'milestone', product: 'Vercel', productAvatar: 'https://cdn.reicon.dev/logos/vercel/original.svg', message: 'Vercel hit 1M reads — you were one of the first followers', time: '1 day ago', read: false },
-		{ id: '4', type: 'incident', product: 'Vercel', productAvatar: 'https://cdn.reicon.dev/logos/vercel/original.svg', message: 'Edge functions latency incident — resolved', time: '1 day ago', read: true },
-		{ id: '5', type: 'comment', product: 'Figma', productAvatar: 'https://cdn.reicon.dev/logos/figma/original.svg', message: 'New comment on Figma 4.0 launch announcement', time: '2 days ago', read: true },
-		{ id: '6', type: 'launch', product: 'Cursor', productAvatar: 'https://cdn.reicon.dev/logos/cursor/original.svg', message: 'Cursor shipped background agents — now available in beta', time: '3 days ago', read: true },
-		{ id: '7', type: 'upvote', product: 'Supabase', productAvatar: 'https://cdn.reicon.dev/logos/supabase/original.svg', message: 'Supabase moved up 3 spots — your follows are ranking it', time: '3 days ago', read: true },
-		{ id: '8', type: 'milestone', product: 'Notion', productAvatar: 'https://cdn.reicon.dev/logos/notion/original.svg', message: 'Notion reached 500K followers on Product Client', time: '4 days ago', read: true },
+		{ id: '1', type: 'launch', productSlug: 'bento', message: 'Bento 0.4 launched — voice commands, quick switching, better answers', time: '2 hours ago', read: false },
+		{ id: '2', type: 'upvote', productSlug: 'tetra', message: 'Your upvote pushed Tetra to #4 on the weekly leaderboard', time: '5 hours ago', read: false },
+		{ id: '3', type: 'milestone', productSlug: 'mossbit', message: 'Mossbit crossed 1,000 reads this month — you were one of the first followers', time: '1 day ago', read: false },
+		{ id: '4', type: 'incident', productSlug: 'mossbit', message: 'Requests latency incident — resolved', time: '1 day ago', read: true },
+		{ id: '5', type: 'comment', productSlug: 'quillpost', message: 'New comment on Quillpost launch announcement', time: '2 days ago', read: true },
+		{ id: '6', type: 'launch', productSlug: 'inkwell', message: 'Inkwell shipped background exports — now available in beta', time: '3 days ago', read: true },
+		{ id: '7', type: 'upvote', productSlug: 'hearth', message: 'Hearth moved up 3 spots — your follows are ranking it', time: '3 days ago', read: true },
+		{ id: '8', type: 'milestone', productSlug: 'signalfox', message: 'Signalfox passed 100 followers on Product Client', time: '4 days ago', read: true },
 	]);
 
 	const typeIcon: Record<string, typeof Rocket> = {
@@ -97,8 +106,8 @@
 						<!-- Content — no opacity, 14/15 body, tabular -->
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<Avatar src={n.productAvatar} alt={n.product} size="xs" shape="square" class="!ring-0 ring-0 border-0" />
-								<span class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] truncate">{n.product}</span>
+								<Avatar src={productAvatar(n.productSlug)} alt={productName(n.productSlug)} size="xs" shape="square" class="!ring-0 ring-0 border-0" />
+								<span class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] truncate">{productName(n.productSlug)}</span>
 								{#if !n.read}
 									<span class="size-1.5 rounded-full bg-[var(--pc-accent)] shrink-0" aria-hidden="true"></span>
 									<span class="sr-only">Unread</span>
