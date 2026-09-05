@@ -1,5 +1,5 @@
 import { makers, mockStates, preLaunchProducts, reviews } from '$lib/data/mockStates';
-import { hostedStatusPage } from '$lib/config/tenant';
+import { hostedDocsPage, hostedStatusPage } from '$lib/config/tenant';
 import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 export type LifecycleStatus = 'Live' | 'Beta' | 'Planned' | 'Resolved' | 'In progress' | 'Draft';
@@ -337,11 +337,14 @@ export const roadmapItems: RoadmapRecord[] = [
 ];
 
 export const docs: DocRecord[] = [
-	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: '/docs/bento/getting-started', workspacePath: '/workspace/docs' },
-	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: '/docs/bento/release-notes', workspacePath: '/workspace/docs' },
-	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'supabase', productName: 'Supabase', updatedAt: 'Aug 27', publicPath: '/docs/supabase/api-reference', workspacePath: '/workspace/docs' },
-	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'vercel', productName: 'Vercel', updatedAt: 'Aug 26', publicPath: '/docs/vercel/status-and-incidents', workspacePath: '/workspace/docs' },
-	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: '/docs/linear/feedback-loop', workspacePath: '/workspace/docs' }
+	// The mock workspace has no tenant-published hostname yet, so every public
+	// document points to the neutral hosted preview. A real publishing response
+	// replaces this value with the tenant's published documentation URL.
+	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
+	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
+	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'supabase', productName: 'Supabase', updatedAt: 'Aug 27', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
+	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'vercel', productName: 'Vercel', updatedAt: 'Aug 26', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
+	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' }
 ];
 
 export const incidents: IncidentRecord[] = [

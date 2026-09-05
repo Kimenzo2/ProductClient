@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { ArrowLeft, ArrowRight, CheckCircle } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
+	import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
 	import { hostedStatusPage } from '$lib/config/tenant';
 	import { products } from '$lib/data/workspace';
 
@@ -23,6 +23,12 @@
 	let error = $state('');
 	let stage = $state<Stage>('compose');
 	let product = $derived(products.find((item) => item.slug === productSlug));
+	const productOptions = products.map((item) => ({ value: item.slug, label: item.name }));
+	const severityOptions = [
+		{ value: 'Critical', label: 'Critical' },
+		{ value: 'High impact', label: 'High impact' },
+		{ value: 'Medium impact', label: 'Medium impact' }
+	];
 
 	function validate() {
 		if (!title.trim() || !summary.trim() || !impact.trim() || !lead.trim()) {
@@ -78,11 +84,11 @@
 			</div>
 			{#if mode === 'Retrospective'}<p class="mode-note">This records a historical incident. It will not be treated as an active response until you explicitly announce it.</p>{:else if mode === 'Test'}<p class="mode-note">Test incidents are isolated from normal incident history, insights, announcements, and workflows.</p>{/if}
 
-			<section class="form-section" aria-labelledby="facts-title"><div class="section-heading"><div><h2 id="facts-title">What is happening?</h2></div></div><div class="form-grid"><label>Product<select bind:value={productSlug}>{#each products as item}<option value={item.slug}>{item.name}</option>{/each}</select></label><label>Severity<select bind:value={severity}><option value="Critical">Critical</option><option value="High impact">High impact</option><option value="Medium impact">Medium impact</option></select></label><label class="wide">Incident name<input bind:value={title} placeholder="Some people cannot sign in" /></label><label class="wide">Summary<textarea bind:value={summary} rows="4" placeholder="Explain the problem in one clear sentence or two."></textarea></label><label class="wide">Who is affected?<textarea bind:value={impact} rows="3" placeholder="Describe who is affected and what they cannot do."></textarea></label></div></section>
+			<section class="form-section" aria-labelledby="facts-title"><div class="section-heading"><div><h2 id="facts-title">What is happening?</h2></div></div><div class="form-grid"><div class="field"><Label for="declare-product" class="declare-label">Product</Label><Select id="declare-product" bind:value={productSlug} options={productOptions} /></div><div class="field"><Label for="declare-severity" class="declare-label">Severity</Label><Select id="declare-severity" bind:value={severity} options={severityOptions} /></div><div class="field wide"><Label for="declare-title" class="declare-label">Incident name</Label><Input id="declare-title" bind:value={title} placeholder="Some people cannot sign in" class="declare-control" /></div><div class="field wide"><Label for="declare-summary" class="declare-label">Summary</Label><Textarea id="declare-summary" bind:value={summary} rows={4} placeholder="Explain the problem in one clear sentence or two." class="declare-control declare-textarea" /></div><div class="field wide"><Label for="declare-impact" class="declare-label">Who is affected?</Label><Textarea id="declare-impact" bind:value={impact} rows={3} placeholder="Describe who is affected and what they cannot do." class="declare-control declare-textarea" /></div></div></section>
 
-			<section class="form-section" aria-labelledby="response-title"><div class="section-heading"><div><h2 id="response-title">Who is responding?</h2></div></div><div class="form-grid"><label>Incident lead<input bind:value={lead} placeholder="Name or team" /></label><label>Coordination channel<input bind:value={channel} placeholder="#incident-room (optional)" /></label></div></section>
+			<section class="form-section" aria-labelledby="response-title"><div class="section-heading"><div><h2 id="response-title">Who is responding?</h2></div></div><div class="form-grid"><div class="field"><Label for="declare-lead" class="declare-label">Incident lead</Label><Input id="declare-lead" bind:value={lead} placeholder="Name or team" class="declare-control" /></div><div class="field"><Label for="declare-channel" class="declare-label">Coordination channel</Label><Input id="declare-channel" bind:value={channel} placeholder="#incident-room (optional)" class="declare-control" /></div></div></section>
 
-			<section class="form-section" aria-labelledby="announcement-title"><div class="section-heading"><div><h2 id="announcement-title">What should customers hear?</h2></div></div><label class="toggle-row"><input type="checkbox" bind:checked={announce} /><span><strong>Prepare a customer announcement</strong><small>Keep the public message connected to this incident instead of rewriting it elsewhere.</small></span></label><label class="wide message-field">Public message<textarea bind:value={publicMessage} rows="4" placeholder="Tell customers what they should expect right now."></textarea></label><label class="toggle-row"><input type="checkbox" bind:checked={postIncident} /><span><strong>Start a post-incident flow when this is resolved</strong><small>Keep the learning and follow-up work attached to this response.</small></span></label></section>
+			<section class="form-section" aria-labelledby="announcement-title"><div class="section-heading"><div><h2 id="announcement-title">What should customers hear?</h2></div></div><label class="toggle-row"><input type="checkbox" bind:checked={announce} /><span><strong>Prepare a customer announcement</strong><small>Keep the public message connected to this incident instead of rewriting it elsewhere.</small></span></label><div class="field wide message-field"><Label for="declare-public-message" class="declare-label">Public message</Label><Textarea id="declare-public-message" bind:value={publicMessage} rows={4} placeholder="Tell customers what they should expect right now." class="declare-control declare-textarea" /></div><label class="toggle-row"><input type="checkbox" bind:checked={postIncident} /><span><strong>Start a post-incident flow when this is resolved</strong><small>Keep the learning and follow-up work attached to this response.</small></span></label></section>
 
 			{#if error}<p class="form-error" role="alert">{error}</p>{/if}
 			<div class="form-actions"><Button href="/workspace/incidents" variant="ghost" size="md">Cancel</Button><Button type="submit" variant="primary" size="md">Review declaration <ArrowRight size={14} weight="Outline" aria-hidden="true" /></Button></div>
@@ -105,16 +111,17 @@
 	.mode-switcher button { min-height: 38px; padding: 0 13px; border: 0; border-radius: 999px; color: var(--pc-text-muted); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 	.mode-switcher button:hover, .mode-switcher button.active { color: var(--pc-text); background: var(--pc-surface-2); }
 	.mode-switcher button:focus-visible, .toggle-row input:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
-	.mode-note { margin: 18px 0 -2px; padding: 12px 14px; border-left: 2px solid var(--pc-accent); color: var(--pc-text-muted); font-size: 12px; line-height: 1.55; }
+	.mode-note { margin: 18px 0 -2px; padding: 12px 14px; border-inline-start: 2px solid var(--pc-accent); color: var(--pc-text-muted); font-size: 12px; line-height: 1.55; }
 	.form-section { padding-top: 34px; margin-top: 32px; border-top: 1px solid var(--pc-border-strong); }
 	.section-heading { margin-bottom: 18px; }
 	.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; }
-	.form-grid label, .message-field { display: grid; gap: 7px; color: var(--pc-text-muted); font-size: 11px; }
+	.field, .message-field { display: grid; gap: 7px; min-width: 0; }
 	.form-grid .wide, .message-field { grid-column: 1 / -1; }
-	select, input:not([type='checkbox']), textarea { width: 100%; border: 1px solid var(--pc-border-strong); border-radius: 10px; color: var(--pc-text); background: var(--pc-surface-2); font: inherit; font-size: 12px; outline: none; }
-	select, input:not([type='checkbox']) { min-height: 40px; padding: 0 11px; }
-	textarea { resize: vertical; min-height: 94px; padding: 11px; line-height: 1.55; }
-	select:focus-visible, input:not([type='checkbox']):focus-visible, textarea:focus-visible { border-color: var(--pc-focus-ring); outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
+	.field :global(.declare-label), .message-field :global(.declare-label) { color: var(--pc-text-muted); font-size: 11px; }
+	.declare-form :global(.pc-select-trigger) { min-height: 40px; border-radius: 10px; background: var(--pc-surface-2); font-size: 12px; }
+	.declare-form :global(.declare-control) { width: 100%; min-height: 40px; border: 1px solid var(--pc-border-strong); border-radius: 10px; color: var(--pc-text); background: var(--pc-surface-2); font-size: 12px; outline: none; }
+	.declare-form :global(.declare-textarea) { min-height: 94px; padding: 11px; resize: vertical; line-height: 1.55; }
+	.declare-form :global(.declare-control:focus-visible), .declare-form :global(.pc-select-trigger:focus-visible) { border-color: var(--pc-focus-ring); outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
 	.toggle-row { display: flex; align-items: start; gap: 10px; margin-top: 17px; color: var(--pc-text); cursor: pointer; }
 	.toggle-row input { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; accent-color: var(--pc-accent); }
 	.toggle-row strong, .toggle-row small { display: block; }

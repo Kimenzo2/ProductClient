@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, Export, History, Search, User } from 'reicon-svelte';
+	import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, CloseCircle, Export, History, Search, User } from 'reicon-svelte';
 	import { Button, Input, Label, Select } from '$lib/components/ui';
 	import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '$lib/data/postIncidentFlow.svelte';
 	import { incidents, type IncidentRecord, type PostIncidentTask } from '$lib/data/workspace';
@@ -27,6 +27,8 @@
 	let editorOwner = $state('');
 	let editorDue = $state('');
 	let saveNotice = $state('');
+	let editorPanel = $state<HTMLElement | null>(null);
+	let editorTrigger = $state<HTMLElement | null>(null);
 
 	function isClosed(task: PostIncidentTask) {
 		return task.status === 'Done' || task.status === 'Not doing';
@@ -77,6 +79,29 @@
 		hydratePostIncidentFlow();
 		const requestedId = page.url.searchParams.get('selected');
 		selectedId = flowIncidents.some((flow) => flow.id === requestedId) ? requestedId ?? '' : '';
+
+		const handleEditorKeydown = (event: KeyboardEvent) => {
+			if (!editingTask) return;
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				closeEditor();
+				return;
+			}
+			if (event.key !== 'Tab' || !editorPanel) return;
+			const focusable = Array.from(editorPanel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+			if (focusable.length === 0) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		window.addEventListener('keydown', handleEditorKeydown);
+		return () => window.removeEventListener('keydown', handleEditorKeydown);
 	});
 
 	$effect(() => {
@@ -113,6 +138,11 @@
 		void goto(`/workspace/incidents/post-incident-flow?selected=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
 	}
 
+	function closeEditor() {
+		editingTaskId = '';
+		requestAnimationFrame(() => editorTrigger?.focus());
+	}
+
 	function backToQueue(event: MouseEvent) {
 		event.preventDefault();
 		selectedId = '';
@@ -131,11 +161,13 @@
 	}
 
 	function startEditing(task: PostIncidentTask) {
+		editorTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		editingTaskId = task.id;
 		editorStatus = task.status;
 		editorOwner = task.owner;
 		editorDue = task.due;
 		saveNotice = '';
+		requestAnimationFrame(() => editorPanel?.querySelector<HTMLElement>('button, input, select')?.focus());
 	}
 
 	function saveTaskEdits(event: SubmitEvent) {
@@ -161,7 +193,7 @@
 	<meta name="description" content="Move resolved incidents through a clear post-incident review flow." />
 </svelte:head>
 
-<div class="flow-page">
+<div class="flow-page" inert={editingTask ? true : undefined}>
 	<header class="page-header">
 		<div>
 			<p class="kicker">Response</p>
@@ -233,11 +265,6 @@
 					</div>
 				</section>
 
-				{#if editingTask}
-					<button type="button" class="editor-backdrop" aria-label="Close task editor" onclick={() => (editingTaskId = '')}></button>
-					<div class="task-editor" role="dialog" aria-modal="true" aria-labelledby="task-editor-title"><div><p class="kicker">Task ownership</p><h3 id="task-editor-title">Edit task</h3><p class="editor-task-name">{editingTask.title}</p></div><form onsubmit={saveTaskEdits}><div class="field"><Label for="post-task-status">Status</Label><Select id="post-task-status" bind:value={editorStatus} options={[{ value: 'Open', label: 'Open' }, { value: 'Done', label: 'Done' }, { value: 'Not doing', label: 'Not doing' }]} /></div><div class="field"><Label for="post-task-owner">Owner</Label><Select id="post-task-owner" bind:value={editorOwner} options={ownerOptions} placeholder="Select an owner" /></div><div class="field"><Label for="post-task-due">Due</Label><Input id="post-task-due" bind:value={editorDue} placeholder="e.g. Friday or Sep 7" /></div><div class="editor-actions"><Button type="submit" variant="primary" size="md">Save changes</Button><button type="button" class="quiet-action" onclick={() => (editingTaskId = '')}>Cancel</button></div></form></div>
-				{/if}
-
 				<div class="detail-links"><a href="/workspace/incidents/follow-ups">Open follow-up queue <ArrowRight size={13} weight="Outline" aria-hidden="true" /></a></div>
 			{:else}
 				<div class="detail-empty"><span class="empty-icon" aria-hidden="true"><History size={22} weight="Outline" /></span><h2 id="flow-detail-title">Select an incident</h2><p>Choose a flow from the queue to review its phase and completion work.</p></div>
@@ -245,6 +272,27 @@
 		</aside>
 	</div>
 </div>
+
+{#if editingTask}
+	<button type="button" class="editor-backdrop" aria-label="Close task editor" onclick={closeEditor}></button>
+	<div class="task-editor" bind:this={editorPanel} role="dialog" aria-modal="true" aria-labelledby="task-editor-title" aria-describedby="post-task-help">
+		<div class="editor-header">
+			<div>
+				<p class="kicker">Task ownership</p>
+				<h3 id="task-editor-title">Edit task</h3>
+			</div>
+			<button type="button" class="editor-close" aria-label="Close task editor" onclick={closeEditor}><CloseCircle size={18} weight="Outline" aria-hidden="true" /></button>
+		</div>
+		<p class="editor-task-name">{editingTask.title}</p>
+		<p id="post-task-help" class="editor-help">Keep the owner, status, and due date current so this review can move forward.</p>
+		<form onsubmit={saveTaskEdits}>
+			<div class="field"><Label for="post-task-status">Status</Label><Select id="post-task-status" bind:value={editorStatus} options={[{ value: 'Open', label: 'Open' }, { value: 'Done', label: 'Done' }, { value: 'Not doing', label: 'Not doing' }]} /></div>
+			<div class="field"><Label for="post-task-owner">Owner</Label><Select id="post-task-owner" bind:value={editorOwner} options={ownerOptions} placeholder="Select an owner" /></div>
+			<div class="field"><Label for="post-task-due">Due</Label><Input id="post-task-due" bind:value={editorDue} placeholder="e.g. Friday or Sep 7" /></div>
+			<div class="editor-actions"><Button type="submit" variant="primary" size="md">Save changes</Button><button type="button" class="quiet-action" onclick={closeEditor}>Cancel</button></div>
+		</form>
+	</div>
+{/if}
 
 <style>
 	.flow-page { width: min(100% - 32px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
@@ -254,17 +302,17 @@
 	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }
 	.flow-summary { display: flex; align-items: center; gap: 16px; color: var(--pc-text-muted); font-size: 12px; white-space: nowrap; }
-	.flow-summary span + span { padding-left: 16px; border-left: 1px solid var(--pc-border-strong); }
-	.flow-summary strong { margin-right: 4px; color: var(--pc-text); font-size: 18px; font-weight: 500; letter-spacing: -.04em; }
+	.flow-summary span + span { padding-inline-start: 16px; border-inline-start: 1px solid var(--pc-border-strong); }
+	.flow-summary strong { margin-inline-end: 4px; color: var(--pc-text); font-size: 18px; font-weight: 500; letter-spacing: -.04em; }
 	.toolbar { display: flex; align-items: center; gap: 12px; padding: 20px 0 14px; }
-	.search-field { display: flex; align-items: center; width: min(100%, 330px); min-height: 38px; gap: 9px; padding-left: 11px; border-radius: 10px; color: var(--pc-text-faint); background: var(--pc-surface-2); }
-	.search-field :global(input) { min-height: 38px; padding-left: 0; border: 0; background: transparent; }
+	.search-field { display: flex; align-items: center; width: min(100%, 330px); min-height: 38px; gap: 9px; padding-inline-start: 11px; border-radius: 10px; color: var(--pc-text-faint); background: var(--pc-surface-2); }
+	.search-field :global(input) { min-height: 38px; padding-inline-start: 0; border: 0; background: transparent; }
 	.filter-group { display: flex; align-items: center; gap: 3px; overflow-x: auto; scrollbar-width: none; }
 	.filter-group::-webkit-scrollbar { display: none; }
 	.toolbar.is-hidden, .flow-list-surface.is-hidden, .flow-detail-surface.is-hidden { display: none; }
 	.filter-group button, .reset-button { min-height: 34px; flex: 0 0 auto; padding: 0 11px; border: 0; border-radius: 999px; color: var(--pc-text-muted); background: transparent; font: inherit; font-size: 11px; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
 	.filter-group button:hover, .filter-group button.active, .reset-button:hover { color: var(--pc-text); background: var(--pc-surface-2); }
-	.reset-button { margin-left: auto; color: var(--pc-text-faint); }
+	.reset-button { margin-inline-start: auto; color: var(--pc-text-faint); }
 	.filter-group button:focus-visible, .reset-button:focus-visible, .flow-row:focus-visible, .task-state:focus-visible, .quiet-action:focus-visible, .task-actions a:focus-visible, .incident-context a:focus-visible, .detail-links a:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 	.save-notice { margin: 0 0 10px; color: var(--pc-status-operational); font-size: 11px; }
 	.back-button { display: inline-flex; align-items: center; gap: 7px; margin: 22px 0 14px; color: var(--pc-text-muted); font-size: 12px; text-decoration: none; }
@@ -312,7 +360,7 @@
 	.incident-context a { justify-self: end; white-space: nowrap; }
 	.phase-track { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 22px 0 0; list-style: none; }
 	.phase-track li { display: flex; align-items: center; gap: 9px; min-width: 0; color: var(--pc-text-faint); }
-	.phase-track li + li { padding-left: 10px; border-left: 1px solid var(--pc-border-strong); }
+	.phase-track li + li { padding-inline-start: 10px; border-inline-start: 1px solid var(--pc-border-strong); }
 	.phase-track li.current { color: var(--pc-text); }
 	.phase-track li.complete { color: var(--pc-status-operational); }
 	.phase-marker { width: 24px; height: 24px; flex: 0 0 auto; border: 1px solid currentColor; font-size: 11px; }
@@ -341,17 +389,23 @@
 	.task-actions a, .quiet-action { color: var(--pc-text-muted); font-size: 11px; }
 	.task-actions a:hover, .quiet-action:hover, .detail-links a:hover, .incident-context a:hover { color: var(--pc-text); }
 	.quiet-action { padding: 0; border: 0; background: transparent; font: inherit; cursor: pointer; }
-	.editor-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; border: 0; background: rgb(0 0 0 / .48); cursor: default; }
-	.task-editor { position: fixed; z-index: 61; top: 0; right: 0; width: min(420px, calc(100vw - 24px)); height: 100dvh; overflow-y: auto; padding: 32px 28px; border-left: 1px solid var(--pc-border-strong); background: var(--pc-surface); box-shadow: -18px 0 38px rgb(0 0 0 / .18); }
-	.task-editor > div { margin-bottom: 22px; }
-	.task-editor .kicker { margin-bottom: 5px; }
-	.editor-task-name { margin: 8px 0 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.5; }
-	.task-editor form { display: grid; gap: 13px; }
-	.field { display: grid; gap: 7px; }
-	.editor-actions { display: flex; align-items: center; gap: 14px; }
+	.editor-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(7 7 7 / .44); backdrop-filter: none; cursor: default; }
+	.task-editor { position: fixed; z-index: 61; inset-block: 0; inset-inline-end: 0; display: flex; flex-direction: column; width: min(520px, calc(100vw - 16px)); max-width: 100%; block-size: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 32px 32px max(28px, env(safe-area-inset-bottom)); border: 1px solid var(--pc-border-strong); border-inline-end: 0; border-start-start-radius: 26px; border-end-start-radius: 26px; color: var(--pc-text); background: var(--pc-surface-raised); }
+	.editor-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--pc-border-strong); }
+	.editor-header .kicker { margin-bottom: 6px; }
+	.editor-header h3 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.035em; line-height: 1.2; }
+	.editor-close { display: grid; flex: 0 0 auto; place-items: center; width: 40px; height: 40px; margin: -5px -5px 0 0; padding: 0; border: 0; border-radius: 50%; color: var(--pc-text-muted); background: transparent; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
+	.editor-close:hover { color: var(--pc-text); background: var(--pc-surface-2); }
+	.editor-task-name { margin: 24px 0 0; color: var(--pc-text); font-size: 16px; font-weight: 500; line-height: 1.45; }
+	.editor-help { max-width: 42ch; margin: 7px 0 26px; color: var(--pc-text-muted); font-size: 13px; line-height: 1.55; text-wrap: pretty; }
+	.task-editor form { display: flex; flex: 1; flex-direction: column; gap: 18px; }
+	.task-editor :global(input) { min-height: 44px; border: 1px solid var(--pc-border-strong); color: var(--pc-text); background: var(--pc-bg); }
+	.task-editor :global(input:focus-visible), .task-editor :global(.pc-select-trigger:focus-visible), .editor-close:focus-visible, .editor-backdrop:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
+	.field { display: grid; gap: 8px; }
+	.editor-actions { display: flex; align-items: center; gap: 16px; margin-top: auto; padding-top: 24px; border-top: 1px solid var(--pc-border-strong); }
 	.detail-links { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--pc-border-strong); }
 	@media (max-width: 1020px) { .flow-layout { grid-template-columns: minmax(0, 1fr); } .flow-detail-surface { order: -1; } }
-	@media (max-width: 720px) { .flow-page { width: min(100% - 24px, 1160px); padding-top: 28px; } .page-header { align-items: start; flex-direction: column; gap: 14px; } .toolbar { align-items: stretch; flex-wrap: wrap; } .search-field { width: 100%; } .filter-group { order: 3; width: 100%; } .reset-button { margin-left: auto; } .flow-row { grid-template-columns: 30px minmax(0, 1fr); align-items: start; padding: 16px; } .flow-row-meta { grid-column: 2; justify-content: space-between; } .incident-context { grid-template-columns: repeat(2, minmax(0, 1fr)); } .incident-context a { grid-column: 1 / -1; justify-self: start; } }
-	@media (max-width: 460px) { .flow-detail-surface { padding: 17px; } .flow-summary { gap: 11px; } .flow-summary span + span { padding-left: 11px; } .phase-track { grid-template-columns: 1fr; gap: 11px; } .phase-track li + li { padding-top: 11px; padding-left: 0; border-top: 1px solid var(--pc-border-strong); border-left: 0; } .task-title-row { align-items: start; flex-direction: column; gap: 5px; } .task-editor { width: min(100vw - 12px, 420px); padding: 24px 20px; } }
-	@media (prefers-reduced-motion: reduce) { .filter-group button, .reset-button, .flow-row { transition: none; } }
+	@media (max-width: 720px) { .flow-page { width: min(100% - 24px, 1160px); padding-top: 28px; } .page-header { align-items: start; flex-direction: column; gap: 14px; } .toolbar { align-items: stretch; flex-wrap: wrap; } .search-field { width: 100%; } .filter-group { order: 3; width: 100%; } .reset-button { margin-inline-start: auto; } .flow-row { grid-template-columns: 30px minmax(0, 1fr); align-items: start; padding: 16px; } .flow-row-meta { grid-column: 2; justify-content: space-between; } .incident-context { grid-template-columns: repeat(2, minmax(0, 1fr)); } .incident-context a { grid-column: 1 / -1; justify-self: start; } }
+	@media (max-width: 460px) { .flow-detail-surface { padding: 17px; } .flow-summary { gap: 11px; } .flow-summary span + span { padding-inline-start: 11px; } .phase-track { grid-template-columns: 1fr; gap: 11px; } .phase-track li + li { padding-block-start: 11px; padding-inline-start: 0; border-block-start: 1px solid var(--pc-border-strong); border-inline-start: 0; } .task-title-row { align-items: start; flex-direction: column; gap: 5px; } .task-editor { width: min(100% - 16px, 520px); padding: 24px 20px max(22px, env(safe-area-inset-bottom)); border-start-start-radius: 22px; border-end-start-radius: 22px; } .editor-actions { align-items: stretch; flex-direction: column; gap: 10px; } .editor-actions :global(a), .editor-actions :global(button) { width: 100%; } }
+	@media (prefers-reduced-motion: reduce) { .filter-group button, .reset-button, .flow-row, .editor-close { transition: none; } }
 </style>

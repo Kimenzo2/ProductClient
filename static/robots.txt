@@ -1,3 +1,34 @@
-# allow crawling everything by default
+# robots.txt for ProductClient — curated for indexation + GEO citability.
+# Policy: allow all public surfaces, disallow private/auth, declare sitemap.
+# Review quarterly per 2026 sitemap best practices (lastmod accurate, no redirects in sitemap).
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /workspace/
+Disallow: /workspace
+Disallow: /studio/
+Disallow: /studio
+Disallow: /auth/
+Disallow: /auth
+Disallow: /onboarding/
+Disallow: /you
+Disallow: /notifications
+Disallow: /following
+
+# AI crawlers — explicit allow (business decision, not default). Revisit if training-opt-out required.
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://productclient.com/sitemap.xml

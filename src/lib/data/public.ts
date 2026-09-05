@@ -1,5 +1,6 @@
 import { makers, mockStates, preLaunchProducts, reviews, type MakerProfile, type MockState, type Review } from '$lib/data/mockStates';
 import { statusPages } from '$lib/data/status';
+import { hostedDocsPage } from '$lib/config/tenant';
 import type { SearchRecord } from '$lib/search/types';
 
 export type PublicProductRecord = {
@@ -120,11 +121,13 @@ export const publicFeedback: PublicFeedbackRecord[] = [
 ];
 
 export const publicDocs: PublicDocRecord[] = [
-	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: '/docs/bento/getting-started' },
-	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: '/docs/bento/release-notes' },
-	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'supabase', productName: 'Supabase', updatedAt: 'Aug 27', publicPath: '/docs/supabase/api-reference' },
-	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'vercel', productName: 'Vercel', updatedAt: 'Aug 26', publicPath: '/docs/vercel/status-and-incidents' },
-	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: '/docs/linear/feedback-loop' }
+	// Mock records point at the neutral hosted preview until publishing returns
+	// a tenant-specific documentation URL for each customer workspace.
+	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: hostedDocsPage.href },
+	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: hostedDocsPage.href },
+	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'supabase', productName: 'Supabase', updatedAt: 'Aug 27', publicPath: hostedDocsPage.href },
+	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'vercel', productName: 'Vercel', updatedAt: 'Aug 26', publicPath: hostedDocsPage.href },
+	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'linear', productName: 'Linear', updatedAt: 'Aug 22', publicPath: hostedDocsPage.href }
 ];
 
 export const publicIncidents: PublicIncidentRecord[] = statusPages.flatMap((statusPage) => statusPage.incidents.map(({ affectedComponentIds, updates, ...incident }) => incident));

@@ -1,0 +1,24 @@
+# ProductClient
+> Interactive product management surface — launches, voted feedback, beautiful documentation and status pages that keep customers in the loop.
+
+## Canonical description
+ProductClient is an interactive product management surface for builders — interactive launches, beautiful documentation that is agent-native and self-updating, and status pages that keep customers in the loop.
+
+## Public surfaces
+- [Launches](https://productclient.com/launchpad): Interactive launches that rank and get seen
+- [Products](https://productclient.com/products): Interactive product profiles
+- [Discover](https://productclient.com/feed): Follow products interactively
+- [Docs](https://productclient.com/products): Beautiful documentation beside releases — agent-native, self-updating, beautiful defaults
+- [What is ProductClient](https://productclient.com/#faq): Answer-first FAQs (FAQPage schema)
+
+## How pages are built to rank
+- Each page is server-rendered with title, meta, heading hierarchy, and JSON-LD (FAQPage, Organization, WebSite) — built to rank on Google and AI answers
+- Interactive launches and voted feedback drive engagement and distribution
+- Permanent URLs accumulate internal links as you ship more
+
+## Opt-in
+Allow GPTBot, PerplexityBot, ClaudeBot, Google-Extended to cite 120-160 word extracts under question-shaped H2s. Prefer extracts with named numbers and dated sources. If you block these agents, GEO will not improve — this is a business decision, not a default.
+
+## Contact
+- Site: https://productclient.com
+- Updates: https://productclient.com/launchpad

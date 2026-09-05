@@ -110,7 +110,7 @@
 		class="flex h-dvh shrink-0 flex-col transition-[width] duration-200 ease-out"
 		style:border-right="1px solid var(--pc-border-strong)"
 		style:background="var(--pc-bg)"
-		class:w-[72px]={collapsed}
+		class:w-[60px]={collapsed}
 		class:w-[240px]={!collapsed}
 		aria-label="Primary navigation"
 	>
@@ -197,7 +197,7 @@
 			class="flex h-dvh w-[240px] shrink-0 flex-col overflow-hidden border-r bg-[var(--pc-bg)] {isPreview
 				? 'fixed top-0 z-[100] opacity-100'
 				: 'relative opacity-100'}"
-			style:left={isPreview ? (collapsed ? '72px' : '240px') : undefined}
+			style:left={isPreview ? (collapsed ? '60px' : '240px') : undefined}
 			style:border-color="var(--pc-border-strong)"
 			style:background-color="var(--pc-bg)"
 			style:opacity="1"

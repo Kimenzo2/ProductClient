@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Add } from 'reicon-svelte';
+	import { Add, Export } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 
 	let {
@@ -7,13 +7,19 @@
 		title,
 		description,
 		actionLabel,
-		actionHref = '/studio'
+		actionHref = '/studio',
+		secondaryActionLabel,
+		secondaryActionHref,
+		secondaryActionExternal = false
 	}: {
 		eyebrow?: string;
 		title: string;
 		description: string;
 		actionLabel?: string;
 		actionHref?: string;
+		secondaryActionLabel?: string;
+		secondaryActionHref?: string;
+		secondaryActionExternal?: boolean;
 	} = $props();
 </script>
 
@@ -23,7 +29,14 @@
 		<h1 class="mt-1.5 text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">{title}</h1>
 		<p class="mt-2 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty opacity-75">{description}</p>
 	</div>
-	{#if actionLabel}
-		<Button href={actionHref} variant="primary" size="md" class="shrink-0 self-start sm:self-auto"><Add size={15} weight="Outline" />{actionLabel}</Button>
+	{#if actionLabel || secondaryActionLabel}
+		<div class="flex shrink-0 flex-wrap gap-2 self-start sm:self-auto">
+			{#if actionLabel}
+				<Button href={actionHref} variant="primary" size="md"><Add size={15} weight="Outline" />{actionLabel}</Button>
+			{/if}
+			{#if secondaryActionLabel && secondaryActionHref}
+				<Button href={secondaryActionHref} variant="outline" size="md" target={secondaryActionExternal ? '_blank' : undefined}><Export size={15} weight="Outline" />{secondaryActionLabel}</Button>
+			{/if}
+		</div>
 	{/if}
 </header>

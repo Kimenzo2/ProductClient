@@ -11,6 +11,7 @@
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import GlobalSearch from '$lib/components/layout/GlobalSearch.svelte';
 	import { surfaceForPath, type AppSurface } from '$lib/routing/surfaces';
+	import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, OG_IMAGE } from '$lib/site';
 
 	let { children } = $props();
 
@@ -20,6 +21,7 @@
 	let searchInitialQuery = $state('');
 	let searchTrigger = $state<HTMLElement | null>(null);
 	let surface: AppSurface = $derived(surfaceForPath(page.url.pathname));
+	let canonical = $derived(`${SITE_URL}${page.url.pathname || '/'}`);
 
 	function toggleSidebar() {
 		if (window.innerWidth < 1024) mobileOpen = !mobileOpen;
@@ -71,12 +73,29 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<link rel="apple-touch-icon" href={favicon} />
-	<title>Product Client — Follow products, not algorithms</title>
-	<meta name="description" content="A calm product operating system for releases, feedback, docs, and incidents." />
+	{#key canonical}
+		<link rel="canonical" href={canonical} />
+		<meta property="og:url" content={canonical} />
+	{/key}
+	{#if surface === 'workspace' || surface === 'auth'}
+		<meta name="robots" content="noindex, nofollow" />
+	{:else}
+		<meta name="robots" content="index, follow, max-image-preview:large" />
+	{/if}
+	<title>{SITE_TITLE}</title>
+	<meta name="description" content={SITE_DESCRIPTION} />
 	<meta name="theme-color" content="#070707" />
-	<meta property="og:title" content="Product Client" />
-	<meta property="og:description" content="Follow products, understand change, and close the loop." />
+	<meta property="og:title" content={SITE_TITLE} />
+	<meta property="og:description" content={SITE_DESCRIPTION} />
 	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta property="og:image" content={OG_IMAGE} />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={SITE_TITLE} />
+	<meta name="twitter:description" content={SITE_DESCRIPTION} />
+	<meta name="twitter:image" content={OG_IMAGE} />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->

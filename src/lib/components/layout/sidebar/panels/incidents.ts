@@ -14,6 +14,6 @@ export const incidentsPanel: PanelDef = {
 		{ label: 'Declare incident', href: '/workspace/incidents/new', icon: AlertTriangle },
 		{ label: 'Status page', href: hostedStatusPage.href, icon: History, external: true }
 	],
-	recent: incidents.slice(0, 3).map((i) => ({ label: i.title, subtitle: `${i.productName} · ${i.severity}`, href: i.workspacePath })),
+	recent: [],
 	action: { label: 'Report a problem', href: '/workspace/incidents/new' }
 };
