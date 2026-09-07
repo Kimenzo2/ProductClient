@@ -1,4 +1,5 @@
 import { goto } from '$app/navigation';
+import { env } from '$env/dynamic/public';
 import { supabase } from '$lib/supabaseClient';
 import { authHref } from '$lib/auth/urls';
 
@@ -25,6 +26,13 @@ async function importSessionHandoff(): Promise<boolean> {
 }
 
 export async function requireSession(next: string): Promise<boolean> {
+	// DEV ONLY zero-auth flag (PUBLIC_DEV_AUTH_BYPASS=1 in .env.local):
+	// dashboard renders on mock data with no session. PROD builds ignore it
+	// unconditionally — it cannot leak to production. Restart dev after set.
+	if (!import.meta.env.PROD && env.PUBLIC_DEV_AUTH_BYPASS === '1') {
+		console.warn('[auth] DEV BYPASS active — guards pass with no user.');
+		return true;
+	}
 	if (!supabase) return false;
 	await importSessionHandoff();
 	const { data } = await supabase.auth.getSession();

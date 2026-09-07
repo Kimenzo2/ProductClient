@@ -2,6 +2,9 @@ import type { Session } from '@supabase/supabase-js';
 
 const authOrigin = 'https://auth.productclient.com';
 const appOrigin = 'https://app.productclient.com';
+// Pinned dev ports (vite.config.ts, strictPort). The dashboard always lives
+// on the ProductClient port, even when auth starts on the P-Landing port.
+const DEV_APP_ORIGIN = 'http://localhost:3000';
 
 export type AuthDestination = 'login' | 'sign-up' | 'forgot-password' | 'reset-password' | 'callback' | 'confirm';
 
@@ -42,13 +45,30 @@ export function authHref(destination: AuthDestination, next?: string): string {
  */
 export function appHref(path: string, session?: Pick<Session, 'access_token' | 'refresh_token'>): string {
 	const normalizedPath = path.startsWith('/') ? path : '/workspace';
-	const href = import.meta.env.PROD ? `${appOrigin}${normalizedPath}` : normalizedPath;
+	if (import.meta.env.PROD) {
+		const href = `${appOrigin}${normalizedPath}`;
 
-	// Browser storage is isolated by origin. Carry a newly-created production
-	// session to app.* once so the app host can persist it in its own storage.
-	// The fragment is never sent in the HTTP request and is removed immediately
-	// after the app imports the session.
-	if (!session || !import.meta.env.PROD) return href;
+		// Browser storage is isolated by origin. Carry a newly-created production
+		// session to app.* once so the app host can persist it in its own storage.
+		// The fragment is never sent in the HTTP request and is removed immediately
+		// after the app imports the session.
+		if (!session) return href;
+
+		const handoff = new URLSearchParams({
+			pc_session_handoff: '1',
+			pc_access_token: session.access_token,
+			pc_refresh_token: session.refresh_token
+		});
+		return `${href}#${handoff.toString()}`;
+	}
+
+	// DEV: same split as production, just different hosts. Auth may start on
+	// the P-Landing port while the dashboard lives on the ProductClient port,
+	// so the handoff is absolute + fragment-carrying here too. Cookies ignore
+	// ports, so the shared session cookie usually makes the fragment redundant
+	// — it stays as belt-and-braces for fresh profiles and blocked storage.
+	const href = `${DEV_APP_ORIGIN}${normalizedPath}`;
+	if (!session) return href;
 
 	const handoff = new URLSearchParams({
 		pc_session_handoff: '1',

@@ -6,10 +6,15 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: {
 		host: 'localhost',
-		strictPort: false
+		// Pinned per AGENTS.md contract: Supabase redirect URLs are registered
+		// per exact localhost URL, so the port must never drift. strictPort
+		// fails loudly instead of silently landing on a rejected URL.
+		port: 3000,
+		strictPort: true
 	},
 	preview: {
 		host: 'localhost',
-		strictPort: false
+		port: 3000,
+		strictPort: true
 	}
 });
