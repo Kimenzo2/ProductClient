@@ -4,8 +4,6 @@
 	import { Collapsible } from 'bits-ui';
 	import { Avatar, Button, Separator } from '$lib/components/ui';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
-	import { fly } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
 	import { panelRegistry } from './sidebar/panelRegistry';
 	import WorkspaceHoverPanel from './sidebar/WorkspaceHoverPanel.svelte';
 
@@ -56,8 +54,8 @@
 	];
 	const workspaceItems = workspaceGroups.flatMap((group) => group.items);
 
-	const activeClass = 'bg-[var(--pc-text)] text-[var(--pc-bg)]';
-	const inactiveClass = 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]';
+	const activeClass = 'bg-[var(--pc-accent)] text-white';
+	const inactiveClass = 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)]';
 	const focusClass = 'focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]';
 
 	function isActive(href: string) {
@@ -69,45 +67,15 @@
 		onClose();
 	}
 
-	// ── Internal hover-to-expand — registry imported (see sidebar/README) ──
 	const panelDefs = panelRegistry;
 
-	let hoveredHref = $state<string | null>(null);
-	let hoverTimer: ReturnType<typeof setTimeout> | null = null;
-
-	function setHovered(href: string | null, immediate = false) {
-		if (hoverTimer) clearTimeout(hoverTimer);
-		if (href === null) {
-			hoverTimer = setTimeout(() => (hoveredHref = null), 120);
-		} else {
-			const delay = immediate ? 0 : 70;
-			if (delay === 0) hoveredHref = href;
-			else hoverTimer = setTimeout(() => (hoveredHref = href), delay);
-		}
-	}
-
-	function keepHovered() {
-		if (hoverTimer) clearTimeout(hoverTimer);
-	}
-
 	let pinnedHref = $derived(workspaceItems.find((item) => isActive(item.href))?.href ?? null);
-	// Hover preview takes precedence; fallback to pinned (Supabase-style) — `hoveredHref !== null` for hover-only
-	let displayHref = $derived(hoveredHref ?? pinnedHref);
+	let displayHref = $derived(pinnedHref);
 	let displayPanel = $derived(displayHref ? panelDefs[displayHref] : null);
-	let isPreview = $derived(hoveredHref !== null && hoveredHref !== pinnedHref);
-	// Child collapsed (via header button) hides second column → only main rail icons (60px)
-	let showPanel = $derived(!childCollapsed && !!displayPanel && (hoveredHref !== null || !!pinnedHref));
-
-	function onRailKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			hoveredHref = null;
-			(e.currentTarget as HTMLElement).blur();
-		}
-	}
+	let showPanel = $derived(!childCollapsed && !!displayPanel && !!pinnedHref);
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="hidden h-dvh shrink-0 sticky top-0 lg:flex relative" role="navigation" aria-label="Workspace navigation" tabindex="-1" onmouseleave={() => setHovered(null)} onkeydown={onRailKeydown}>
+<div class="hidden h-dvh shrink-0 sticky top-0 lg:flex relative" role="navigation" aria-label="Workspace navigation">
 	<aside
 		class="flex h-dvh shrink-0 flex-col transition-[width] duration-200 ease-out"
 		style:border-right="1px solid var(--pc-border-strong)"
@@ -122,7 +90,7 @@
 			<Collapsible.Root open={sectionsOpen.workspace} onOpenChange={(value) => (sectionsOpen = { ...sectionsOpen, workspace: value ?? true })}>
 				<Collapsible.Trigger class="flex w-full items-center justify-between rounded-lg bg-transparent px-2.5 py-1.5 transition-[background-color] duration-150 hover:bg-[var(--pc-surface-2)] {focusClass}">
 					<span class="text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] text-[var(--pc-text-muted)] antialiased">Product loop</span>
-					<span class="inline-flex transition-transform duration-150" style:transform={sectionsOpen.workspace ? 'rotate(0deg)' : 'rotate(-90deg)'}><ChevronDown size={12} weight="Outline" aria-hidden="true" /></span>
+					<span class="inline-flex transition-transform duration-150" style:transform={sectionsOpen.workspace ? 'rotate(0deg)' : 'rotate(-90deg)'}><ChevronDown size={12} weight="Filled" aria-hidden="true" /></span>
 				</Collapsible.Trigger>
 				<Collapsible.Content>
 					<div class="mt-2 space-y-6">
@@ -136,12 +104,8 @@
 											href={item.href}
 											aria-current={isActive(item.href) ? 'page' : undefined}
 											class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium leading-[1.3] tracking-[-0.01em] transition-[background-color,color,transform] duration-100 active:scale-[0.98] {isActive(item.href) ? activeClass : inactiveClass} {focusClass}"
-											onmouseenter={() => setHovered(item.href)}
-											onfocus={() => setHovered(item.href, true)}
-											onmouseleave={() => setHovered(null)}
-											onblur={() => setHovered(null)}
 										>
-											<Icon size={16} weight="Outline" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>
+											<Icon size={16} weight="Filled" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>
 											{#if item.badge}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[11px] font-medium leading-none tracking-[-0.01em] text-white">{item.badge}</span>{/if}
 										</a>
 									{/each}
@@ -154,10 +118,10 @@
 			</div>
 
 			<div class="space-y-2 pt-3 border-t border-[var(--pc-border-strong)]/10">
-				<a href="/workspace/settings" class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] text-[var(--pc-text-muted)] transition-colors hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] {focusClass}">
-					<Settings size={16} weight="Outline" aria-hidden="true" /><span>Settings</span>
+				<a href="/workspace/settings" class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] text-[var(--pc-text-muted)] transition-colors hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] {focusClass}">
+					<Settings size={16} weight="Filled" aria-hidden="true" /><span>Settings</span>
 				</a>
-				<a href="/you" class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] text-[var(--pc-text-muted)] transition-colors hover:bg-[var(--pc-surface-2)] {focusClass}">
+				<a href="/you" class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] text-[var(--pc-text-muted)] transition-colors hover:bg-[var(--pc-accent-soft)] {focusClass}">
 					<Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile" size="sm" /><span class="truncate">Lorenze</span>
 				</a>
 			</div>
@@ -165,7 +129,7 @@
 			<!-- Collapsed rail — workspace only (public Discover removed) -->
 			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<div class="flex-1 overflow-y-auto overflow-x-hidden py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-					<div class="flex w-full flex-col items-center gap-3 px-1" role="group" aria-label="Workspace groups" onmouseleave={() => setHovered(null)}>
+					<div class="flex w-full flex-col items-center gap-3 px-1" role="group" aria-label="Workspace groups">
 						{#each workspaceGroups as group (group.label)}
 							<nav class="flex w-full flex-col items-center gap-1.5" aria-label={group.label}>
 								{#each group.items as item (item.href)}
@@ -175,10 +139,8 @@
 										aria-current={isActive(item.href) ? 'page' : undefined}
 										aria-label={item.label}
 										title={item.label}
-										class="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-100 active:scale-[0.96] {isActive(item.href) ? activeClass : inactiveClass} {focusClass} {hoveredHref === item.href ? 'bg-[var(--pc-surface-2)] text-[var(--pc-text)]' : ''}"
-										onmouseenter={() => setHovered(item.href)}
-										onfocus={() => setHovered(item.href, true)}
-									><Icon size={18} weight="Outline" aria-hidden="true" />{#if item.badge}<span class="absolute -right-0.5 -top-0.5 grid size-3.5 place-items-center rounded-full bg-[var(--pc-accent)] text-[7px] font-medium leading-none text-white">{item.badge}</span>{/if}</a>
+										class="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-100 active:scale-[0.96] {isActive(item.href) ? activeClass : inactiveClass} {focusClass}"
+									><Icon size={18} weight="Filled" aria-hidden="true" />{#if item.badge}<span class="absolute -right-0.5 -top-0.5 grid size-3.5 place-items-center rounded-full bg-[var(--pc-accent)] text-[7px] font-medium leading-none text-white">{item.badge}</span>{/if}</a>
 								{/each}
 							</nav>
 							{#if group.label !== 'Observe'}<div class="h-px w-6 bg-[var(--pc-border-strong)] opacity-[0.08]" aria-hidden="true"></div>{/if}
@@ -186,7 +148,7 @@
 					</div>
 				</div>
 				<div class="flex shrink-0 flex-col items-center gap-2 border-t border-[var(--pc-border-strong)]/10 px-2 pb-1 pt-3">
-					<a href="/workspace/settings" aria-label="Settings" title="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass}"><Settings size={18} weight="Outline" aria-hidden="true" /></a>
+					<a href="/workspace/settings" aria-label="Settings" title="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass}"><Settings size={18} weight="Filled" aria-hidden="true" /></a>
 					<a href="/you" aria-label="Profile — Lorenze" title="Lorenze" class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''}"><Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile — Lorenze" size="sm" /></a>
 				</div>
 			</div>
@@ -196,27 +158,21 @@
 
 	{#if showPanel && displayPanel}
 		<div
-			class="flex h-dvh w-[240px] shrink-0 flex-col overflow-hidden border-r bg-[var(--pc-bg)] {isPreview
-				? 'fixed top-0 z-[100] opacity-100'
-				: 'relative opacity-100'}"
-			style:left={isPreview ? (collapsed ? '60px' : '240px') : undefined}
+			class="flex h-dvh w-[240px] shrink-0 flex-col overflow-hidden border-r bg-[var(--pc-bg)] relative opacity-100"
 			style:border-color="var(--pc-border-strong)"
 			style:background-color="var(--pc-bg)"
 			style:opacity="1"
 			style:backdrop-filter="none"
 			role="navigation"
 			aria-label={`${displayPanel.label} internal navigation`}
-			onmouseenter={keepHovered}
-			onmouseleave={() => setHovered(null)}
-			transition:fly={{ x: -8, duration: 150, easing: cubicOut }}
 		>
 			<WorkspaceHoverPanel
 				panel={displayPanel}
 				displayHref={displayHref}
 				isActive={isActive}
-				isPreview={isPreview}
-				onKeepHovered={keepHovered}
-				onLeave={() => setHovered(null)}
+				isPreview={false}
+				onKeepHovered={() => {}}
+				onLeave={() => {}}
 				focusClass={focusClass}
 			/>
 		</div>
@@ -228,7 +184,7 @@
 		<button type="button" class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick={closeMobile} aria-label="Close navigation"></button>
 		<aside class="absolute bottom-0 left-0 top-0 flex w-[280px] flex-col overflow-y-auto bg-[var(--pc-bg)] shadow-[16px_0_60px_rgba(0,0,0,0.28)]">
 			<div class="flex h-[var(--pc-header-h)] items-center gap-3 px-4">
-				<Button variant="icon" size="sm" onclick={closeMobile} aria-label="Close navigation"><CloseCircle size={18} weight="Outline" aria-hidden="true" /></Button>
+				<Button variant="icon" size="sm" onclick={closeMobile} aria-label="Close navigation"><CloseCircle size={18} weight="Filled" aria-hidden="true" /></Button>
 				<span class="flex items-center gap-2"><ProductClientLogo size={28} /><span class="text-[13px] font-medium">Product Client</span></span>
 			</div>
 			<div class="space-y-5 px-3 py-3">
@@ -236,7 +192,7 @@
 					<nav class="space-y-0.5" aria-label={group.label}>
 						<p class="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] antialiased text-[var(--pc-text-faint)]">{group.label}</p>
 						{#each group.items as item (item.href)}
-							{@const Icon = item.icon}<a href={item.href} onclick={closeMobile} class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] {isActive(item.href) ? activeClass + ' font-medium' : inactiveClass} {focusClass}"><Icon size={16} weight="Outline" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.badge}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[9px] font-medium text-white">{item.badge}</span>{/if}</a>
+							{@const Icon = item.icon}<a href={item.href} onclick={closeMobile} class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] {isActive(item.href) ? activeClass + ' font-medium' : inactiveClass} {focusClass}"><Icon size={16} weight="Filled" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.badge}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[9px] font-medium text-white">{item.badge}</span>{/if}</a>
 						{/each}
 					</nav>
 				{/each}
