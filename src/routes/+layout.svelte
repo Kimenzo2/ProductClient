@@ -6,7 +6,6 @@
 	import { toggleTheme, type Theme } from '$lib/theme';
 	import { Add, Home, Inbox, Search, UserSquare } from 'reicon-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
-	import PublicHeader from '$lib/components/layout/PublicHeader.svelte';
 	import AuthShell from '$lib/components/auth/AuthShell.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import GlobalSearch from '$lib/components/layout/GlobalSearch.svelte';
@@ -78,11 +77,8 @@
 		<link rel="canonical" href={canonical} />
 		<meta property="og:url" content={canonical} />
 	{/key}
-	{#if surface === 'workspace' || surface === 'auth'}
-		<meta name="robots" content="noindex, nofollow" />
-	{:else}
-		<meta name="robots" content="index, follow, max-image-preview:large" />
-	{/if}
+	<!-- Dashboard-only deployment: never indexed. Public SEO lives on apex. -->
+	<meta name="robots" content="noindex, nofollow" />
 	<title>{SITE_TITLE}</title>
 	<meta name="description" content={SITE_DESCRIPTION} />
 	<meta name="theme-color" content="#070707" />
@@ -132,20 +128,15 @@
 		</nav>
 	{:else if surface === 'auth'}
 		<AuthShell>{@render children()}</AuthShell>
-	{:else if surface === 'landing'}
-		<main id="main" class="bg-[var(--pc-bg)]">
-			{@render children()}
-		</main>
 	{:else}
-		<PublicHeader onOpenSearch={openSearch} />
-		<main id="main" class="mx-auto min-h-[calc(100dvh-var(--pc-header-h))] w-full max-w-[1440px] bg-[var(--pc-bg)] pc-orbs pc-grain">
+		<main id="main" class="bg-[var(--pc-bg)]">
 			{@render children()}
 		</main>
 	{/if}
 </div>
 
 	{#if surface !== 'auth'}
-	<GlobalSearch open={searchOpen} initialQuery={searchInitialQuery} surface={surface} onClose={closeSearch} />
+	<GlobalSearch open={searchOpen} initialQuery={searchInitialQuery} onClose={closeSearch} />
 	{/if}
 
 <style>

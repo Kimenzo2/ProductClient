@@ -2,19 +2,16 @@
 	import { tick } from 'svelte';
 	import { goto } from '$app/navigation';
 import { AlertTriangle, Box, Compass, FileText, Heart, History, Inbox, Search, UserSquare } from 'reicon-svelte';
-import { publicSearchKinds, publicSearchRecords, workspaceSearchKinds } from '$lib/search/search';
+import { workspaceSearchKinds } from '$lib/search/search';
 import type { SearchKind, SearchRecord } from '$lib/search/types';
-	import type { AppSurface } from '$lib/routing/surfaces';
 
 	let {
 		open = false,
 		initialQuery = '',
-		surface = 'public',
 		onClose
 	}: {
 		open?: boolean;
 		initialQuery?: string;
-		surface?: AppSurface;
 		onClose?: () => void;
 	} = $props();
 
@@ -40,8 +37,8 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 		Maker: UserSquare
 	};
 
-	let availableSearchKinds = $derived(surface === 'public' ? publicSearchKinds : workspaceSearchKinds);
-	let results = $derived(surface === 'public' ? publicSearchRecords(query, kind) : workspaceSearchRecords ? workspaceSearchRecords(query, kind) : []);
+	let availableSearchKinds = $derived(workspaceSearchKinds);
+	let results = $derived(workspaceSearchRecords ? workspaceSearchRecords(query, kind) : []);
 	let visibleResults = $derived(results.slice(0, 12));
 
 	async function loadWorkspaceSearch() {
@@ -60,7 +57,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 			query = initialQuery;
 			kind = 'All';
 			selectedIndex = 0;
-			if (surface === 'workspace') void loadWorkspaceSearch();
+			void loadWorkspaceSearch();
 			tick().then(() => inputEl?.focus());
 		}
 	});
@@ -136,9 +133,9 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 					autocomplete="off"
 					autocorrect="off"
 					spellcheck="false"
-					placeholder={surface === 'public' ? 'Search products, updates, and help...' : 'Search your product work...'}
-					class="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[var(--pc-text-faint)] sm:text-sm"
-					aria-label={surface === 'public' ? 'Search public Product Client pages' : 'Search workspace Product Client records'}
+				placeholder="Search your product work..."
+				class="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[var(--pc-text-faint)] sm:text-sm"
+				aria-label="Search workspace Product Client records"
 				/>
 				{#if query}
 					<button class="grid size-9 shrink-0 place-items-center rounded-full text-xs text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]" onclick={() => (query = '')} aria-label="Clear search">Clear</button>
@@ -159,7 +156,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 			</div>
 
 			<div class="max-h-[min(62vh,560px)] overflow-y-auto p-2">
-				{#if surface === 'workspace' && !workspaceSearchRecords}
+				{#if !workspaceSearchRecords}
 					<div class="flex flex-col items-center px-6 py-12 text-center">
 						<p class="text-sm font-medium">Loading your product work...</p>
 						<p class="mt-1 max-w-[34ch] text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-65">Your team records stay out of public search.</p>
@@ -170,13 +167,13 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 							<p class="text-xs font-medium text-[var(--pc-text-muted)]">Jump back in</p>
 							<span class="text-xs text-[var(--pc-text-faint)]">{results.length} available</span>
 						</div>
-						<p class="mt-1 text-xs text-[var(--pc-text-faint)]">{surface === 'public' ? 'Search products, updates, help pages, and customer stories.' : 'Search by product, person, status, or the words in a message.'}</p>
+						<p class="mt-1 text-xs text-[var(--pc-text-faint)]">Search by product, person, status, or the words in a message.</p>
 					</div>
 				{:else if visibleResults.length === 0}
 					<div class="flex flex-col items-center px-6 py-12 text-center">
 						<div class="grid size-10 place-items-center rounded-full bg-[var(--pc-surface)]"><Search size={16} weight="Outline" class="opacity-55" /></div>
 						<p class="mt-3 text-sm font-medium">No matching records</p>
-						<p class="mt-1 max-w-[34ch] text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-65">{surface === 'public' ? 'Try a product name, an update, a help page, or a customer story.' : 'Try a product name, a decision, a customer request, or a status like "monitoring".'}</p>
+						<p class="mt-1 max-w-[34ch] text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-65">Try a product name, a decision, a customer request, or a status like "monitoring".</p>
 					</div>
 				{:else}
 					<div class="space-y-1">
@@ -209,7 +206,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 			</div>
 
 			<div class="flex items-center justify-between bg-[var(--pc-surface)] px-4 py-2 text-xs text-[var(--pc-text-faint)]">
-				<span role="status" aria-live="polite">{query.trim() ? `${results.length} result${results.length === 1 ? '' : 's'}` : surface === 'public' ? 'Public Product Client search' : 'Workspace search'}</span>
+				<span role="status" aria-live="polite">{query.trim() ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Workspace search'}</span>
 				<span class="hidden gap-3 sm:inline-flex"><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span></span>
 			</div>
 		</dialog>

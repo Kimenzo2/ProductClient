@@ -1,4 +1,4 @@
-export type AppSurface = 'public' | 'workspace' | 'auth' | 'landing';
+export type AppSurface = 'workspace' | 'auth';
 
 const workspacePrefixes = ['/workspace', '/studio', '/notifications', '/following', '/you'];
 const authPrefixes = [
@@ -24,17 +24,7 @@ export function isAuthPath(pathname: string): boolean {
 	return authPrefixes.some((prefix) => matchesPath(pathname, prefix));
 }
 
-export function isLandingPath(pathname: string): boolean {
-	return pathname === '/';
-}
-
 export function surfaceForPath(pathname: string): AppSurface {
 	if (isAuthPath(pathname)) return 'auth';
-	if (isWorkspacePath(pathname)) return 'workspace';
-	if (isLandingPath(pathname)) return 'landing';
-	return 'public';
-}
-
-export function isWorkspaceHref(href: string): boolean {
-	return isWorkspacePath(href.split(/[?#]/, 1)[0] || '/');
+	return 'workspace';
 }

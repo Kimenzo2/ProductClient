@@ -8,7 +8,8 @@ injectSpeedInsights();
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const host = event.url.hostname.toLowerCase();
-	const isAppHost = host.startsWith('app.') || host === 'app';
+	// Local dev behaves like the app host so `/` lands straight in the workspace.
+	const isAppHost = dev || host.startsWith('app.') || host === 'app';
 	const path = event.url.pathname;
 
 	// Skip static assets, API, and SvelteKit internals — let them resolve normally so CSS/JS never 404 on custom host
