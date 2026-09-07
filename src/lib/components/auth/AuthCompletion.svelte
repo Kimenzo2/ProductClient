@@ -6,7 +6,7 @@
 	import { ArrowRight, CheckCircle, Lock } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
-	import { appHref, authHref } from '$lib/auth/urls';
+	import { appHref, authHref, feedHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let { mode = 'callback' }: { mode?: 'callback' | 'confirm' } = $props();
@@ -98,9 +98,9 @@
 	</div>
 	{#if status === 'ready'}
 		<h1>You are signed in</h1>
-		<p class="description">Your workspace opens in a new tab, so this page stays open.</p>
+		<p class="description">Your workspace opens in a new tab — this page takes you to the feed.</p>
 		<div class="completion-actions">
-			<Button href={appDestination} target="_blank" rel="noopener" size="lg">Open workspace <ArrowRight size={16} weight="Outline" /></Button>
+			<Button href={appDestination} target="_blank" rel="noopener" size="lg" onclick={() => { window.setTimeout(() => { window.location.assign(feedHref()); }, 600); }}>Open workspace <ArrowRight size={16} weight="Outline" /></Button>
 		</div>
 	{:else}
 	<h1>{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>

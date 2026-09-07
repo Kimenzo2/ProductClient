@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { authCallbackUrl, passwordError, readableAuthError } from '$lib/auth/utils';
-	import { authHref, appHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
+	import { authHref, appHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -29,7 +29,7 @@
 		}
 		// Cross-origin handoff: the app dashboard opens in the tab captured
 		// during the click, so this page stays open.
-		navigateBlankTab(appTab, destination);
+		completeAppHandoff(appTab, destination);
 	}
 
 	onMount(() => {

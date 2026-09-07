@@ -74,12 +74,24 @@ export function openBlankTab(): Window | null {
 }
 
 /**
- * Navigate a tab opened with openBlankTab. Falls back to same-tab navigation
- * when the tab was blocked or closed.
+ * Marketing host where signed-in visitors land after auth handoffs.
  */
-export function navigateBlankTab(tab: Window | null, destination: string): void {
+export function feedHref(): string {
+	return import.meta.env.PROD ? 'https://productclient.com/feed' : '/feed';
+}
+
+/**
+ * Complete a cross-origin app handoff: the dashboard opens in the captured
+ * tab, and this tab moves on to the discovery feed a beat later so a
+ * signed-in visitor is never stranded on a dead auth page. Falls back to
+ * same-tab navigation when popups are blocked.
+ */
+export function completeAppHandoff(tab: Window | null, destination: string): void {
 	if (tab && !tab.closed) {
 		tab.location.href = destination;
+		window.setTimeout(() => {
+			window.location.assign(feedHref());
+		}, 600);
 		return;
 	}
 	window.location.assign(destination);

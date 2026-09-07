@@ -7,7 +7,7 @@
 	import { requireSession } from '$lib/auth/guard';
 	import { clearOnboardingDraft, readOnboardingDraft } from '$lib/auth/onboarding';
 	import { readableAuthError } from '$lib/auth/utils';
-	import { appHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
+	import { appHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let name = $state('');
@@ -53,7 +53,7 @@
 		}
 		// Cross-origin handoff: the app dashboard opens in the tab captured
 		// above, so this page stays open.
-		navigateBlankTab(appTab, destination);
+		completeAppHandoff(appTab, destination);
 	}
 </script>
 

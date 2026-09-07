@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { passwordError, readableAuthError } from '$lib/auth/utils';
-	import { appHref, authHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
+	import { appHref, authHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let password = $state('');
@@ -53,7 +53,7 @@
 		}
 		// Cross-origin handoff: the app dashboard opens in the tab captured
 		// above, so this page stays open.
-		navigateBlankTab(appTab, destination);
+		completeAppHandoff(appTab, destination);
 	}
 </script>
 
