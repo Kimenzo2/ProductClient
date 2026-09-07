@@ -398,7 +398,6 @@
 <div class="briefing-page" inert={dialog ? true : undefined}>
 	<header class="page-header">
 		<div>
-			<p class="kicker">Workspace · Roadmap</p>
 			<h1>Roadmap editor</h1>
 			<p class="lede">Shape what your customers see on your public roadmap. Nothing goes live until you publish.</p>
 		</div>
@@ -436,7 +435,6 @@
 
 	{#if issues.length > 0}
 		<section class="issues-surface" aria-label="Things to fix before publishing">
-			<p class="kicker">To fix before publishing</p>
 			<ul>
 				{#each issues as issue}
 					<li><Warning size={13} weight="Outline" aria-hidden="true" /><span><strong>{humanizePath(issue.path)}</strong> — {issue.message}</span></li>
@@ -447,7 +445,7 @@
 
 	<div class="briefing-layout">
 		<section class="queue-surface" aria-label="Roadmap outline">
-			<div class="surface-heading"><div><p class="kicker">Outline</p><h2>What you can change</h2></div></div>
+			<div class="surface-heading"><div><h2>What you can change</h2></div></div>
 			<div class="queue-list">
 				{#each contentSections as entry}
 					{@const key = entry.area}
@@ -481,7 +479,7 @@
 		<section class="detail-surface" aria-label="Section editor">
 			{#if selection.area === 'site'}
 				{@const site = doc.site}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Brand</h2></div></div>
+				<div class="surface-heading"><div><h2>Brand</h2></div></div>
 				<div class="form-grid">
 					<div class="field"><Label for="ed-site-name" required>Product name</Label><Input id="ed-site-name" bind:value={site.name} /></div>
 					<div class="field"><Label for="ed-site-tagline" required>Tagline</Label><Input id="ed-site-tagline" bind:value={site.tagline} /></div>
@@ -495,7 +493,7 @@
 				</div>
 			{:else if selection.area === 'seo'}
 				{@const seo = doc.seo}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Search & sharing</h2></div></div>
+				<div class="surface-heading"><div><h2>Search & sharing</h2></div></div>
 				<div class="form-grid">
 					<div class="field field-wide"><Label for="ed-seo-template" required>Page title pattern</Label><Input id="ed-seo-template" bind:value={seo.titleTemplate} placeholder="&#123;title} · &#123;site} Roadmap" /></div>
 					<div class="field"><Label for="ed-seo-title" required>Main title</Label><Input id="ed-seo-title" bind:value={seo.defaultTitle} /></div>
@@ -506,7 +504,7 @@
 				<p class="section-note">In the title pattern, &#123;title} becomes the page name and &#123;site} becomes your product name.</p>
 			{:else if selection.area === 'navigation'}
 				{@const nav = doc.navigation}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Menu</h2></div></div>
+				<div class="surface-heading"><div><h2>Menu</h2></div></div>
 				<div class="form-grid">
 					<div class="field"><Label for="ed-nav-aria" required>Menu description for screen readers</Label><Input id="ed-nav-aria" bind:value={nav.ariaLabel} /></div>
 					<div class="field"><Label for="ed-nav-all" required>“Show everything” label</Label><Input id="ed-nav-all" bind:value={nav.allLabel} /></div>
@@ -515,7 +513,7 @@
 				</div>
 			{:else if selection.area === 'copy'}
 				{@const copy = doc.copy}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Words</h2></div></div>
+				<div class="surface-heading"><div><h2>Words</h2></div></div>
 				<div class="form-grid">
 					<div class="field field-wide"><Label for="ed-copy-hero" required>Intro under your product name</Label><Textarea id="ed-copy-hero" rows={2} bind:value={copy.heroSubtitle} /></div>
 					<div class="field field-wide"><Label for="ed-copy-suffix" required>Note under each chapter</Label><Textarea id="ed-copy-suffix" rows={2} bind:value={copy.chapterSuffix} /></div>
@@ -524,16 +522,16 @@
 					<div class="field field-wide"><Label for="ed-copy-empty-summary" required>Empty chapter text</Label><Textarea id="ed-copy-empty-summary" rows={2} bind:value={copy.emptyChapterSummary} /></div>
 				</div>
 			{:else if selection.area === 'stages'}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Work stages</h2></div><span>{Object.keys(doc.stages).length} entries</span></div>
+				<div class="surface-heading"><div><h2>Work stages</h2></div><span>{Object.keys(doc.stages).length} entries</span></div>
 				<p class="section-note">The status words items can carry, like Building or Idea. Customers see the labels.</p>
 				<VocabEditor kind="stages" entries={doc.stages} usage={stageUsage} onAdd={addVocab} onRemove={removeVocab} armedKey={armedDelete} />
 			{:else if selection.area === 'confidence'}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Confidence levels</h2></div><span>{Object.keys(doc.confidence).length} entries</span></div>
+				<div class="surface-heading"><div><h2>Confidence levels</h2></div><span>{Object.keys(doc.confidence).length} entries</span></div>
 				<p class="section-note">How sure you are, in plain words. Shown under every item instead of dates.</p>
 				<VocabEditor kind="confidence" entries={doc.confidence} usage={confidenceUsage} onAdd={addVocab} onRemove={removeVocab} armedKey={armedDelete} />
 			{:else if selection.area === 'theme'}
 				{@const theme = doc.theme}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Appearance</h2></div></div>
+				<div class="surface-heading"><div><h2>Appearance</h2></div></div>
 				<div class="form-grid">
 					<div class="field field-wide"><Label for="ed-font-sans" required>Body font</Label><Input id="ed-font-sans" bind:value={theme.fonts.sans} /></div>
 					<div class="field field-wide"><Label for="ed-font-display" required>Headline font</Label><Input id="ed-font-display" bind:value={theme.fonts.display} /></div>
@@ -559,7 +557,7 @@
 				</div>
 			{:else if selection.area === 'footer'}
 				{@const footer = doc.footer}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Footer</h2></div></div>
+				<div class="surface-heading"><div><h2>Footer</h2></div></div>
 				<div class="form-grid">
 					<div class="field field-wide"><Label for="ed-footer-description" required>Footer line</Label><Textarea id="ed-footer-description" rows={2} bind:value={footer.description} /></div>
 					<div class="field field-wide"><Label for="ed-footer-bottom" required>Bottom line</Label><Input id="ed-footer-bottom" bind:value={footer.bottomTemplate} placeholder="© &#123;year} &#123;site}." /></div>
@@ -576,7 +574,7 @@
 					<button type="button" class="quiet-action" onclick={addFooterLink}><Add size={13} weight="Outline" aria-hidden="true" />Add footer link</button>
 				</div>
 			{:else if selection.area === 'website'}
-				<div class="surface-heading"><div><p class="kicker">Section</p><h2>Website</h2></div></div>
+				<div class="surface-heading"><div><h2>Website</h2></div></div>
 				<div class="form-grid">
 					<div class="field field-wide"><Label for="ed-tenant-domain" required>Your roadmap address</Label><Input id="ed-tenant-domain" bind:value={doc.tenant.domain} placeholder="roadmap.example.com" /></div>
 				</div>
@@ -586,7 +584,7 @@
 					{@const chapter = activeChapter}
 					{@const chapterIndex = doc.chapters.indexOf(chapter)}
 					<div class="surface-heading">
-						<div><p class="kicker">Chapter</p><h2>{chapter.label || 'Untitled chapter'}</h2></div>
+						<div><h2>{chapter.label || 'Untitled chapter'}</h2></div>
 						<div class="heading-actions">
 							<button type="button" class="icon-button" aria-label="Move chapter up" disabled={chapterIndex === 0} onclick={() => moveChapter(chapter.id, -1)}><ArrowUp size={15} weight="Outline" aria-hidden="true" /></button>
 							<button type="button" class="icon-button" aria-label="Move chapter down" disabled={chapterIndex === doc.chapters.length - 1} onclick={() => moveChapter(chapter.id, 1)}><ArrowDown size={15} weight="Outline" aria-hidden="true" /></button>
@@ -612,7 +610,7 @@
 						{/if}
 					</div>
 				{:else}
-					<div class="surface-heading"><div><p class="kicker">Chapter</p><h2>Missing chapter</h2></div></div>
+					<div class="surface-heading"><div><h2>Missing chapter</h2></div></div>
 					<p class="section-note">This chapter was removed. Pick another section from the outline.</p>
 				{/if}
 			{/if}
@@ -626,7 +624,6 @@
 	<div class="item-editor" bind:this={dialogPanel} role="dialog" aria-modal="true" aria-labelledby="item-editor-title">
 		<div class="editor-header">
 			<div>
-				<p class="kicker">{d.mode === 'create' ? 'New item' : 'Edit item'}</p>
 				<h3 id="item-editor-title">{d.mode === 'create' ? 'Add item' : d.title || 'Edit item'}</h3>
 			</div>
 			<button type="button" class="editor-close" aria-label="Close item editor" onclick={closeDialog}><CloseCircle size={18} weight="Outline" aria-hidden="true" /></button>
@@ -667,7 +664,6 @@
 <style>
 	.briefing-page { width: min(100% - 32px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
-	.kicker { margin: 0 0 8px; color: var(--pc-text-faint); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 	h1, h2, h3, p { margin-top: 0; }
 	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }
@@ -694,7 +690,6 @@
 	.detail-surface { padding: 22px; }
 	.surface-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding: 22px 22px 18px; border-bottom: 1px solid var(--pc-border-strong); }
 	.detail-surface .surface-heading { margin: -22px -22px 18px; }
-	.surface-heading .kicker { margin-bottom: 6px; }
 	.surface-heading h2 { margin-bottom: 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
 	.surface-heading > span { color: var(--pc-text-faint); font-size: 11px; }
 	.heading-actions { display: flex; gap: 6px; }
@@ -743,7 +738,6 @@
 	.editor-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(7 7 7 / .44); cursor: default; }
 	.item-editor { position: fixed; z-index: 61; inset-block: 0; inset-inline-end: 0; display: flex; flex-direction: column; width: min(520px, calc(100vw - 16px)); max-width: 100%; block-size: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 32px 32px max(28px, env(safe-area-inset-bottom)); border: 1px solid var(--pc-border-strong); border-inline-end: 0; border-start-start-radius: 26px; border-end-start-radius: 26px; color: var(--pc-text); background: var(--pc-surface-raised); }
 	.editor-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--pc-border-strong); }
-	.editor-header .kicker { margin-bottom: 6px; }
 	.editor-header h3 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.035em; line-height: 1.2; }
 	.editor-close { display: grid; flex: 0 0 auto; place-items: center; width: 40px; height: 40px; margin: -5px -5px 0 0; padding: 0; border: 0; border-radius: 50%; color: var(--pc-text-muted); background: transparent; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
 	.editor-close:hover { color: var(--pc-text); background: var(--pc-surface-2); }

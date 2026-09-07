@@ -8,8 +8,8 @@ export const productsPanel: PanelDef = {
 	description: 'Public pages and workspace for each product',
 	links: [
 		{ label: 'All products', href: '/workspace/products', badge: products.length },
-		{ label: 'Live', href: '/workspace/products', badge: products.filter((p) => p.status === 'Live').length },
-		{ label: 'Beta', href: '/workspace/products', badge: products.filter((p) => p.status === 'Beta').length },
+		{ label: 'Live', href: '/workspace/products?status=Live', badge: products.filter((p) => p.status === 'Live').length },
+		{ label: 'Beta', href: '/workspace/products?status=Beta', badge: products.filter((p) => p.status === 'Beta').length },
 		{ label: 'Roadmap', href: '/workspace/roadmap' }
 	],
 	recent: products.slice(0, 4).map((p) => ({ label: p.name, subtitle: `${p.makerName} · ${p.category ?? 'Product'}`, href: p.workspacePath })),

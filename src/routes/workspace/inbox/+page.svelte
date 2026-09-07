@@ -16,7 +16,7 @@
 <svelte:head><title>Inbox | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Workspace" title="Inbox" description="One list for new customer feedback and service problems that need attention." actionLabel="Add feedback" actionHref="/feedback/new" />
+	<WorkspaceHeader title="Inbox" description="One list for new customer feedback and service problems that need attention." actionLabel="Add feedback" actionHref="/feedback/new" />
 	<div class="flex flex-wrap items-center gap-2 py-5" role="group" aria-label="Inbox filters">
 		{#each ['All', 'Feedback', 'Incident'] as item}
 			<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs transition-[background-color,color] duration-150 {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{#if item === 'Feedback'}<Sparkles size={13} weight="Outline" />{:else if item === 'Incident'}<AlertTriangle size={13} weight="Outline" />{:else}<Inbox size={13} weight="Outline" />{/if}{item === 'Incident' ? 'Service problem' : item}</button>

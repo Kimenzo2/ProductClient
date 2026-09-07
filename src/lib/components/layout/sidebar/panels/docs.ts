@@ -9,8 +9,8 @@ export const docsPanel: PanelDef = {
 	description: 'Help guides for customers and developers',
 	links: [
 		{ label: 'Overview', href: '/workspace/docs' },
-		{ label: 'All help pages', href: '/workspace/docs', badge: docs.length },
-		{ label: 'Unanswered searches', href: '/workspace/docs', badge: searchGaps.filter((g) => g.status !== 'Answered').length },
+		{ label: 'All help pages', href: '/workspace/docs?view=all', badge: docs.length },
+		{ label: 'Unanswered searches', href: '/workspace/docs?filter=unanswered', badge: searchGaps.filter((g) => g.status !== 'Answered').length },
 		{ label: 'Product guides', href: '/workspace/products' },
 		{ label: 'Open docs', href: hostedDocsPage.href, external: true }
 	],

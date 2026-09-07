@@ -44,7 +44,7 @@
 <svelte:head><title>Internal releases | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Workspace — Internal" title="Internal releases" description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
+	<WorkspaceHeader title="Internal releases" description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
 	<div class="flex flex-wrap items-center gap-3 py-5" role="group" aria-label="Internal release filters">
 		<div class="flex items-center gap-2">
 			<span class="text-xs font-medium text-[var(--pc-text-muted)]">Product:</span>

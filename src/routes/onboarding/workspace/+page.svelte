@@ -33,7 +33,7 @@
 	<meta name="description" content="Name your Product Client workspace." />
 </svelte:head>
 
-<OnboardingFrame current={2} eyebrow="Your workspace" title="What is your workspace called?" description="This is where your team will organize customer feedback, product decisions, updates, and service work.">
+<OnboardingFrame current={2} title="What is your workspace called?" description="This is where your team will organize customer feedback, product decisions, updates, and service work.">
 	<form bind:this={formEl} onsubmit={(event) => { event.preventDefault(); continueSetup(); }} novalidate>
 		<AuthInput id="onboarding-workspace" label="Workspace name" name="workspace-name" placeholder="For example, Kora product team" bind:value={workspaceName} error={workspaceError} required />
 		<div class="onboarding-actions"><Button type="button" variant="outline" size="lg" onclick={() => goto('/onboarding/profile')}><ArrowLeft size={16} weight="Outline" /> Back</Button><Button type="submit" size="lg" class="continue-button">Continue <ArrowRight size={16} weight="Outline" /></Button></div>

@@ -18,7 +18,7 @@
 <svelte:head><title>Feedback | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Understand" title="Feedback" description="Keep the customer's own words while you turn them into a clear problem, a choice, and a follow-up." actionLabel="Add feedback" actionHref="/feedback/new" />
+	<WorkspaceHeader title="Feedback" description="Keep the customer's own words while you turn them into a clear problem, a choice, and a follow-up." actionLabel="Add feedback" actionHref="/feedback/new" />
 
 	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
 		<div class="relative w-full sm:max-w-[380px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="feedback-filter" class="sr-only">Filter feedback</label><Input id="feedback-filter" bind:value={query} placeholder="Find a request, person, or product" class="pl-9 text-base sm:text-sm" /></div>

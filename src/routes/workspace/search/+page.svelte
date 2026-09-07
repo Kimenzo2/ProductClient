@@ -45,7 +45,7 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-[920px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Workspace" title="Find your product work." description="Search feedback, problems, decisions, updates, help, and service problems from one private index." />
+	<WorkspaceHeader title="Find your product work." description="Search feedback, problems, decisions, updates, help, and service problems from one private index." />
 
 	<form class="search-form" onsubmit={(event) => { event.preventDefault(); submitSearch(); }}>
 		<Search size={18} weight="Outline" class="shrink-0 opacity-60" aria-hidden="true" />

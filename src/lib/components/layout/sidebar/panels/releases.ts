@@ -8,7 +8,7 @@ export const releasesPanel: PanelDef = {
 	description: 'Ship updates and share what changed',
 	links: [
 		{ label: 'All releases', href: '/workspace/releases', badge: releases.length },
-		{ label: 'Live updates', href: '/workspace/releases', badge: releases.filter((r) => r.status === 'Live').length },
+		{ label: 'Live updates', href: '/workspace/releases?status=Live', badge: releases.filter((r) => r.status === 'Live').length },
 		{ label: 'By product', href: '/workspace/products' }
 	],
 	recent: releases.slice(0, 3).map((r) => ({ label: r.title, subtitle: `${r.productName} · ${r.type}`, href: r.workspacePath })),

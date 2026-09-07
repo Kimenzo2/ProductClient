@@ -22,7 +22,7 @@
 </svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Choose" title="Product decisions" description="See why something matters, what people said, what we chose, and what changed." actionLabel="Add feedback" actionHref="/feedback/new" />
+	<WorkspaceHeader title="Product decisions" description="See why something matters, what people said, what we chose, and what changed." actionLabel="Add feedback" actionHref="/feedback/new" />
 
 	<section class="mt-6 rounded-[22px] bg-[var(--pc-surface-2)] p-4 ring-1 ring-[var(--pc-border-strong)]/30 sm:p-5" aria-labelledby="thread-principle-title">
 		<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

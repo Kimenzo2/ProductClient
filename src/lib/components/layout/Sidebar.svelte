@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { AlertTriangle, Box, ChartBar, ChevronDown, CloseCircle, FileText, Heart, History, Inbox, Map, MessageDots, Settings } from 'reicon-svelte';
+	import { AlertTriangle, Box, BranchDown, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, History, Inbox, MessageDots, QuoteUpSquare, Roadmap, Settings } from 'reicon-svelte';
 	import { Collapsible } from 'bits-ui';
 	import { Avatar, Button, Separator } from '$lib/components/ui';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
@@ -32,14 +32,14 @@
 				{ label: 'Inbox', href: '/workspace/inbox', icon: Inbox, badge: 6 },
 				{ label: 'Feedback', href: '/workspace/feedback', icon: MessageDots },
 				{ label: 'Docs', href: '/workspace/docs', icon: FileText },
-				{ label: 'Proof', href: '/workspace/proof', icon: Heart }
+				{ label: 'Proof', href: '/workspace/proof', icon: QuoteUpSquare }
 			]
 		},
 		{
 			label: 'Decide',
 			items: [
-				{ label: 'Product Decisions', href: '/workspace/decisions', icon: Map },
-				{ label: 'Roadmap', href: '/workspace/roadmap', icon: Map }
+				{ label: 'Product Decisions', href: '/workspace/decisions', icon: BranchDown },
+				{ label: 'Roadmap', href: '/workspace/roadmap', icon: Roadmap }
 			]
 		},
 		{
@@ -51,7 +51,7 @@
 		},
 		{
 			label: 'Observe',
-			items: [{ label: 'Analytics', href: '/workspace/analytics', icon: ChartBar }]
+			items: [{ label: 'Analytics', href: '/workspace/analytics', icon: ChartBarTrendUp }]
 		}
 	];
 	const workspaceItems = workspaceGroups.flatMap((group) => group.items);

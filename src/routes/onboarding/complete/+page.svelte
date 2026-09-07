@@ -62,7 +62,7 @@
 	<meta name="description" content="Finish setting up your Product Client account." />
 </svelte:head>
 
-<OnboardingFrame current={4} eyebrow="Ready to start" title="Your workspace is ready." description="Here is what we will use to set up your first view. You can change these details later.">
+<OnboardingFrame current={4} title="Your workspace is ready." description="Here is what we will use to set up your first view. You can change these details later.">
 	<div class="summary" aria-label="Your setup details">
 		<div class="summary-row"><span class="summary-icon"><CheckCircle size={17} weight="Outline" /></span><span><small>Name</small><strong>{name || 'Your name'}</strong></span></div>
 		<div class="summary-row"><span class="summary-icon"><Briefcase size={17} weight="Outline" /></span><span><small>Workspace</small><strong>{workspaceName || 'Your workspace'}</strong></span></div>

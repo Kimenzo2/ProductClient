@@ -4,13 +4,11 @@
 
 	let {
 		current,
-		eyebrow,
 		title,
 		description,
 		children
 	}: {
 		current: 1 | 2 | 3 | 4;
-		eyebrow: string;
 		title: string;
 		description: string;
 		children: Snippet;

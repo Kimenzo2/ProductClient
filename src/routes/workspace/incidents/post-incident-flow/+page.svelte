@@ -196,7 +196,6 @@
 <div class="flow-page" inert={editingTask ? true : undefined}>
 	<header class="page-header">
 		<div>
-			<p class="kicker">Response</p>
 			<h1>Post-incident flow</h1>
 			<p class="lede">Move resolved incidents through the review work that closes the loop before they leave the response record.</p>
 		</div>
@@ -220,7 +219,7 @@
 
 	<div class={activeFlow ? 'flow-layout detail-mode' : 'flow-layout'}>
 		<section class="flow-list-surface {activeFlow ? 'is-hidden' : ''}" aria-labelledby="flow-list-title">
-			<div class="surface-heading"><div><p class="kicker">Review queue</p><h2 id="flow-list-title">Incidents in flow</h2></div><span>{filteredFlows.length} of {flowIncidents.length}</span></div>
+			<div class="surface-heading"><div><h2 id="flow-list-title">Incidents in flow</h2></div><span>{filteredFlows.length} of {flowIncidents.length}</span></div>
 			{#if flowIncidents.length === 0}
 				<div class="empty-state"><span class="empty-icon" aria-hidden="true"><History size={22} weight="Outline" /></span><h3>No post-incident flow yet</h3><p>When a resolved incident enters review, its completion path will appear here.</p><a href="/workspace/incidents">Open incidents <ArrowRight size={14} weight="Outline" aria-hidden="true" /></a></div>
 			{:else if filteredFlows.length === 0}
@@ -240,7 +239,7 @@
 
 		<aside class="flow-detail-surface {activeFlow ? '' : 'is-hidden'}" aria-labelledby="flow-detail-title">
 			{#if activeFlow}
-				<div class="detail-heading"><div><p class="kicker">{activeFlow.currentPhase === 'Complete' ? 'Complete' : activeFlow.currentPhase}</p><span class="detail-status {activeFlow.flowStatus === 'Complete' ? 'complete' : 'active'}">{activeFlow.flowStatus}</span></div><span class="detail-count">{activeFlow.completeCount} of {activeFlow.tasks.length}</span></div>
+				<div class="detail-heading"><div><span class="detail-status {activeFlow.flowStatus === 'Complete' ? 'complete' : 'active'}">{activeFlow.flowStatus}</span></div><span class="detail-count">{activeFlow.completeCount} of {activeFlow.tasks.length}</span></div>
 				<h2 id="flow-detail-title">{activeFlow.title}</h2>
 				<p class="detail-description">{activeFlow.summary}</p>
 
@@ -253,7 +252,7 @@
 					{/each}
 				</ol>
 
-				<section class="task-section" aria-labelledby="task-list-title"><div class="task-heading"><div><p class="kicker">{activePhase === 'Complete' ? 'Review record' : activePhase}</p><h3 id="task-list-title">Flow tasks</h3></div><span>{activeTasks.filter(isClosed).length} complete</span></div>
+				<section class="task-section" aria-labelledby="task-list-title"><div class="task-heading"><div><h3 id="task-list-title">Flow tasks</h3></div><span>{activeTasks.filter(isClosed).length} complete</span></div>
 					<div class="task-list">
 						{#each activeTasks as task (task.id)}
 							{@const TaskIcon = statusIcon(task.status)}
@@ -278,7 +277,6 @@
 	<div class="task-editor" bind:this={editorPanel} role="dialog" aria-modal="true" aria-labelledby="task-editor-title" aria-describedby="post-task-help">
 		<div class="editor-header">
 			<div>
-				<p class="kicker">Task ownership</p>
 				<h3 id="task-editor-title">Edit task</h3>
 			</div>
 			<button type="button" class="editor-close" aria-label="Close task editor" onclick={closeEditor}><CloseCircle size={18} weight="Outline" aria-hidden="true" /></button>
@@ -297,7 +295,6 @@
 <style>
 	.flow-page { width: min(100% - 32px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
-	.kicker { margin: 0 0 8px; color: var(--pc-text-faint); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 	h1, h2, h3, p { margin-top: 0; }
 	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }
@@ -322,7 +319,6 @@
 	.flow-layout.detail-mode { grid-template-columns: minmax(0, 1fr); }
 	.flow-list-surface, .flow-detail-surface { min-width: 0; border: 1px solid var(--pc-border-strong); border-radius: 18px; background: var(--pc-bg); }
 	.surface-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding: 22px 22px 18px; border-bottom: 1px solid var(--pc-border-strong); }
-	.surface-heading .kicker { margin-bottom: 6px; }
 	.surface-heading h2 { margin-bottom: 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
 	.surface-heading > span, .task-heading > span { color: var(--pc-text-faint); font-size: 11px; }
 	.flow-list { border-top: 1px solid var(--pc-border-strong); }
@@ -347,7 +343,6 @@
 	.empty-state a { margin-top: 18px; }
 	.flow-detail-surface { padding: 22px; }
 	.detail-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-	.detail-heading .kicker { margin-bottom: 5px; }
 	.detail-status { color: var(--pc-status-degraded); font-size: 11px; font-weight: 500; }
 	.detail-status.complete { color: var(--pc-status-operational); }
 	.detail-count { color: var(--pc-text-faint); font-size: 11px; }
@@ -369,7 +364,6 @@
 	.phase-track small { color: var(--pc-text-faint); font-size: 10px; }
 	.task-section { margin-top: 28px; }
 	.task-heading { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
-	.task-heading .kicker { margin-bottom: 5px; }
 	.task-heading h3, .task-editor h3 { margin-bottom: 0; font-size: 17px; font-weight: 500; letter-spacing: -.03em; }
 	.task-list { border-top: 1px solid var(--pc-border-strong); }
 	.task-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: start; gap: 11px; padding: 15px 0; border-bottom: 1px solid var(--pc-border-strong); }
@@ -392,7 +386,6 @@
 	.editor-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(7 7 7 / .44); backdrop-filter: none; cursor: default; }
 	.task-editor { position: fixed; z-index: 61; inset-block: 0; inset-inline-end: 0; display: flex; flex-direction: column; width: min(520px, calc(100vw - 16px)); max-width: 100%; block-size: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 32px 32px max(28px, env(safe-area-inset-bottom)); border: 1px solid var(--pc-border-strong); border-inline-end: 0; border-start-start-radius: 26px; border-end-start-radius: 26px; color: var(--pc-text); background: var(--pc-surface-raised); }
 	.editor-header { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--pc-border-strong); }
-	.editor-header .kicker { margin-bottom: 6px; }
 	.editor-header h3 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.035em; line-height: 1.2; }
 	.editor-close { display: grid; flex: 0 0 auto; place-items: center; width: 40px; height: 40px; margin: -5px -5px 0 0; padding: 0; border: 0; border-radius: 50%; color: var(--pc-text-muted); background: transparent; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
 	.editor-close:hover { color: var(--pc-text); background: var(--pc-surface-2); }

@@ -1,10 +1,10 @@
-import { ChartBar } from 'reicon-svelte';
+import { ChartBarTrendUp } from 'reicon-svelte';
 import { searchGaps } from '$lib/data/workspace';
 import type { PanelDef } from '../types';
 
 export const analyticsPanel: PanelDef = {
 	label: 'Analytics',
-	icon: ChartBar,
+	icon: ChartBarTrendUp,
 	description: 'Measure how releases and docs perform',
 	links: [
 		{ label: 'Overview', href: '/workspace/analytics' },

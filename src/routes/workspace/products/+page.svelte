@@ -11,7 +11,7 @@
 <svelte:head><title>Products | Product Client workspace</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Workspace" title="Products" description="Each product has one place for its public page, feedback, updates, help docs, and team decisions." actionLabel="Add product" actionHref="/studio" />
+	<WorkspaceHeader title="Products" description="Each product has one place for its public page, feedback, updates, help docs, and team decisions." actionLabel="Add product" actionHref="/studio" />
 	<div class="flex items-center gap-2 py-5"><Search size={16} weight="Outline" class="ml-1 opacity-55" /><Input bind:value={query} placeholder="Find a product..." class="max-w-[360px]" /><span class="ml-auto text-xs text-[var(--pc-text-faint)]">{filtered.length} products</span></div>
 	<div class="grid gap-3 pb-10 sm:grid-cols-2 xl:grid-cols-3">
 		{#each filtered as product (product.slug)}

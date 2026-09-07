@@ -15,7 +15,7 @@
 <svelte:head><title>Problems | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Understand" title="Problems" description="Turn repeated feedback into a clear statement of what people need and why it matters." actionLabel="Describe a problem" actionHref="/workspace/problems/new" />
+	<WorkspaceHeader title="Problems" description="Turn repeated feedback into a clear statement of what people need and why it matters." actionLabel="Describe a problem" actionHref="/workspace/problems/new" />
 
 	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
 		<div class="relative w-full sm:max-w-[420px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="problem-search" class="sr-only">Search problems</label><Input id="problem-search" bind:value={query} placeholder="Find a problem, product, or audience" class="pl-9 text-base sm:text-sm" /></div>

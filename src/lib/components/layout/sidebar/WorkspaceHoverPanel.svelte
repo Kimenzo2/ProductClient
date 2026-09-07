@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import type { PanelDef } from './types';
 
 	let {
@@ -20,6 +21,17 @@
 	} = $props();
 
 	const PanelIcon = $derived(panel.icon);
+
+	function isLinkActive(href: string): boolean {
+		if (!href || href.startsWith('http')) return false;
+		try {
+			const link = new URL(href, page.url.origin);
+			// Exact pathname + search match — prevents duplicate hrefs (e.g., Board view / Now / Next / Shipped) all appearing active
+			return link.pathname === page.url.pathname && link.search === page.url.search;
+		} catch {
+			return page.url.pathname === href;
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col overflow-hidden">
@@ -35,14 +47,15 @@
 	<div class="flex-1 overflow-y-auto px-3 py-4" style="scrollbar-width: thin;">
 		<nav class="space-y-1" aria-label={`${panel.label} quick links`}>
 			{#each panel.links as link (link.href + link.label)}
+				{@const active = isLinkActive(link.href)}
 				<a
 					href={link.href}
 					target={link.external ? '_blank' : undefined}
 					rel={link.external ? 'noopener noreferrer' : undefined}
-					class="flex items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium leading-[1.3] tracking-[-0.01em] transition-[background-color,color] duration-100 {isActive(link.href) && displayHref === link.href
+					class="flex items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium leading-[1.3] tracking-[-0.01em] transition-[background-color,color] duration-100 {active
 						? 'bg-[var(--pc-surface-2)] text-[var(--pc-text)]'
 						: 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)]'} {focusClass}"
-					aria-current={isActive(link.href) && displayHref === link.href ? 'page' : undefined}
+					aria-current={active ? 'page' : undefined}
 				>
 					<span class="flex items-center gap-2"><span class="size-1 rounded-full bg-[var(--pc-text-faint)]" aria-hidden="true"></span>{link.label}</span>
 					{#if link.badge !== undefined}<span class="grid min-w-5 place-items-center rounded-full bg-[var(--pc-surface-2)] px-1.5 py-0.5 text-[11px] font-medium leading-none text-[var(--pc-text-muted)]">{link.badge}</span>{/if}

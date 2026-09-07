@@ -37,7 +37,7 @@
 	<meta name="description" content="Choose your starting view in Product Client." />
 </svelte:head>
 
-<OnboardingFrame current={3} eyebrow="Your starting view" title="What do you work on most?" description="Choose one to set up your first view. You can change it later.">
+<OnboardingFrame current={3} title="What do you work on most?" description="Choose one to set up your first view. You can change it later.">
 	<div class="role-options" role="group" aria-label="Choose your role">
 		{#each roleOptions as option}
 			{@const Icon = option.icon}

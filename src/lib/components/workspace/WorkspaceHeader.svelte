@@ -3,7 +3,6 @@
 	import { Button } from '$lib/components/ui';
 
 	let {
-		eyebrow = 'Workspace',
 		title,
 		description,
 		actionLabel,
@@ -12,7 +11,6 @@
 		secondaryActionHref,
 		secondaryActionExternal = false
 	}: {
-		eyebrow?: string;
 		title: string;
 		description: string;
 		actionLabel?: string;

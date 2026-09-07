@@ -33,7 +33,7 @@
 	<meta name="description" content="Set up your Product Client profile." />
 </svelte:head>
 
-<OnboardingFrame current={1} eyebrow="Your profile" title="What should we call you?" description="Your name helps teammates know who is collecting feedback and making decisions.">
+<OnboardingFrame current={1} title="What should we call you?" description="Your name helps teammates know who is collecting feedback and making decisions.">
 	<form bind:this={formEl} onsubmit={(event) => { event.preventDefault(); continueSetup(); }} novalidate>
 		<AuthInput id="onboarding-name" label="Your name" name="name" autocomplete="name" placeholder="For example, Amina Yusuf" bind:value={name} error={nameError} required />
 		<div class="onboarding-actions single"><Button type="submit" size="lg" class="continue-button">Continue <ArrowRight size={16} weight="Outline" /></Button></div>

@@ -10,7 +10,7 @@
 <svelte:head><title>Roadmap | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1240px] px-4 sm:px-6">
-	<WorkspaceHeader eyebrow="Choose" title="Roadmap" description="Keep upcoming work connected to the feedback and product updates that explain it." actionLabel="Choose what to do" actionHref="/workspace/decisions" />
+	<WorkspaceHeader title="Roadmap" description="Keep upcoming work connected to the feedback and product updates that explain it." actionLabel="Choose what to do" actionHref="/workspace/decisions" />
 	<div class="grid gap-3 py-6 md:grid-cols-2 xl:grid-cols-4">
 		{#each lanes as lane}
 			<section class="min-w-0" aria-labelledby={`lane-${lane}`}>
