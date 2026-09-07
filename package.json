@@ -1,19 +1,20 @@
 {
-  "name": "productclient",
-  "private": true,
-  "version": "0.0.1",
-  "type": "module",
-  "scripts": {
-    "dev": "vite dev",
-    "build": "wrangler types --check && node scripts/patch-reicon.mjs && vite build",
-    "preview": "bun run build && wrangler dev",
-    "prepare": "node scripts/patch-sveltekit-css.mjs && svelte-kit sync || echo ''",
-    "check": "wrangler types --check && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo --watch",
-    "gen": "wrangler types",
-    "deploy": "bun run build && wrangler deploy",
-    "cf-typegen": "wrangler types"
-  },
+	"name": "productclient",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"packageManager": "bun@1.4.0",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "node scripts/patch-reicon.mjs && vite build",
+		"preview": "vite preview",
+		"prepare": "node scripts/patch-sveltekit-css.mjs && svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"gen": "wrangler types",
+		"deploy": "bun run build && wrangler deploy",
+		"cf-typegen": "wrangler types"
+	},
   "devDependencies": {
     "@sveltejs/adapter-cloudflare": "^7.2.8",
     "@sveltejs/kit": "^2.70.3",
