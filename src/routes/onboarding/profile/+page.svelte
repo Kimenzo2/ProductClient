@@ -7,6 +7,7 @@
 	import OnboardingFrame from '$lib/components/auth/OnboardingFrame.svelte';
 	import { requireSession } from '$lib/auth/guard';
 	import { readOnboardingDraft, saveOnboardingDraft } from '$lib/auth/onboarding';
+	import { supabase } from '$lib/supabaseClient';
 
 	let name = $state('');
 	let nameError = $state('');
@@ -14,7 +15,17 @@
 
 	onMount(async () => {
 		name = readOnboardingDraft().name;
-		await requireSession('/onboarding/profile');
+		if (!(await requireSession('/onboarding/profile'))) return;
+		// Google sign-ups already sent their name in the profile metadata — prefill
+		// it so they only confirm it instead of retyping. An in-progress draft and
+		// anything the user typed manually always win over the prefill.
+		if (!name.trim() && supabase) {
+			const { data } = await supabase.auth.getUser();
+			const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+			const providerName =
+				typeof metadata?.full_name === 'string' ? metadata.full_name : typeof metadata?.name === 'string' ? metadata.name : '';
+			if (providerName.trim()) name = providerName.trim();
+		}
 	});
 
 	function continueSetup() {

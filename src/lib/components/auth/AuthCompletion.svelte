@@ -8,11 +8,13 @@
 	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
 	import { appHref, authHref, feedHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
+	import { ensureMyTenant, tenantHost } from '$lib/tenant';
 
 	let { mode = 'callback' }: { mode?: 'callback' | 'confirm' } = $props();
 	let status = $state<'checking' | 'ready' | 'error'>('checking');
 	let message = $state('');
 	let appDestination = $state('');
+	let tenantSlug = $state<string | null>(null);
 
 	onMount(() => {
 		if (!supabase) {
@@ -23,8 +25,16 @@
 
 		const next = safeNextPath(page.url.searchParams.get('next'), mode === 'confirm' ? '/reset-password' : '/workspace');
 		let redirected = false;
-		const redirectIfSignedIn = (session: Session | null) => {
+		const redirectIfSignedIn = async (session: Session | null) => {
 			if (!session || redirected) return;
+			// Ensure profile + tenant (slug) exists server-side before showing success.
+			// This is idempotent, race-safe, and handles orphaned partial signups and OAuth vs email.
+			try {
+				const tenant = await ensureMyTenant();
+				if (tenant) tenantSlug = tenant.slug;
+			} catch {
+				// non-fatal: still redirect to workspace where a second ensure will run
+			}
 			redirected = true;
 			const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next, session);
 			if (!destination.startsWith('http')) {
@@ -99,6 +109,9 @@
 	{#if status === 'ready'}
 		<h1>You are signed in</h1>
 		<p class="description">Your workspace opens in a new tab — this page takes you to the feed.</p>
+		{#if tenantSlug}
+			<p class="tenant-note">Your live subdomain is ready: <strong>{tenantHost(tenantSlug)}</strong></p>
+		{/if}
 		<div class="completion-actions">
 			<Button href={appDestination} target="_blank" rel="noopener" size="lg" onclick={() => { window.setTimeout(() => { window.location.assign(feedHref()); }, 600); }}>Open workspace <ArrowRight size={16} weight="Outline" /></Button>
 		</div>
@@ -117,5 +130,5 @@
 </section>
 
 <style>
-	.completion { max-width: 420px; margin: 0 auto; text-align: center; }.completion-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 23px; border-radius: 18px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.completion-icon.error { color: #f09b9b; background: rgba(224, 122, 122, .12); }.completion-spinner { width: 20px; height: 20px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: completion-spin .8s linear infinite; }.completion h1 { margin: 0; color: var(--pc-text); font-size: clamp(28px, 4vw, 38px); font-weight: 500; line-height: 1.06; letter-spacing: -.055em; }.description { max-width: 38ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }.completion-actions { display: grid; gap: 18px; margin-top: 28px; }.completion-actions a { color: var(--pc-text-muted); font-size: 13px; }.completion-actions a:hover { color: var(--pc-text); }.completion-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; color: var(--pc-text-faint); font-size: 12px; }@keyframes completion-spin { to { transform: rotate(360deg); } }@media (prefers-reduced-motion: reduce) { .completion-spinner { animation: none; } }
+	.completion { max-width: 420px; margin: 0 auto; text-align: center; }.completion-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 23px; border-radius: 18px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.completion-icon.error { color: #f09b9b; background: rgba(224, 122, 122, .12); }.completion-spinner { width: 20px; height: 20px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: completion-spin .8s linear infinite; }.completion h1 { margin: 0; color: var(--pc-text); font-size: clamp(28px, 4vw, 38px); font-weight: 500; line-height: 1.06; letter-spacing: -.055em; }.description { max-width: 38ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }.tenant-note { max-width: 38ch; margin: 14px auto 0; padding: 10px 12px; border: 1px solid rgba(119,152,18,.28); border-radius: 12px; color: var(--pc-text-muted); background: rgba(119,152,18,.08); font-size: 12px; line-height: 1.5; }.tenant-note strong { color: var(--pc-text); font-family: ui-monospace, monospace; font-size: 11px; }.completion-actions { display: grid; gap: 18px; margin-top: 28px; }.completion-actions a { color: var(--pc-text-muted); font-size: 13px; }.completion-actions a:hover { color: var(--pc-text); }.completion-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; color: var(--pc-text-faint); font-size: 12px; }@keyframes completion-spin { to { transform: rotate(360deg); } }@media (prefers-reduced-motion: reduce) { .completion-spinner { animation: none; } }
 </style>

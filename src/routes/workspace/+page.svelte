@@ -5,6 +5,7 @@
 	import HomeWorkItem from '$lib/components/workspace/HomeWorkItem.svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import { requireSession } from '$lib/auth/guard';
+	import { ensureMyTenant, tenantHost, type Tenant } from '$lib/tenant';
 	import { feedback, incidents, problems, releases } from '$lib/data/workspace';
 
 	type HomeMode = 'build' | 'coordinate';
@@ -13,6 +14,7 @@
 
 	let displayName = $state('');
 	let role = $state('');
+	let tenant = $state<Tenant | null>(null);
 	let mode = $derived<HomeMode>(role === 'Developer' || role === 'Builder' ? 'build' : 'coordinate');
 
 	const coordinateActions: StarterAction[] = [
@@ -50,6 +52,12 @@
 		const fullName = typeof metadata?.full_name === 'string' ? metadata.full_name : '';
 		displayName = fullName || data.user?.email?.split('@')[0] || '';
 		role = typeof metadata?.role === 'string' ? metadata.role : '';
+		// Never assume tenant exists — ensure idempotently; handles first-time OAuth/email users and orphaned profiles
+		try {
+			tenant = await ensureMyTenant();
+		} catch {
+			// keep UX; user can retry via settings
+		}
 	});
 </script>
 
@@ -64,6 +72,12 @@
 			<p class="home-greeting">Good morning{displayName ? `, ${displayName}` : ''}</p>
 			<h1 id="workspace-home-title">{mode === 'build' ? 'What are you trying to ship?' : 'What needs your attention?'}</h1>
 			<p class="home-description">{mode === 'build' ? 'Find the customer need, decision, and docs behind your work.' : 'See what needs a reply, decision, or update.'}</p>
+			{#if tenant}
+				<div class="tenant-badge" aria-label="Your subdomain">
+					<span class="tenant-dot" aria-hidden="true"></span>
+					<span>Live at <a href={`https://${tenantHost(tenant.slug)}`} target="_blank" rel="noopener" class="tenant-link">{tenantHost(tenant.slug)}</a></span>
+				</div>
+			{/if}
 			<WorkspaceLauncher placeholder={mode === 'build' ? 'Find the context behind a task or start a new one' : 'Find feedback, an update, a help page, or a product'} />
 			<div class="starter-area" aria-labelledby="starter-title">
 				<p id="starter-title" class="starter-label">Start with</p>
@@ -101,6 +115,7 @@
 	.home-content { display: flex; flex-direction: column; align-items: center; width: min(100%, 960px); margin-inline: auto; }
 	.home-welcome { display: flex; flex-direction: column; align-items: center; width: min(100%, 760px); text-align: center; }
 	.home-greeting { width: 100%; margin: 0; color: var(--pc-text-muted); font-size: 13px; text-align: center; }
+	.tenant-badge { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 12px; border: 1px solid rgba(119,152,18,.28); border-radius: 999px; color: var(--pc-text-muted); background: rgba(119,152,18,.08); font-size: 11px; line-height: 1; }.tenant-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pc-accent-light); box-shadow: 0 0 0 4px rgba(119,152,18,.18); }.tenant-link { color: var(--pc-text); font-weight: 600; text-decoration: none; }.tenant-link:hover { color: var(--pc-accent-light); text-decoration: underline; }
 	.home-welcome h1 { width: 100%; max-width: 18ch; margin: 13px auto 0; color: var(--pc-text); font-size: clamp(38px, 4.5vw, 56px); font-weight: 500; line-height: 1.04; letter-spacing: -.065em; text-align: center; text-wrap: balance; }
 	.home-description { width: 100%; max-width: 48ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; text-align: center; text-wrap: pretty; }
 	.home-welcome :global(.launcher) { margin-top: 30px; }
