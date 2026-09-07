@@ -37,6 +37,8 @@ export function authHref(destination: AuthDestination, next?: string): string {
 
 /**
  * Send an authenticated user to the application host after authentication.
+ * Invariant: `path` must exist on the APP host, not this one — the handoff
+ * carries no memory of where it came from, only where it is going.
  */
 export function appHref(path: string, session?: Pick<Session, 'access_token' | 'refresh_token'>): string {
 	const normalizedPath = path.startsWith('/') ? path : '/workspace';

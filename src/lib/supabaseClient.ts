@@ -13,6 +13,20 @@ if (!supabaseUrl || !supabaseKey) {
 // why signed-in visitors looked like strangers on the marketing host.
 // Dev (localhost): host-only cookie — still shared across ports, because the
 // cookie model ignores ports.
+//
+// Threat model, stated plainly: this cookie is readable by page JavaScript
+// (supabase-js must read it), so it resists XSS exactly as much as
+// localStorage did — i.e. not at all. What it buys is SSO scope, not theft
+// resistance. Real defenses remain: Supabase refresh-token rotation, short
+// JWT lifetime on the dashboard, and RLS on every live table. When sensitive
+// data flows, graduate to httpOnly cookies via @supabase/ssr or a BFF.
+//
+// Operational limits: cookie values cap near 4KB (no chunking here —
+// standard sessions fit; huge user_metadata would silently truncate), and
+// Safari ITP caps JS-set cookies to 7 days (Safari users re-login weekly).
+// The storage key defaults to sb-<project-ref>-auth-token: both repos share
+// one Supabase project, so they share one cookie name. That sharing is
+// load-bearing for SSO — never override storageKey on one side only.
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 function sessionCookieDomain(): string | undefined {
