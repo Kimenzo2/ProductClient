@@ -7,7 +7,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { authCallbackUrl, readableAuthError, safeNextPath } from '$lib/auth/utils';
-	import { authHref, appHref } from '$lib/auth/urls';
+	import { authHref, appHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -19,13 +19,17 @@
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 	let next = $derived(safeNextPath(page.url.searchParams.get('next'), '/workspace'));
 
-	function continueToApp(path: string, session?: Session | null): void {
+	function continueToApp(path: string, session?: Session | null, appTab: Window | null = null): void {
 		const destination = appHref(path, session ?? undefined);
-		if (destination.startsWith('http')) {
-			window.location.assign(destination);
+		if (!destination.startsWith('http')) {
+			appTab?.close();
+			void goto(destination, { replaceState: true });
 			return;
 		}
-		void goto(destination, { replaceState: true });
+		// Cross-origin handoff: the app dashboard opens in the tab captured
+		// during the click, so this page stays open. Same-tab fallback when
+		// popups are blocked (e.g. background auto-continue with no gesture).
+		navigateBlankTab(appTab, destination);
 	}
 
 	onMount(() => {
@@ -51,14 +55,18 @@
 	async function signIn() {
 		formError = '';
 		if (!validate() || !supabase) return;
+		// Capture the tab inside the submit gesture — anything opened after
+		// the await below gets eaten by the popup blocker.
+		const appTab = openBlankTab();
 		busy = true;
 		const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 		if (error) {
+			appTab?.close();
 			formError = readableAuthError(error);
 			busy = false;
 			return;
 		}
-		continueToApp(next, data.session);
+		continueToApp(next, data.session, appTab);
 	}
 
 	async function signInWithGoogle() {

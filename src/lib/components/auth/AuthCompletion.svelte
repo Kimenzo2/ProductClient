@@ -10,8 +10,9 @@
 	import { supabase } from '$lib/supabaseClient';
 
 	let { mode = 'callback' }: { mode?: 'callback' | 'confirm' } = $props();
-	let status = $state<'checking' | 'error'>('checking');
+	let status = $state<'checking' | 'ready' | 'error'>('checking');
 	let message = $state('');
+	let appDestination = $state('');
 
 	onMount(() => {
 		if (!supabase) {
@@ -26,11 +27,15 @@
 			if (!session || redirected) return;
 			redirected = true;
 			const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next, session);
-			if (destination.startsWith('http')) {
-				window.location.assign(destination);
-			} else {
+			if (!destination.startsWith('http')) {
 				void goto(destination, { replaceState: true });
+				return;
 			}
+			// Cross-origin handoff: this page loaded from a link, so there is
+			// no click gesture and a scripted popup would be blocked. Show the
+			// continue button instead — a real click always opens the new tab.
+			appDestination = destination;
+			status = 'ready';
 		};
 		const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => redirectIfSignedIn(session));
 		const timeout = window.setTimeout(() => {
@@ -85,11 +90,19 @@
 	<div class="completion-icon" class:error={status === 'error'}>
 		{#if status === 'checking'}
 			<span class="completion-spinner" aria-hidden="true"></span>
+		{:else if status === 'ready'}
+			<CheckCircle size={22} weight="Outline" />
 		{:else}
 			<Lock size={22} weight="Outline" />
 		{/if}
 	</div>
-	
+	{#if status === 'ready'}
+		<h1>You are signed in</h1>
+		<p class="description">Your workspace opens in a new tab, so this page stays open.</p>
+		<div class="completion-actions">
+			<Button href={appDestination} target="_blank" rel="noopener" size="lg">Open workspace <ArrowRight size={16} weight="Outline" /></Button>
+		</div>
+	{:else}
 	<h1>{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>
 	<p class="description">{status === 'checking' ? 'We are checking the link and opening your workspace.' : message}</p>
 	{#if status === 'error'}
@@ -99,6 +112,7 @@
 		</div>
 	{:else}
 		<div class="completion-note"><CheckCircle size={15} weight="Outline" /> Your session is being secured</div>
+	{/if}
 	{/if}
 </section>
 

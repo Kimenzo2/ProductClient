@@ -55,3 +55,32 @@ export function appHref(path: string, session?: Pick<Session, 'access_token' | '
 	});
 	return `${href}#${handoff.toString()}`;
 }
+
+/**
+ * Open a blank tab synchronously inside a user gesture (click/submit), before
+ * any await. Popup blockers allow this; navigating it later always works.
+ * Returns null when popups are blocked — callers must fall back to same-tab
+ * navigation. Never call this after an await: the gesture is gone by then.
+ */
+export function openBlankTab(): Window | null {
+	if (typeof window === 'undefined') return null;
+	try {
+		const tab = window.open('about:blank', '_blank');
+		if (tab) tab.opener = null;
+		return tab;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Navigate a tab opened with openBlankTab. Falls back to same-tab navigation
+ * when the tab was blocked or closed.
+ */
+export function navigateBlankTab(tab: Window | null, destination: string): void {
+	if (tab && !tab.closed) {
+		tab.location.href = destination;
+		return;
+	}
+	window.location.assign(destination);
+}

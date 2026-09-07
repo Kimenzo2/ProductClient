@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { authCallbackUrl, passwordError, readableAuthError } from '$lib/auth/utils';
-	import { authHref, appHref } from '$lib/auth/urls';
+	import { authHref, appHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let email = $state('');
@@ -20,13 +20,16 @@
 	let busy = $state(false);
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 
-	function continueToApp(path: string, session?: Session | null): void {
+	function continueToApp(path: string, session?: Session | null, appTab: Window | null = null): void {
 		const destination = appHref(path, session ?? undefined);
-		if (destination.startsWith('http')) {
-			window.location.assign(destination);
+		if (!destination.startsWith('http')) {
+			appTab?.close();
+			void goto(destination, { replaceState: true });
 			return;
 		}
-		void goto(destination, { replaceState: true });
+		// Cross-origin handoff: the app dashboard opens in the tab captured
+		// during the click, so this page stays open.
+		navigateBlankTab(appTab, destination);
 	}
 
 	onMount(() => {
@@ -48,6 +51,9 @@
 	async function createAccount() {
 		formError = '';
 		if (!validate() || !supabase) return;
+		// Capture the tab inside the submit gesture — anything opened after
+		// the await below gets eaten by the popup blocker.
+		const appTab = openBlankTab();
 		busy = true;
 		const { data, error } = await supabase.auth.signUp({
 			email: email.trim(),
@@ -55,14 +61,16 @@
 			options: { emailRedirectTo: authCallbackUrl('/onboarding/profile') }
 		});
 		if (error) {
+			appTab?.close();
 			formError = readableAuthError(error);
 			busy = false;
 			return;
 		}
 		if (data.session) {
-			continueToApp('/onboarding/profile', data.session);
+			continueToApp('/onboarding/profile', data.session, appTab);
 			return;
 		}
+		appTab?.close();
 		confirmationSent = true;
 		busy = false;
 	}

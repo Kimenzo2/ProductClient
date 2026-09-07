@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui';
 	import AuthInput from '$lib/components/auth/AuthInput.svelte';
 	import { passwordError, readableAuthError } from '$lib/auth/utils';
-	import { authHref } from '$lib/auth/urls';
+	import { appHref, authHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let password = $state('');
@@ -34,14 +34,26 @@
 	async function updatePassword() {
 		formError = '';
 		if (!validate() || !supabase) return;
+		// Capture the tab inside the submit gesture — anything opened after
+		// the await below gets eaten by the popup blocker.
+		const appTab = openBlankTab();
 		busy = true;
 		const { error } = await supabase.auth.updateUser({ password });
 		if (error) {
+			appTab?.close();
 			formError = readableAuthError(error);
 			busy = false;
 			return;
 		}
-		await goto('/workspace', { replaceState: true });
+		const destination = appHref('/workspace');
+		if (!destination.startsWith('http')) {
+			appTab?.close();
+			await goto(destination, { replaceState: true });
+			return;
+		}
+		// Cross-origin handoff: the app dashboard opens in the tab captured
+		// above, so this page stays open.
+		navigateBlankTab(appTab, destination);
 	}
 </script>
 

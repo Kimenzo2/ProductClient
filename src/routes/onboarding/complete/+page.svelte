@@ -7,6 +7,7 @@
 	import { requireSession } from '$lib/auth/guard';
 	import { clearOnboardingDraft, readOnboardingDraft } from '$lib/auth/onboarding';
 	import { readableAuthError } from '$lib/auth/utils';
+	import { appHref, openBlankTab, navigateBlankTab } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 
 	let name = $state('');
@@ -32,15 +33,27 @@
 			formError = 'Supabase is not configured for this app.';
 			return;
 		}
+		// Capture the tab inside the button click — anything opened after
+		// the await below gets eaten by the popup blocker.
+		const appTab = openBlankTab();
 		busy = true;
 		const { error } = await supabase.auth.updateUser({ data: { full_name: name, workspace_name: workspaceName, role } });
 		if (error) {
+			appTab?.close();
 			formError = readableAuthError(error);
 			busy = false;
 			return;
 		}
 		clearOnboardingDraft();
-		await goto('/workspace', { replaceState: true });
+		const destination = appHref('/workspace');
+		if (!destination.startsWith('http')) {
+			appTab?.close();
+			await goto(destination, { replaceState: true });
+			return;
+		}
+		// Cross-origin handoff: the app dashboard opens in the tab captured
+		// above, so this page stays open.
+		navigateBlankTab(appTab, destination);
 	}
 </script>
 
