@@ -19,11 +19,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// app.* is the internal workspace host (Cloudflare DNS → Vercel origin). Never serve marketing at app.*
 	if (isAppHost) {
-		// Root on app.* → workspace (keeps post-sign-up expectation: app.productclient.com === internal)
+		// Root on app.* → workspace (keeps post-sign-up expectation: app.productclient.com === internal).
+		// Preserve the query string: Supabase PKCE `?code=` links that land on
+		// root must survive the redirect or the exchange code is destroyed.
 		if (path === '/') {
+			const search = event.url.search;
 			return new Response(null, {
 				status: 307,
-				headers: { location: '/workspace' }
+				headers: { location: `/workspace${search}` }
 			});
 		}
 		// Block marketing-only routes on app host — redirect to workspace equivalent
