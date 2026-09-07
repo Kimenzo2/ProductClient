@@ -1,4 +1,4 @@
-import { Map } from 'reicon-svelte';
+import { Edit, Map } from 'reicon-svelte';
 import { roadmapItems } from '$lib/data/workspace';
 import type { PanelDef } from '../types';
 
@@ -8,6 +8,7 @@ export const roadmapPanel: PanelDef = {
 	description: 'Plan what is now, next, and later',
 	links: [
 		{ label: 'Board view', href: '/workspace/roadmap' },
+		{ label: 'Editor', href: '/workspace/roadmap/editor', icon: Edit },
 		{ label: 'Now', href: '/workspace/roadmap', badge: roadmapItems.filter((r) => r.status === 'Now').length },
 		{ label: 'Next', href: '/workspace/roadmap', badge: roadmapItems.filter((r) => r.status === 'Next').length },
 		{ label: 'Shipped', href: '/workspace/roadmap', badge: roadmapItems.filter((r) => r.status === 'Shipped').length }

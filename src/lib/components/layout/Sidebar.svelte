@@ -11,10 +11,12 @@
 
 	let {
 		collapsed = $bindable(false),
+		childCollapsed = $bindable(false),
 		open = false,
 		onClose = () => {}
 	}: {
 		collapsed?: boolean;
+		childCollapsed?: boolean;
 		open?: boolean;
 		onClose?: () => void;
 	} = $props();
@@ -93,8 +95,8 @@
 	let displayHref = $derived(hoveredHref ?? pinnedHref);
 	let displayPanel = $derived(displayHref ? panelDefs[displayHref] : null);
 	let isPreview = $derived(hoveredHref !== null && hoveredHref !== pinnedHref);
-	// Show panel on hover preview OR when pinned on a heavy route. Use `hoveredHref !== null` for hover-only.
-	let showPanel = $derived(!!displayPanel && (hoveredHref !== null || !!pinnedHref));
+	// Child collapsed (via header button) hides second column → only main rail icons (60px)
+	let showPanel = $derived(!childCollapsed && !!displayPanel && (hoveredHref !== null || !!pinnedHref));
 
 	function onRailKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {

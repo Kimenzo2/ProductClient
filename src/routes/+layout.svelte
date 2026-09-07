@@ -15,7 +15,8 @@
 
 	let { children } = $props();
 
-	let collapsed = $state(false);
+	let collapsed = $state(true);
+	let childCollapsed = $state(false);
 	let mobileOpen = $state(false);
 	let searchOpen = $state(false);
 	let searchInitialQuery = $state('');
@@ -25,7 +26,7 @@
 
 	function toggleSidebar() {
 		if (window.innerWidth < 1024) mobileOpen = !mobileOpen;
-		else collapsed = !collapsed;
+		else childCollapsed = !childCollapsed;
 	}
 
 	function openSearch(query = '') {
@@ -109,9 +110,9 @@
 <div inert={searchOpen ? true : undefined} aria-hidden={searchOpen ? 'true' : undefined}>
 	{#if surface === 'workspace'}
 		<div class="flex h-dvh overflow-hidden workspace">
-			<Sidebar bind:collapsed open={mobileOpen} onClose={() => (mobileOpen = false)} />
+			<Sidebar bind:collapsed bind:childCollapsed open={mobileOpen} onClose={() => (mobileOpen = false)} />
 			<div class="flex min-w-0 flex-1 flex-col overflow-hidden min-h-0">
-				<Header onToggleSidebar={toggleSidebar} onOpenSearch={openSearch} sidebarOpen={mobileOpen} collapsed={collapsed} unreadCount={3} />
+				<Header onToggleSidebar={toggleSidebar} onOpenSearch={openSearch} sidebarOpen={mobileOpen} collapsed={childCollapsed} unreadCount={3} />
 				<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
 					<div class="mx-auto w-full max-w-[1440px] pc-orbs pc-grain">
 						<main id="main" class="min-w-0 flex-1 bg-[var(--pc-bg)] pb-20 lg:pb-0">

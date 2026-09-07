@@ -16,7 +16,7 @@
         "zod": "^4.5.4",
       },
       "devDependencies": {
-        "@sveltejs/adapter-cloudflare": "^7.2.9",
+        "@sveltejs/adapter-cloudflare": "^7.2.8",
         "@sveltejs/kit": "^2.70.3",
         "@sveltejs/vite-plugin-svelte": "^7.3.0",
         "@tailwindcss/vite": "^4.3.3",
@@ -27,7 +27,7 @@
         "tailwindcss": "^4.3.3",
         "typescript": "~6.0.3",
         "vite": "^8.2.2",
-        "wrangler": "^4.129.0",
+        "wrangler": "^4.97.0",
       },
     },
   },
