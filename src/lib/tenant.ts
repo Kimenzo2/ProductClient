@@ -34,6 +34,25 @@ export function tenantUrl(slug: string, path = '/'): string {
 	return `https://${tenantHost(slug)}${normalized}`;
 }
 
+/**
+ * Hosted status pages live under a path on the neutral status host, e.g.
+ * `status.productclient.com/gemma` and `status.productclient.com/gemma/uptime`.
+ * Path-based tenants avoid the second-level wildcard certificate problem that
+ * `{slug}.status.productclient.com` would have.
+ */
+export const STATUS_PAGES_HOST = 'status.productclient.com';
+export const ROADMAP_HOST = 'roadmap.productclient.com';
+
+export function tenantStatusUrl(slug: string, path = ''): string {
+	const suffix = path === '' || path.startsWith('/') ? path : `/${path}`;
+	return `https://${STATUS_PAGES_HOST}/${slug}${suffix}`;
+}
+
+export function tenantRoadmapUrl(slug: string, path = ''): string {
+	const suffix = path === '' || path.startsWith('/') ? path : `/${path}`;
+	return `https://${ROADMAP_HOST}/${slug}${suffix}`;
+}
+
 export async function getMyTenant(): Promise<Tenant | null> {
 	if (!supabase) return null;
 	const { data, error } = await supabase.rpc('get_my_tenant');

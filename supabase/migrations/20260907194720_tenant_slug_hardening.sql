@@ -31,7 +31,8 @@ as $function$
     'about','contact','blog','news','press','legal','privacy','terms','security','compliance','career','careers','jobs','hiring','enterprise','partners','partner','affiliate','affiliates','community','forum','academy','learn','learning','university','training','webinar','event','events','conference','summit','meetup','hackathon','github','gitlab','bitbucket','slack','discord','twitter','x','facebook','instagram','linkedin','youtube','tiktok','medium','notion','linear','figma','vercel','netlify','cloudflare','stripe','paystack','dodo','supabase','productclient','product-client',
     'null','undefined','anonymous','anon','owner','manager','moderator','mod','staff','admins','superadmin','ghost','bot','service','helpdesk','noreply','no-reply','postmaster','hostmaster','abuse','info','sales','pay','invoice','invoices','order','orders','shop','store','cart',
     'tenant-registry','productclient-tenants','docs-host','auth-host','app-host','marketing','landing','p-landing',
-    'provision'
+    'provision',
+    'now','next','later','uptime','maintenance'
   ]);
 $function$;
 
