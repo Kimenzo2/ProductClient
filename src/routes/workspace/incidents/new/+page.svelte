@@ -49,9 +49,11 @@
 	let serviceList = $derived(statusEditorPreview.page.services);
 
 	onMount(() => {
-		void hydrateStatusEditor();
-		if (!startedAt) startedAt = formatLocalDateTime(new Date());
-		localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'your local time';
+		void (async () => {
+			await hydrateStatusEditor();
+			if (!startedAt) startedAt = formatLocalDateTime(new Date());
+			localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'your local time';
+		})();
 	});
 
 	function formatLocalDateTime(date: Date) {
@@ -93,7 +95,10 @@
 			impact: customerImpact,
 			startedAt,
 			message: publicMessage,
-			affectedServices: selectedServices
+			affectedServices: selectedServices,
+			mode,
+			severity,
+			coordinationChannel: channel
 		});
 		if (!incidentId) {
 			error = 'The incident could not be created. Check the declaration and try again.';
@@ -123,7 +128,9 @@
 		<div class="header-line"><div><h1>Declare an incident</h1><p>Start with the facts. The declaration becomes the response record the team coordinates around and the public update customers can trust.</p></div><Button href={hostedStatusPage.href} target="_blank" variant="outline" size="md"><Export size={14} weight="Outline" aria-hidden="true" /> Open hosted page</Button></div>
 	</header>
 
-	{#if stage === 'prepared'}
+	{#if !statusEditorPreview.hydrated}
+		<p class="loading-state" role="status">Loading the saved Status Page configuration…</p>
+	{:else if stage === 'prepared'}
 		<section class="prepared" aria-live="polite"><span class="prepared-mark"><CheckCircle size={22} weight="Outline" aria-hidden="true" /></span><h2>{title}</h2><p class="prepared-copy">The incident was created and its first Investigating update was published to the connected Status Page.</p><div class="prepared-actions"><Button href={preparedIncidentId ? `/workspace/incidents/${preparedIncidentId}` : '/workspace/incidents'} variant="primary" size="md">Open incident</Button><Button href={hostedStatusPage.href} target="_blank" variant="outline" size="md">Open hosted status page</Button></div></section>
 	{:else if stage === 'review'}
 		<section class="review" aria-labelledby="review-title">
@@ -153,7 +160,7 @@
 
 			<section class="form-section" aria-labelledby="public-title"><div class="section-heading"><div><h2 id="public-title">What should customers hear?</h2><p>This is the first public incident update. It will appear on the hosted Status Page.</p></div></div><div class="form-grid"><div class="field"><Label for="declare-public-status" class="declare-label">Initial status</Label><Select id="declare-public-status" bind:value={initialStatus} options={lifecycleOptions} /></div><div class="field"><Label for="declare-public-impact" class="declare-label">Customer impact</Label><Select id="declare-public-impact" bind:value={customerImpact} options={impactOptions} /></div><div class="field wide"><Label for="declare-started" class="declare-label">When did this begin?</Label><Input id="declare-started" type="datetime-local" step="60" bind:value={startedAt} class="declare-control" aria-describedby="declare-started-help" /><span id="declare-started-help" class="field-help">Uses your local time ({localTimeZone || 'browser time'}).</span></div><div class="field wide"><Label for="declare-public-message" class="declare-label">First public update</Label><Textarea id="declare-public-message" bind:value={publicMessage} rows={5} placeholder="We are investigating reports of delayed API responses and working to restore normal performance." class="declare-control declare-textarea" /></div></div></section>
 
-			<section class="form-section" aria-labelledby="affected-services-title"><div class="section-heading"><div><h2 id="affected-services-title">Which services are affected?</h2><p>Only selected services will be marked for customers and included in this incident.</p></div></div><div class="service-picker">{#if serviceList.length}{#each serviceList as service (service.id)}<label class="service-option" class:selected={selectedServices.includes(service.id)}><input type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} /><span class="checkbox-mark" aria-hidden="true"><CheckCircle size={15} weight="Outline" /></span><span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span></label>{/each}{:else}<p class="inline-empty">No services are configured yet. Add a component in the Status Editor before declaring an incident.</p>{/if}</div></section>
+			<section class="form-section" aria-labelledby="affected-services-title"><div class="section-heading"><div><h2 id="affected-services-title">Which services are affected?</h2><p>Only selected services will be marked for customers and included in this incident.</p></div></div><div class="service-picker">{#if serviceList.length}{#each serviceList as service (service.id)}<label class="service-option" class:selected={selectedServices.includes(service.id)}><input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} /><span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span></label>{/each}{:else}<p class="inline-empty">No services are configured yet. Add a component in the Status Editor before declaring an incident.</p>{/if}</div></section>
 
 
 
@@ -198,8 +205,24 @@
 	.review-grid strong { display: block; font-size: 13px; font-weight: 500; }
 	.review-grid p { margin: 7px 0 0; color: var(--pc-text-muted); font-size: 12px; line-height: 1.55; }
 	.prepared { padding: 72px 0; text-align: center; }
+	.loading-state { padding: 48px 0; color: var(--pc-text-muted); font-size: 13px; }
 	.prepared-mark { display: grid; width: 48px; height: 48px; place-items: center; margin: 0 auto; border-radius: 50%; color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 15%, transparent); }
 	.prepared h2 { font-size: 26px; }
 	.prepared-copy { max-width: 54ch; margin: 12px auto 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.6; }
+	.service-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+	.service-option { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--pc-border-strong); border-radius: 12px; cursor: pointer; transition: border-color 120ms ease, background-color 120ms ease; }
+	.service-option:hover, .service-option.selected { border-color: var(--pc-focus-ring); background: var(--pc-surface-2); }
+	.service-option:focus-within { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
+	.service-checkbox { appearance: none; display: grid; flex: 0 0 auto; width: 24px; height: 24px; place-items: center; margin: 0; border: 1px solid var(--pc-border-strong); border-radius: 7px; background: transparent; cursor: pointer; }
+	.service-checkbox::after { width: 6px; height: 11px; border: solid var(--pc-status-operational); border-width: 0 2px 2px 0; content: ''; opacity: 0; transform: rotate(45deg) scale(.7); transition: opacity 120ms ease, transform 120ms ease; }
+	.service-checkbox:checked { border-color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 12%, transparent); }
+	.service-checkbox:checked::after { opacity: 1; transform: rotate(45deg) scale(1); }
+	.service-checkbox:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
+	.service-option-copy { display: grid; min-width: 0; gap: 4px; }
+	.service-option-copy strong { overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+	.service-option-copy small { color: var(--pc-text-muted); font-size: 11px; line-height: 1.45; }
+	.inline-empty { grid-column: 1 / -1; margin: 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.55; }
 	@media (max-width: 600px) { .declare-page { width: min(100% - 24px, 820px); padding-top: 28px; } .form-grid, .review-grid { grid-template-columns: 1fr; } .form-grid .wide { grid-column: auto; } .review-heading { align-items: start; flex-direction: column; } .form-actions, .review-actions, .prepared-actions { align-items: stretch; flex-direction: column-reverse; } }
+	@media (max-width: 600px) { .service-picker { grid-template-columns: 1fr; } }
+	@media (prefers-reduced-motion: reduce) { .service-option, .service-checkbox::after { transition: none; } }
 </style>

@@ -32,12 +32,15 @@ const followUpCount = $derived.by(() =>
 		: 0
 );
 
+// Resolve each count lazily. Reading a derived value into a plain object
+// captures its initial value and leaves shell badges stale; exporting derived
+// state itself is not supported from a .svelte.ts module.
 export const signalRegistry = {
-	inbox: { count: inboxCount },
-	notifications: { count: notificationCount },
-	incidents: { count: incidentCount },
-	postIncidentFlow: { count: postIncidentFlowCount },
-	followUps: { count: followUpCount }
+	get inbox() { return { count: inboxCount }; },
+	get notifications() { return { count: notificationCount }; },
+	get incidents() { return { count: incidentCount }; },
+	get postIncidentFlow() { return { count: postIncidentFlowCount }; },
+	get followUps() { return { count: followUpCount }; }
 };
 
 export const signalRegistryState = $state({ loading: false, hydrated: false });

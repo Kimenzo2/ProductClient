@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-import { ArrowLeft, ArrowRight, CheckCircle, InfoCircle } from 'reicon-svelte';
+import { ArrowLeft, ArrowRight, InfoCircle } from 'reicon-svelte';
 import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 	import {
@@ -166,8 +166,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				{#if serviceList.length}
 				{#each serviceList as service (service.id)}
 					<label class="service-option" class:selected={selectedServices.includes(service.id)}>
-						<input type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} />
-						<span class="checkbox-mark" aria-hidden="true"><CheckCircle size={15} weight="Outline" /></span>
+						<input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} />
 						<span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span>
 					</label>
 				{/each}
@@ -214,12 +213,14 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	.field :global(textarea) { min-height: 116px; }
 	.field-help { color: var(--pc-text-faint); font-size: 11px; line-height: 1.45; }
 	.service-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-	.service-option { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--pc-border-strong); border-radius: 12px; cursor: pointer; transition: border-color 120ms ease, background-color 120ms ease; }
+	.service-option { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--pc-border-strong); border-radius: 12px; cursor: pointer; transition: border-color 120ms ease, background-color 120ms ease; }
 	.service-option:hover, .service-option.selected { border-color: var(--pc-focus-ring); background: var(--pc-surface-2); }
 	.service-option:focus-within { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
-	.service-option input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; }
-	.checkbox-mark { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid var(--pc-border-strong); border-radius: 7px; color: transparent; }
-	.service-option.selected .checkbox-mark { border-color: var(--pc-status-operational); color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 12%, transparent); }
+	.service-checkbox { appearance: none; display: grid; flex: 0 0 auto; width: 24px; height: 24px; place-items: center; margin: 0; border: 1px solid var(--pc-border-strong); border-radius: 7px; background: transparent; cursor: pointer; }
+	.service-checkbox::after { width: 6px; height: 11px; border: solid var(--pc-status-operational); border-width: 0 2px 2px 0; content: ''; opacity: 0; transform: rotate(45deg) scale(.7); transition: opacity 120ms ease, transform 120ms ease; }
+	.service-checkbox:checked { border-color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 12%, transparent); }
+	.service-checkbox:checked::after { opacity: 1; transform: rotate(45deg) scale(1); }
+	.service-checkbox:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 	.service-option-copy { display: grid; min-width: 0; gap: 4px; }
 	.service-option-copy strong { overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 	.service-option-copy small { color: var(--pc-text-muted); font-size: 11px; line-height: 1.45; }
@@ -245,5 +246,5 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		.review .section-heading { align-items: start; flex-direction: column; }
 		.review-grid { grid-template-columns: minmax(0, 1fr); }
 	}
-	@media (prefers-reduced-motion: reduce) { .service-option { transition: none; } }
+	@media (prefers-reduced-motion: reduce) { .service-option, .service-checkbox::after { transition: none; } }
 </style>
