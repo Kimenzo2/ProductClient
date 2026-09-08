@@ -61,13 +61,27 @@
 		return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	}
 
-	function toggleService(id: string) {
-		selectedServices = selectedServices.includes(id) ? selectedServices.filter((serviceId) => serviceId !== id) : [...selectedServices, id];
+	function toggleService(id: string, event: Event) {
+		const checked = (event.currentTarget as HTMLInputElement).checked;
+		selectedServices = checked
+			? selectedServices.includes(id) ? selectedServices : [...selectedServices, id]
+			: selectedServices.filter((serviceId) => serviceId !== id);
 	}
 
 	function validate() {
-		if (!title.trim() || !summary.trim() || !impact.trim() || !lead.trim() || !publicMessage.trim() || !startedAt || selectedServices.length === 0) {
-			error = 'Add the incident facts, first public update, start time, and at least one affected service before reviewing.';
+		const selectedServiceIds = new Set(selectedServices);
+		const hasAffectedService = serviceList.some((service) => selectedServiceIds.has(service.id));
+		const missing = [
+			['incident name', !title.trim()],
+			['summary', !summary.trim()],
+			['who is affected', !impact.trim()],
+			['incident lead', !lead.trim()],
+			['first public update', !publicMessage.trim()],
+			['start time', !startedAt],
+			['at least one affected service', !hasAffectedService]
+		].filter(([, isMissing]) => isMissing).map(([label]) => label);
+		if (missing.length) {
+			error = `Complete ${missing.join(', ')} before reviewing.`;
 			return false;
 		}
 		if (Number.isNaN(new Date(startedAt).getTime())) {
@@ -160,7 +174,7 @@
 
 			<section class="form-section" aria-labelledby="public-title"><div class="section-heading"><div><h2 id="public-title">What should customers hear?</h2><p>This is the first public incident update. It will appear on the hosted Status Page.</p></div></div><div class="form-grid"><div class="field"><Label for="declare-public-status" class="declare-label">Initial status</Label><Select id="declare-public-status" bind:value={initialStatus} options={lifecycleOptions} /></div><div class="field"><Label for="declare-public-impact" class="declare-label">Customer impact</Label><Select id="declare-public-impact" bind:value={customerImpact} options={impactOptions} /></div><div class="field wide"><Label for="declare-started" class="declare-label">When did this begin?</Label><Input id="declare-started" type="datetime-local" step="60" bind:value={startedAt} class="declare-control" aria-describedby="declare-started-help" /><span id="declare-started-help" class="field-help">Uses your local time ({localTimeZone || 'browser time'}).</span></div><div class="field wide"><Label for="declare-public-message" class="declare-label">First public update</Label><Textarea id="declare-public-message" bind:value={publicMessage} rows={5} placeholder="We are investigating reports of delayed API responses and working to restore normal performance." class="declare-control declare-textarea" /></div></div></section>
 
-			<section class="form-section" aria-labelledby="affected-services-title"><div class="section-heading"><div><h2 id="affected-services-title">Which services are affected?</h2><p>Only selected services will be marked for customers and included in this incident.</p></div></div><div class="service-picker">{#if serviceList.length}{#each serviceList as service (service.id)}<label class="service-option" class:selected={selectedServices.includes(service.id)}><input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} /><span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span></label>{/each}{:else}<p class="inline-empty">No services are configured yet. Add a component in the Status Editor before declaring an incident.</p>{/if}</div></section>
+			<section class="form-section" aria-labelledby="affected-services-title"><div class="section-heading"><div><h2 id="affected-services-title">Which services are affected?</h2><p>Only selected services will be marked for customers and included in this incident.</p></div></div><div class="service-picker">{#if serviceList.length}{#each serviceList as service (service.id)}<label class="service-option" class:selected={selectedServices.includes(service.id)}><input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={(event) => toggleService(service.id, event)} /><span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span></label>{/each}{:else}<p class="inline-empty">No services are configured yet. Add a component in the Status Editor before declaring an incident.</p>{/if}</div></section>
 
 
 

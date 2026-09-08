@@ -63,16 +63,31 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 	}
 
-	function toggleService(id: string) {
-		selectedServices = selectedServices.includes(id) ? selectedServices.filter((serviceId) => serviceId !== id) : [...selectedServices, id];
+	function toggleService(id: string, event: Event) {
+		const checked = (event.currentTarget as HTMLInputElement).checked;
+		selectedServices = checked
+			? selectedServices.includes(id) ? selectedServices : [...selectedServices, id]
+			: selectedServices.filter((serviceId) => serviceId !== id);
 	}
 
 	function reviewDeclaration(event: SubmitEvent) {
 		event.preventDefault();
 		errorMessage = '';
 
-		if (!title.trim() || !summary.trim() || !leadName.trim() || !internalImpact.trim() || !coordinationChannel.trim() || !message.trim() || !startedAt || selectedServices.length === 0) {
-			errorMessage = 'Add the incident facts, response details, first update, start time, and at least one affected service.';
+		const selectedServiceIds = new Set(selectedServices);
+		const hasAffectedService = serviceList.some((service) => selectedServiceIds.has(service.id));
+		const missing = [
+			['incident title', !title.trim()],
+			['summary', !summary.trim()],
+			['incident lead', !leadName.trim()],
+			['who is affected', !internalImpact.trim()],
+			['coordination channel', !coordinationChannel.trim()],
+			['first public update', !message.trim()],
+			['start time', !startedAt],
+			['at least one affected service', !hasAffectedService]
+		].filter(([, isMissing]) => isMissing).map(([label]) => label);
+		if (missing.length) {
+			errorMessage = `Complete ${missing.join(', ')} before reviewing.`;
 			return;
 		}
 		if (Number.isNaN(new Date(startedAt).getTime())) {
@@ -166,7 +181,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				{#if serviceList.length}
 				{#each serviceList as service (service.id)}
 					<label class="service-option" class:selected={selectedServices.includes(service.id)}>
-						<input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={() => toggleService(service.id)} />
+						<input class="service-checkbox" type="checkbox" name="affectedServices" value={service.id} checked={selectedServices.includes(service.id)} onchange={(event) => toggleService(service.id, event)} />
 						<span class="service-option-copy"><strong>{service.name}</strong><small>{service.description}</small></span>
 					</label>
 				{/each}
