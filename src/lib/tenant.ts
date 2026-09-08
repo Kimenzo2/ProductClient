@@ -24,6 +24,10 @@ export function tenantHost(slug: string): string {
 	return `${slug}.${TENANT_DOMAIN}`;
 }
 
+export function displaySubdomain(slug: string): string {
+	return tenantHost(slug);
+}
+
 /**
  * URL for a tenant's hosted page. Hosted pages always live on the production
  * domain (Cloudflare Workers), no matter where the dashboard itself runs, so
@@ -86,6 +90,23 @@ export async function ensureMyTenant(): Promise<Tenant | null> {
 	}
 	if (Array.isArray(data)) return (data[0] as Tenant) ?? null;
 	return (data as unknown as Tenant) ?? null;
+}
+
+export async function syncTenantRegistry(tenant: Pick<Tenant, 'id' | 'slug' | 'name'>): Promise<boolean> {
+	if (!supabase) return false;
+	try {
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		if (!token) return false;
+		const response = await fetch('/api/tenants/sync', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+			body: JSON.stringify({ id: tenant.id, slug: tenant.slug, displayName: tenant.name })
+		});
+		return response.ok;
+	} catch {
+		return false;
+	}
 }
 
 export async function renameMyTenant(newSlug: string): Promise<{ tenant?: Tenant; error?: string }> {

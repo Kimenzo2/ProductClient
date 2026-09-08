@@ -1,19 +1,22 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { AlertTriangle, ArrowRight, CheckCircle, Clock } from 'reicon-svelte';
 	import { Button, StatePanel } from '$lib/components/ui';
-	import { statusPages, type PublicIncidentStatus, type StatusIncident } from '$lib/data/status';
+	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+	import type { PublicIncidentStatus, StatusIncident } from '$lib/data/status';
 
-	type QueueIncident = StatusIncident & { pageTitle: string };
 	type QueueFilter = 'Open' | 'Resolved' | 'All';
 
-	const queue = statusPages.flatMap((statusPage) =>
-		statusPage.incidents.map((incident) => ({ ...incident, pageTitle: statusPage.pageTitle }))
-	) as QueueIncident[];
+	let queue = $derived(incidentRecordsForWorkspace());
 
 	let filter = $state<QueueFilter>('Open');
 	let filtered = $derived(queue.filter((incident) => filter === 'All' || (filter === 'Open' ? incident.status !== 'Resolved' : incident.status === 'Resolved')));
 	let openCount = $derived(queue.filter((incident) => incident.status !== 'Resolved').length);
 	let resolvedCount = $derived(queue.filter((incident) => incident.status === 'Resolved').length);
+
+	onMount(() => {
+		void hydrateStatusEditor();
+	});
 
 	function statusIcon(status: PublicIncidentStatus | StatusIncident['status']) {
 		return status === 'Resolved' ? CheckCircle : status === 'Monitoring' ? Clock : AlertTriangle;
@@ -76,7 +79,7 @@
 <style>
 	.incident-page { width: min(100% - 32px, 960px); margin: 0 auto; padding: 44px 0 72px; }
 	.incident-header { display: flex; align-items: end; justify-content: space-between; gap: 28px; padding-bottom: 34px; border-bottom: 1px solid var(--pc-border-strong); }
-	.kicker { margin: 0 0 8px; color: var(--pc-accent-light); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+
 	h1, h2 { margin: 0; letter-spacing: -.04em; font-weight: 500; }
 	h1 { font-size: clamp(30px, 4vw, 44px); }
 	h2 { font-size: 20px; }

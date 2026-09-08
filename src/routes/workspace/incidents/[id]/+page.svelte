@@ -3,17 +3,17 @@
 	import { page } from '$app/state';
 	import { ArrowLeft, CheckCircle, CloseCircle } from 'reicon-svelte';
 	import { Button, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
-	import { statusPages, type PublicIncidentStatus, type StatusIncident, type StatusIncidentUpdate } from '$lib/data/status';
+	import { type PublicIncidentStatus, type StatusIncident } from '$lib/data/status';
+	import { appendIncidentUpdate, hydrateStatusEditor, incidentRecordsForWorkspace, saveStatusEditor, statusEditorPreview } from '$lib/data/statusEditor.svelte';
 
-	const incidents = statusPages.flatMap((statusPage) => statusPage.incidents);
 	let id = $derived(page.params.id);
-	let incident = $derived(incidents.find((record) => record.id === id));
-	let draftUpdates = $state<StatusIncidentUpdate[]>([]);
+	let incident = $derived(incidentRecordsForWorkspace().find((record) => record.id === id));
+	let affectedComponents = $derived(incident?.affectedComponentIds.map((serviceId) => statusEditorPreview.page.services.find((service) => service.id === serviceId)?.name ?? serviceId) ?? []);
 	let updateStatus = $state<PublicIncidentStatus>('Identified');
 	let updateMessage = $state('');
 	let updateError = $state('');
 	let updateTimestamp = $state('');
-	let visibleUpdates = $derived([...(incident?.updates ?? []), ...draftUpdates]);
+	let visibleUpdates = $derived(incident?.updates ?? []);
 	let updateDialogOpen = $state(false);
 	let updatePanel = $state<HTMLElement | null>(null);
 	let updateTrigger = $state<HTMLElement | null>(null);
@@ -25,6 +25,7 @@
 	];
 
 	onMount(() => {
+		void hydrateStatusEditor();
 		const handleDialogKeydown = (event: KeyboardEvent) => {
 			if (!updateDialogOpen) return;
 			if (event.key === 'Escape') {
@@ -57,36 +58,23 @@
 			requestAnimationFrame(() => updatePanel?.querySelector<HTMLElement>('#incident-update-message')?.focus());
 			return;
 		}
-		const update: StatusIncidentUpdate = {
-			id: `draft-${draftUpdates.length + 1}`,
-			status: updateStatus,
-			timestamp: formatUpdateTimestamp(updateTimestamp),
-			message: updateMessage.trim()
-		};
-		draftUpdates = [...draftUpdates, update];
+		const status = updateStatus === 'Investigating' ? 'investigating' : updateStatus === 'Identified' ? 'identified' : updateStatus === 'Monitoring' ? 'monitoring' : 'resolved';
+		const publishedAt = updateTimestamp ? new Date(updateTimestamp).toISOString() : new Date().toISOString();
+		if (!appendIncidentUpdate(incident?.id ?? '', { status, publishedAt, message: updateMessage })) {
+			updateError = 'This incident could not be updated. Refresh and try again.';
+			return;
+		}
+		void saveStatusEditor();
 		updateMessage = '';
 		updateTimestamp = '';
 		closeUpdateDialog();
 	}
 
-	function formatUpdateTimestamp(value: string) {
-		if (!value) return 'Drafted just now';
-		const date = new Date(value);
-		if (Number.isNaN(date.getTime())) return value;
-		const formatted = new Intl.DateTimeFormat(undefined, {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit',
-			timeZoneName: 'short'
-		}).format(date);
-		return formatted.replace(/, (?=\d)/, ' at ');
-	}
-
 	function openUpdateDialog() {
+		if (!incident || incident.status === 'Resolved') return;
 		updateTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		updateError = '';
+		updateStatus = incident.status === 'Monitoring' ? 'Monitoring' : incident.status === 'Identified' ? 'Identified' : 'Investigating';
 		updateDialogOpen = true;
 		requestAnimationFrame(() => updatePanel?.querySelector<HTMLElement>('select, input, textarea, button')?.focus());
 	}
@@ -99,6 +87,10 @@
 
 	function statusTone(status: PublicIncidentStatus | StatusIncident['status']) {
 		return status === 'Resolved' ? 'resolved' : status === 'Monitoring' ? 'monitoring' : 'active';
+	}
+
+	function nextAction(status: StatusIncident['status']) {
+		return status === 'Resolved' ? 'Close the response loop' : status === 'Monitoring' ? 'Confirm recovery' : 'Keep responders aligned';
 	}
 </script>
 
@@ -114,13 +106,34 @@
 			<div class="detail-meta"><span class="state {statusTone(incident.status)}">{incident.status}</span><span>{incident.severity}</span><span>Started {incident.startedAt}</span></div>
 			<h1>{incident.title}</h1>
 			<p class="detail-lede">{incident.summary}</p>
-			<p class="detail-context">{incident.productName}</p>
+		<p class="detail-context">{incident.productName}</p>
 		</header>
+
+		<section class="command-room" aria-labelledby="command-room-title">
+			<div class="command-heading">
+				<div>
+					<h2 id="command-room-title">Command room</h2>
+				</div>
+			</div>
+			<div class="command-facts">
+				<div><span>Lead</span><strong>{incident.owner}</strong></div>
+				<div><span>Impact</span><strong>{incident.severity}</strong></div>
+				<div><span>Affected service</span><strong>{affectedComponents.join(', ') || 'Product-wide'}</strong></div>
+				<div><span>Next action</span><strong>{nextAction(incident.status)}</strong></div>
+			</div>
+			<nav class="command-actions" aria-label="Incident tools">
+				<a href="/workspace/status">Open Status Editor <span aria-hidden="true">→</span></a>
+				<a href={incident.publicPath} target="_blank" rel="noreferrer">Open hosted Status Page <span aria-hidden="true">↗</span></a>
+				{#if incident.status === 'Resolved'}
+					<a href="/workspace/incidents/post-incident-flow">Continue to post-incident flow <span aria-hidden="true">→</span></a>
+				{/if}
+			</nav>
+		</section>
 
 		<div class="detail-layout">
 			<main>
 				<section class="response-section" aria-labelledby="timeline-title">
-					<div class="section-heading"><div><h2 id="timeline-title">Updates</h2></div><div class="section-heading-actions"><span>{visibleUpdates.length} entries</span><Button variant="outline" size="sm" aria-haspopup="dialog" aria-expanded={updateDialogOpen} onclick={openUpdateDialog}>Stage an update</Button></div></div>
+					<div class="section-heading"><div><h2 id="timeline-title">Updates</h2></div><div class="section-heading-actions"><span>{visibleUpdates.length} entries</span>{#if incident.status === 'Resolved'}<span class="timeline-closed">Timeline closed</span>{:else}<Button variant="outline" size="sm" aria-haspopup="dialog" aria-expanded={updateDialogOpen} onclick={openUpdateDialog}>Stage an update</Button>{/if}</div></div>
 					<div class="timeline">
 						{#each [...visibleUpdates].reverse() as update (update.id)}
 							<article class="timeline-entry">
@@ -151,7 +164,7 @@
 				</div>
 				<div class="field"><Label for="incident-update-message">Message</Label><Textarea id="incident-update-message" bind:value={updateMessage} rows={7} placeholder="What has changed, and what should people expect next?" class="dialog-control dialog-textarea" invalid={Boolean(updateError)} aria-describedby={updateError ? 'update-message-error' : undefined} /></div>
 				{#if updateError}<p id="update-message-error" class="form-error" role="alert">{updateError}</p>{/if}
-				<div class="dialog-actions"><p>This draft is local to the preview until persistence is connected.</p><div><button type="button" class="quiet-action" onclick={closeUpdateDialog}>Cancel</button><Button type="submit" variant="primary" size="md">Stage update</Button></div></div>
+				<div class="dialog-actions"><p>This update will be published to the hosted Status Page when you confirm.</p><div><button type="button" class="quiet-action" onclick={closeUpdateDialog}>Cancel</button><Button type="submit" variant="primary" size="md">Publish update</Button></div></div>
 			</form>
 		</div>
 	{/if}
@@ -172,12 +185,26 @@
 	h1 { max-width: 24ch; margin: 14px 0 0; font-size: clamp(30px, 5vw, 48px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
 	.detail-lede { max-width: 68ch; margin: 14px 0 0; color: var(--pc-text-muted); font-size: 15px; line-height: 1.65; }
 	.detail-context { margin: 12px 0 0; color: var(--pc-text-faint); font-size: 12px; }
-	.detail-layout { display: grid; grid-template-columns: minmax(0, 1fr); padding-top: 42px; }
+	.command-room { padding: 28px 0 30px; border-bottom: 1px solid var(--pc-border-strong); }
+	.command-heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; }
+	.command-heading h2 { margin: 7px 0 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
+	.eyebrow { color: var(--pc-accent-light); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+	.command-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 24px; border-top: 1px solid var(--pc-border); border-bottom: 1px solid var(--pc-border); }
+	.command-facts div { display: grid; align-content: start; gap: 7px; min-width: 0; padding: 16px 18px 17px 0; }
+	.command-facts div + div { padding-inline-start: 18px; border-inline-start: 1px solid var(--pc-border); }
+	.command-facts span { color: var(--pc-text-faint); font-size: 11px; }
+	.command-facts strong { overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+	.command-actions { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; }
+	.command-actions a { color: var(--pc-text-muted); font-size: 12px; text-underline-offset: 4px; }
+	.command-actions a:hover { color: var(--pc-text); }
+	.command-actions a:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 4px; }
+	.detail-layout { display: grid; grid-template-columns: minmax(0, 1fr); padding-top: 38px; }
 	main { min-width: 0; }
 	.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 	.section-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 	.section-heading h2 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
 	.section-heading-actions > span { color: var(--pc-text-faint); font-size: 11px; }
+	.timeline-closed { color: var(--pc-status-operational) !important; }
 	.timeline { position: relative; padding-inline-start: 28px; }
 	.timeline::before { position: absolute; inset-block: 10px; inset-inline-start: 6px; width: 1px; content: ''; background: var(--pc-border-strong); }
 	.timeline-entry { position: relative; display: grid; grid-template-columns: 1fr; padding: 0 0 30px; }
@@ -211,7 +238,7 @@
 	.dialog-close:focus-visible, .update-backdrop:focus-visible, .quiet-action:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 	.form-error { color: var(--pc-status-outage) !important; }
 	.missing-detail { width: min(100% - 32px, 960px); margin: 0 auto; padding-top: 48px; }
-	@media (max-width: 760px) { .incident-detail { width: min(100% - 24px, 1080px); padding-top: 28px; } .detail-layout { padding-top: 34px; } }
+	@media (max-width: 760px) { .incident-detail { width: min(100% - 24px, 1080px); padding-top: 28px; } .command-heading { align-items: start; flex-direction: column; gap: 12px; } .command-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .command-facts div:nth-child(3) { padding-inline-start: 0; border-inline-start: 0; border-top: 1px solid var(--pc-border); } .command-facts div:nth-child(4) { border-top: 1px solid var(--pc-border); } .detail-layout { padding-top: 34px; } }
 	@media (max-width: 540px) { .section-heading { align-items: start; flex-direction: column; } .section-heading-actions { justify-content: space-between; width: 100%; } .form-grid { grid-template-columns: 1fr; } .update-dialog { width: min(100% - 12px, 640px); padding: 28px 22px max(24px, env(safe-area-inset-bottom)); border-start-start-radius: 24px; border-end-start-radius: 24px; } .dialog-header h2 { font-size: 23px; } .dialog-actions { align-items: stretch; flex-direction: column; } .dialog-actions > div { justify-content: space-between; } }
 	@media (prefers-reduced-motion: reduce) { .dialog-close { transition: none; } }
 </style>

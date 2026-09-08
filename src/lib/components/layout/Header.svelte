@@ -4,25 +4,26 @@
 	import { Bell, Menu, Moon, Search, SidebarLeft, SidebarRight, Sun } from 'reicon-svelte';
 	import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
+	import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
 
 	let {
 		onToggleSidebar,
 		onOpenSearch,
 		sidebarOpen = false,
-		collapsed = false,
-		unreadCount = 3
+		collapsed = false
 	}: {
 		onToggleSidebar: () => void;
 		onOpenSearch: (query?: string) => void;
 		sidebarOpen?: boolean;
 		collapsed?: boolean;
-		unreadCount?: number;
 	} = $props();
 
 	let isDark = $state(true);
+	let unreadCount = $derived(signalRegistry.notifications.count);
 
 	onMount(() => {
 		isDark = getTheme() === 'dark';
+		void hydrateSignalRegistry();
 	});
 </script>
 

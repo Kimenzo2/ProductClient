@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { followUps as seedFollowUps, type FollowUpRecord } from '$lib/data/workspace';
+import { supabase } from '$lib/supabaseClient';
 
 const STORAGE_KEY = 'productclient.follow-ups.preview.v1';
 const statuses: FollowUpRecord['status'][] = ['Open', 'In progress', 'Done'];
@@ -31,6 +32,7 @@ function isFollowUpRecord(value: unknown): value is FollowUpRecord {
 export const followUpPreview = $state({
 	records: cloneRecords(seedFollowUps),
 	hydrated: false,
+	source: 'loading' as 'loading' | 'database' | 'preview',
 	lastSavedAt: 0
 });
 
@@ -45,10 +47,35 @@ function persist() {
 	}
 }
 
-export function hydrateFollowUps() {
-	if (!browser || followUpPreview.hydrated) return;
+export async function hydrateFollowUps(force = false) {
+	if (!browser || (followUpPreview.hydrated && !force)) return;
 
 	try {
+		if (supabase) {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (token) {
+				const response = await fetch('/api/incidents/work-items', { headers: { authorization: `Bearer ${token}` } });
+				const payload = (await response.json().catch(() => ({}))) as { items?: Array<Record<string, unknown>> };
+				const records = (payload.items ?? []).filter((item) => item.work_type === 'follow_up').map((item) => ({
+					id: String(item.id),
+					incidentId: String(item.incidentId ?? ''),
+					title: String(item.title ?? ''),
+					description: String(item.description ?? ''),
+					owner: String(item.owner_name ?? 'Unassigned'),
+					status: item.status as FollowUpRecord['status'],
+					due: String(item.due_label ?? 'No due date'),
+					kind: item.kind as FollowUpRecord['kind'],
+					href: String(item.destination_href ?? '')
+				}));
+				if (response.ok && records.every(isFollowUpRecord)) {
+					followUpPreview.records = records;
+					followUpPreview.source = 'database';
+					followUpPreview.hydrated = true;
+					return;
+				}
+			}
+		}
 		const stored = sessionStorage.getItem(STORAGE_KEY);
 		if (stored) {
 			const parsed: unknown = JSON.parse(stored);
@@ -56,8 +83,10 @@ export function hydrateFollowUps() {
 				followUpPreview.records = cloneRecords(parsed);
 			}
 		}
+		followUpPreview.source = 'preview';
 	} catch {
 		// A malformed preview should fall back to the shipped fixtures.
+		followUpPreview.source = 'preview';
 	} finally {
 		followUpPreview.hydrated = true;
 	}
@@ -69,11 +98,29 @@ export function updateFollowUp(id: string, changes: Partial<FollowUpEdit>): bool
 
 	followUpPreview.records = followUpPreview.records.map((item) => (item.id === id ? { ...item, ...changes } : item));
 	persist();
+	void persistRemote(followUpPreview.records.find((item) => item.id === id));
 	return true;
+}
+
+async function persistRemote(record: FollowUpRecord | undefined) {
+	if (!browser || !record || !supabase) return;
+	try {
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		if (!token) return;
+		await fetch('/api/incidents/work-items', {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+			body: JSON.stringify({ id: record.id, incidentId: record.incidentId, status: record.status, owner: record.owner, due: record.due })
+		});
+	} catch {
+		// The local preview remains responsive if the database is temporarily unavailable.
+	}
 }
 
 export function resetFollowUps() {
 	followUpPreview.records = cloneRecords(seedFollowUps);
+	followUpPreview.source = 'preview';
 	if (browser) {
 		try {
 			sessionStorage.removeItem(STORAGE_KEY);

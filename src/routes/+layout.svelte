@@ -11,6 +11,7 @@
 	import GlobalSearch from '$lib/components/layout/GlobalSearch.svelte';
 	import { surfaceForPath, type AppSurface } from '$lib/routing/surfaces';
 	import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, OG_IMAGE } from '$lib/site';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 
 	let { children } = $props();
 
@@ -101,6 +102,7 @@
 
 <!-- Theme managed via app.html inline script + $lib/theme -->
 
+<Tooltip.Provider delayDuration={0}>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--pc-text)] focus:px-5 focus:py-2 focus:text-sm focus:font-bold focus:text-[var(--pc-bg)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">Skip to content</a>
 
 <div inert={searchOpen ? true : undefined} aria-hidden={searchOpen ? 'true' : undefined}>
@@ -108,7 +110,7 @@
 		<div class="flex h-dvh overflow-hidden workspace">
 			<Sidebar bind:collapsed bind:childCollapsed open={mobileOpen} onClose={() => (mobileOpen = false)} />
 			<div class="flex min-w-0 flex-1 flex-col overflow-hidden min-h-0">
-				<Header onToggleSidebar={toggleSidebar} onOpenSearch={openSearch} sidebarOpen={mobileOpen} collapsed={childCollapsed} unreadCount={3} />
+				<Header onToggleSidebar={toggleSidebar} onOpenSearch={openSearch} sidebarOpen={mobileOpen} collapsed={childCollapsed} />
 				<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
 					<div class="mx-auto w-full max-w-[1440px] pc-orbs pc-grain">
 						<main id="main" class="min-w-0 flex-1 bg-[var(--pc-bg)] pb-20 lg:pb-0">
@@ -138,6 +140,7 @@
 	{#if surface !== 'auth'}
 	<GlobalSearch open={searchOpen} initialQuery={searchInitialQuery} onClose={closeSearch} />
 	{/if}
+</Tooltip.Provider>
 
 <style>
 	:global(.sr-only) {

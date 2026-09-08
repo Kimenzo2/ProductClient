@@ -1,16 +1,40 @@
 <script lang="ts">
-	import { CheckCircle, Map, Plus } from 'reicon-svelte';
+	import { onMount } from 'svelte';
+	import { CheckCircle, Globe, Map, Plus } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import { Button, Card, Chip } from '$lib/components/ui';
 	import { roadmapItems } from '$lib/data/workspace';
+	import { supabase } from '$lib/supabaseClient';
+	import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
+	import type { RoadmapDoc } from '$lib/data/roadmapEditor';
 
 	const lanes = ['Now', 'Next', 'Later', 'Shipped'] as const;
+	let tenant = $state<Tenant | null>(null);
+	let roadmapDoc = $state<RoadmapDoc | null>(null);
+	let laneCounts = $derived(
+		Object.fromEntries(lanes.map((l) => [l, roadmapItems.filter((i) => i.status === l).length])) as Record<(typeof lanes)[number], number>
+	);
+	onMount(async () => {
+		try {
+			tenant = await ensureMyTenant();
+			if (!tenant || !supabase) return;
+			const { data: sess } = await supabase.auth.getSession();
+			const token = sess.session?.access_token;
+			if (!token) return;
+			const res = await fetch('/api/roadmap/publish', { headers: { authorization: `Bearer ${token}` } });
+			const j = (await res.json().catch(() => null)) as { ok?: boolean; doc?: RoadmapDoc } | null;
+			if (j?.ok && j.doc) roadmapDoc = j.doc as RoadmapDoc;
+		} catch {}
+	});
 </script>
 
 <svelte:head><title>Roadmap | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1240px] px-4 sm:px-6">
-	<WorkspaceHeader title="Roadmap" description="Keep upcoming work connected to the feedback and product updates that explain it." actionLabel="Choose what to do" actionHref="/workspace/decisions" />
+	<WorkspaceHeader title="Roadmap" description="Keep upcoming work connected to the feedback and product updates that explain it." actionLabel="Edit roadmap" actionHref="/workspace/roadmap/editor" />
+	{#if tenant}
+		<a href={`https://roadmap.productclient.com/${tenant.slug}`} target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-1.5 text-[14px] text-[var(--pc-accent-light)] hover:underline"><Globe size={14} weight="Outline" aria-hidden="true" /> Live site</a>
+	{/if}
 	<div class="grid gap-3 py-6 md:grid-cols-2 xl:grid-cols-4">
 		{#each lanes as lane}
 			<section class="min-w-0" aria-labelledby={`lane-${lane}`}>

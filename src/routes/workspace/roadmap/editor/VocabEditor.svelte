@@ -8,6 +8,7 @@
 		usage,
 		onAdd,
 		onRemove,
+		onUpdate,
 		armedKey
 	}: {
 		kind: 'stages' | 'confidence';
@@ -15,6 +16,7 @@
 		usage: (key: string) => number;
 		onAdd: (kind: 'stages' | 'confidence', key: string, label: string) => boolean;
 		onRemove: (kind: 'stages' | 'confidence', key: string) => void;
+		onUpdate?: (kind: 'stages' | 'confidence', key: string, label: string) => void;
 		armedKey: string | null;
 	} = $props();
 
@@ -33,7 +35,15 @@
 	{#each Object.entries(entries) as [key, entry] (key)}
 		<div class="vocab-row">
 			<code>{key}</code>
-			<div class="field"><Label for={`ed-${kind}-${key}`} class="sr-only">Display name for {key}</Label><Input id={`ed-${kind}-${key}`} bind:value={entry.label} /></div>
+			<div class="field"><Label for={`ed-${kind}-${key}`} class="sr-only">Display name for {key}</Label><Input
+					id={`ed-${kind}-${key}`}
+					value={entry.label}
+					oninput={(e: Event) => {
+						const v = (e.currentTarget as HTMLInputElement).value;
+						if (onUpdate) onUpdate(kind, key, v);
+						else entry.label = v;
+					}}
+				/></div>
 			<span class="usage-count">{usage(key)} in use</span>
 			<button
 				type="button"

@@ -9,9 +9,9 @@ export const roadmapPanel: PanelDef = {
 	links: [
 		{ label: 'Board view', href: '/workspace/roadmap' },
 		{ label: 'Editor', href: '/workspace/roadmap/editor', icon: Edit },
-		{ label: 'Now', href: '/workspace/roadmap?status=Now', badge: roadmapItems.filter((r) => r.status === 'Now').length },
-		{ label: 'Next', href: '/workspace/roadmap?status=Next', badge: roadmapItems.filter((r) => r.status === 'Next').length },
-		{ label: 'Shipped', href: '/workspace/roadmap?status=Shipped', badge: roadmapItems.filter((r) => r.status === 'Shipped').length }
+		{ label: 'Now', href: '/workspace/roadmap?status=Now' },
+		{ label: 'Next', href: '/workspace/roadmap?status=Next' },
+		{ label: 'Shipped', href: '/workspace/roadmap?status=Shipped' }
 	],
 	recent: roadmapItems.slice(0, 3).map((r) => ({ label: r.title, subtitle: `${r.productName} · ${r.status}`, href: `/workspace/roadmap#${r.id}` })),
 	action: { label: 'Add item', href: '/workspace/roadmap' }

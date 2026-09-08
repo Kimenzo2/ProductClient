@@ -3,63 +3,63 @@ import { z } from 'zod';
 // Mirrors the Roadmap Starter Kit contract (roadmap.json + roadmap.schema.json).
 // The editor surface edits this document, validates it, and exports it.
 
-const isoDateTime = z
-	.string()
-	.min(1, 'Required')
-	.refine((v) => !Number.isNaN(Date.parse(v)), 'Must be an ISO 8601 timestamp');
+const isoDateTime = z.iso.datetime({ offset: true, message: 'Must be ISO 8601 timestamp' });
 
 export const RoadmapItemSchema = z.object({
-	stage: z.string().min(1, 'Required'),
-	title: z.string().min(1, 'Required'),
-	outcome: z.string().min(1, 'Required'),
-	themes: z.array(z.string().min(1)).min(1, 'At least one theme'),
-	confidence: z.string().min(1, 'Required'),
+	stage: z.string().trim().min(1, 'Required'),
+	title: z.string().trim().min(1, 'Required'),
+	outcome: z.string().trim().min(1, 'Required'),
+	themes: z.array(z.string().trim().min(1, 'No empty themes')).min(1, 'At least one theme'),
+	confidence: z.string().trim().min(1, 'Required'),
 	updatedAt: isoDateTime,
 	live: z.boolean().optional()
 });
 
 export const RoadmapChapterSchema = z.object({
 	id: z.string().regex(/^[a-z0-9-]+$/, 'Kebab-case slug'),
-	label: z.string().min(1, 'Required'),
-	hint: z.string().min(1, 'Required'),
-	items: z.array(RoadmapItemSchema).min(1, 'Chapter needs at least one item')
+	label: z.string().trim().min(1, 'Required'),
+	hint: z.string().trim().min(1, 'Required'),
+	items: z.array(RoadmapItemSchema).default([])
 });
+
+const urlOrPath = z.string().trim().min(1, 'Required').refine((v) => v.startsWith('/') || URL.canParse(v), 'Must be a valid URL or /path');
 
 export const RoadmapDocSchema = z
 	.object({
 		$schema: z.string().optional(),
+		docVersion: z.number().int().min(1).default(1),
 		site: z.object({
-			name: z.string().min(1, 'Required').max(80),
-			tagline: z.string().min(1, 'Required'),
-			description: z.string().min(1, 'Required'),
-			url: z.string().min(1, 'Required'),
-			locale: z.string().min(1, 'Required'),
-			logo: z.object({ src: z.string().min(1, 'Required'), alt: z.string().min(1, 'Required') }),
-			icon: z.string().min(1, 'Required'),
-			favicon: z.string().min(1, 'Required')
+			name: z.string().trim().min(1, 'Required').max(80),
+			tagline: z.string().trim().min(1, 'Required'),
+			description: z.string().trim().min(1, 'Required'),
+			url: z.string().url('Must be a valid URL'),
+			locale: z.string().trim().min(1, 'Required'),
+			logo: z.object({ src: urlOrPath, alt: z.string().trim().min(1, 'Required') }),
+			icon: urlOrPath,
+			favicon: urlOrPath
 		}),
 		seo: z.object({
-			titleTemplate: z.string().min(1, 'Required'),
-			defaultTitle: z.string().min(1, 'Required'),
-			description: z.string().min(1, 'Required'),
-			themeColor: z.string().min(1, 'Required'),
-			ogImage: z.string().min(1, 'Required')
+			titleTemplate: z.string().trim().min(1, 'Required').refine((v) => v.includes('{title}') && v.includes('{site}'), 'Must contain {title} and {site}'),
+			defaultTitle: z.string().trim().min(1, 'Required'),
+			description: z.string().trim().min(1, 'Required'),
+			themeColor: z.string().trim().regex(/^#[0-9a-fA-F]{3,8}$|^oklch\(.+\)$/, 'Must be hex or oklch'),
+			ogImage: urlOrPath
 		}),
 		navigation: z.object({
-			ariaLabel: z.string().min(1, 'Required'),
-			allLabel: z.string().min(1, 'Required'),
+			ariaLabel: z.string().trim().min(1, 'Required'),
+			allLabel: z.string().trim().min(1, 'Required'),
 			showCounts: z.boolean(),
-			countSeparator: z.string().min(1, 'Required')
+			countSeparator: z.string().trim().min(1, 'Required')
 		}),
 		copy: z.object({
-			heroSubtitle: z.string().min(1, 'Required'),
-			chapterSuffix: z.string().min(1, 'Required'),
-			skipLink: z.string().min(1, 'Required'),
-			emptyChapterTitle: z.string().min(1, 'Required'),
-			emptyChapterSummary: z.string().min(1, 'Required')
+			heroSubtitle: z.string().trim().min(1, 'Required'),
+			chapterSuffix: z.string().trim().min(1, 'Required'),
+			skipLink: z.string().trim().min(1, 'Required'),
+			emptyChapterTitle: z.string().trim().min(1, 'Required'),
+			emptyChapterSummary: z.string().trim().min(1, 'Required')
 		}),
-		stages: z.record(z.string(), z.object({ label: z.string().min(1, 'Required') })),
-		confidence: z.record(z.string(), z.object({ label: z.string().min(1, 'Required') })),
+		stages: z.record(z.string().trim().min(1), z.object({ label: z.string().trim().min(1, 'Required') })).refine((v) => Object.keys(v).length > 0, 'At least one stage'),
+		confidence: z.record(z.string().trim().min(1), z.object({ label: z.string().trim().min(1, 'Required') })).refine((v) => Object.keys(v).length > 0, 'At least one confidence level'),
 		chapters: z.array(RoadmapChapterSchema).min(1, 'At least one chapter'),
 		theme: z.object({
 			fonts: z.object({ sans: z.string().min(1), display: z.string().min(1) }),
@@ -84,23 +84,29 @@ export const RoadmapDocSchema = z
 			})
 		}),
 		footer: z.object({
-			description: z.string().min(1, 'Required'),
-			links: z.array(z.object({ label: z.string().min(1), href: z.string().min(1) })),
-			bottomTemplate: z.string().min(1, 'Required')
+			description: z.string().trim().min(1, 'Required'),
+			links: z.array(z.object({ label: z.string().trim().min(1), href: z.string().trim().min(1).refine((v) => v.startsWith('/') || v.startsWith('https://'), 'Must be /path or https://') })),
+			bottomTemplate: z.string().trim().min(1, 'Required')
 		}),
-		tenant: z.object({ domain: z.string().min(1, 'Required') })
+		tenant: z.object({ domain: z.string().trim().min(1, 'Required').refine((v) => /^[a-z0-9.-]+$/.test(v), 'Invalid domain') })
 	})
 	.superRefine((v, ctx) => {
-		const ids = v.chapters.map((c) => c.id);
-		if (new Set(ids).size !== ids.length) {
-			ctx.addIssue({ code: 'custom', message: 'Chapter ids must be unique' });
-		}
-		for (const ch of v.chapters) {
-			for (const it of ch.items) {
-				if (!(it.stage in v.stages)) ctx.addIssue({ code: 'custom', message: `"${it.title || 'Untitled'}" uses unknown stage "${it.stage}"` });
-				if (!(it.confidence in v.confidence)) ctx.addIssue({ code: 'custom', message: `"${it.title || 'Untitled'}" uses unknown confidence "${it.confidence}"` });
-			}
-		}
+		const seen = new Map<string, number>();
+		v.chapters.forEach((c, idx) => {
+			if (seen.has(c.id)) {
+				ctx.addIssue({ code: 'custom', path: ['chapters', idx, 'id'], message: `Duplicate chapter id "${c.id}"` });
+			} else seen.set(c.id, idx);
+		});
+		v.chapters.forEach((ch, chIdx) => {
+			ch.items.forEach((it, itIdx) => {
+				if (!(it.stage in v.stages)) {
+					ctx.addIssue({ code: 'custom', path: ['chapters', chIdx, 'items', itIdx, 'stage'], message: `"${it.title || 'Untitled'}" uses unknown stage "${it.stage}"` });
+				}
+				if (!(it.confidence in v.confidence)) {
+					ctx.addIssue({ code: 'custom', path: ['chapters', chIdx, 'items', itIdx, 'confidence'], message: `"${it.title || 'Untitled'}" uses unknown confidence "${it.confidence}"` });
+				}
+			});
+		});
 	});
 
 export type RoadmapDoc = z.infer<typeof RoadmapDocSchema>;
@@ -119,13 +125,17 @@ export function validateRoadmapDoc(doc: unknown): DocIssue[] {
 }
 
 export function slugify(value: string): string {
-	return value
+	// Mirrors public.normalize_slug (lower, trim, replace [^a-z0-9]+ → -, dedupe, trim - , max 63)
+	const s = value
 		.toLowerCase()
 		.trim()
-		.replace(/[^a-z0-9\s-]/g, '')
-		.replace(/[\s_]+/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-|-$/g, '');
+		.normalize('NFKD')
+		.replace(/[\u0300-\u036f]/g, '') // strip diacritics (JS unaccent)
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.replace(/-{2,}/g, '-');
+	if (s.length > 63) return s.slice(0, 63).replace(/-+$/g, '');
+	return s;
 }
 
 export function nowIso(): string {
@@ -137,6 +147,7 @@ export function nowIso(): string {
 // Seed mirrors the starter kit's roadmap.json so the surface opens on real content.
 export const roadmapDocSeed: RoadmapDoc = {
 	$schema: './roadmap.schema.json',
+	docVersion: 1,
 	site: {
 		name: 'ProductClient',
 		tagline: 'Where the platform is heading.',

@@ -7,7 +7,7 @@ export const inboxPanel: PanelDef = {
 	icon: Inbox,
 	description: 'Triage incoming items',
 	links: [
-		{ label: 'Inbox', href: '/workspace/inbox', badge: 6 },
+		{ label: 'Inbox', href: '/workspace/inbox', signalKey: 'inbox' },
 		{ label: 'Feedback', href: '/workspace/feedback' },
 		{ label: 'Incidents', href: '/workspace/incidents' }
 	],

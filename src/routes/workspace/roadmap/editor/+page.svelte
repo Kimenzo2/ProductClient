@@ -8,9 +8,11 @@
 		CloseCircle,
 		Copy,
 		Download,
+		Globe,
 		Refresh,
 		Search,
 		Trash,
+		Upload,
 		Warning
 	} from 'reicon-svelte';
 	import { Button, Input, Label, Select, Textarea, Toggle } from '$lib/components/ui';
@@ -22,6 +24,7 @@
 		validateRoadmapDoc,
 		type RoadmapDoc
 	} from '$lib/data/roadmapEditor';
+	import { supabase } from '$lib/supabaseClient';
 
 	type Selection =
 		| { area: 'site' }
@@ -50,9 +53,62 @@
 	};
 
 	let publishing = $state(false);
+	let loading = $state(true);
+	let publishedVersion = $state(0);
+	let tenantSlug = $state<string | null>(null);
+	let uploadingField = $state<string | null>(null);
 
 	let doc = $state<RoadmapDoc>(structuredClone(roadmapDocSeed));
-	let published = $state<RoadmapDoc>(structuredClone(roadmapDocSeed));
+	let published = $state.raw<RoadmapDoc>(structuredClone(roadmapDocSeed));
+
+	async function uploadAsset(file: File, field: 'logo' | 'icon' | 'favicon' | 'ogImage') {
+		if (!supabase || !file) return;
+		const { data: sess } = await supabase.auth.getSession();
+		const token = sess.session?.access_token;
+		if (!token) {
+			notice = 'Sign in to upload';
+			return;
+		}
+		if (!['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/avif'].includes(file.type)) {
+			notice = 'Use PNG, JPEG, SVG or WebP';
+			return;
+		}
+		if (file.size > 5 * 1024 * 1024) {
+			notice = 'Max 5MB';
+			return;
+		}
+		uploadingField = field;
+		try {
+			const form = new FormData();
+			form.append('file', file);
+			form.append('field', field);
+			const res = await fetch('/api/roadmap/upload', {
+				method: 'POST',
+				headers: { authorization: `Bearer ${token}` },
+				body: form
+			});
+			const j = (await res.json().catch(() => null)) as { ok?: boolean; url?: string; message?: string } | null;
+			if (!res.ok || !j?.ok || !j.url) throw new Error(j?.message ?? 'Upload failed');
+			const url = j.url;
+			if (field === 'logo') doc.site.logo.src = url;
+			if (field === 'icon') doc.site.icon = url;
+			if (field === 'favicon') doc.site.favicon = url;
+			if (field === 'ogImage') doc.seo.ogImage = url;
+			notice = 'Image uploaded';
+			setTimeout(() => (notice = ''), 2000);
+		} catch (e) {
+			notice = e instanceof Error ? e.message : 'Upload failed';
+		} finally {
+			uploadingField = null;
+		}
+	}
+
+	function handleAssetUpload(field: 'logo' | 'icon' | 'favicon' | 'ogImage', event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (file) void uploadAsset(file, field);
+		input.value = '';
+	}
 	let selection = $state<Selection>({ area: 'site' });
 	let query = $state('');
 	let notice = $state('');
@@ -60,10 +116,40 @@
 	let dialogPanel = $state<HTMLElement | null>(null);
 	let dialogTrigger = $state<HTMLElement | null>(null);
 	let armedDelete = $state<string | null>(null);
-	let armedTimer = $state<number | null>(null);
+	const armedTimers = new Map<string, number>();
 
-	let issues = $derived(validateRoadmapDoc(doc));
-	let dirty = $derived(JSON.stringify(doc) !== JSON.stringify(published));
+	// Validation + dirty — dirty is immediate (so Publish lights up as you type), validation debounced
+	let issues = $state<ReturnType<typeof validateRoadmapDoc>>([]);
+	let dirty = $derived.by(() => {
+		try {
+			return JSON.stringify($state.snapshot(doc)) !== JSON.stringify($state.snapshot(published));
+		} catch {
+			return true;
+		}
+	});
+	let validateTimer: number | null = null;
+	$effect(() => {
+		const snap = $state.snapshot(doc) as RoadmapDoc;
+		if (validateTimer) window.clearTimeout(validateTimer);
+		validateTimer = window.setTimeout(() => {
+			issues = validateRoadmapDoc(snap);
+		}, 300);
+		return () => {
+			if (validateTimer) window.clearTimeout(validateTimer);
+		};
+	});
+
+	// Beforeunload guard for Single Publish Writes (edits live only in memory)
+	$effect(() => {
+		const handler = (e: BeforeUnloadEvent) => {
+			if (dirty && !publishing) {
+				e.preventDefault();
+				e.returnValue = '';
+			}
+		};
+		window.addEventListener('beforeunload', handler);
+		return () => window.removeEventListener('beforeunload', handler);
+	});
 	let chapterCount = $derived(doc.chapters.length);
 	let itemCount = $derived(doc.chapters.reduce((n, c) => n + c.items.length, 0));
 	let normalizedQuery = $derived(query.trim().toLowerCase());
@@ -159,17 +245,26 @@
 
 	async function copyBackup() {
 		const text = exportText();
+		try {
+			await navigator.clipboard.writeText(text);
+			notice = 'Backup copied. Paste it anywhere you keep backups.';
+			return;
+		} catch {}
+		// Fallback for insecure contexts
 		const anchor = document.createElement('textarea');
 		anchor.value = text;
+		anchor.setAttribute('readonly', '');
+		anchor.style.position = 'fixed';
+		anchor.style.opacity = '0';
 		document.body.appendChild(anchor);
 		anchor.select();
 		try {
-			await navigator.clipboard.writeText(text);
-		} catch {
 			document.execCommand('copy');
+			notice = 'Backup copied. Paste it anywhere you keep backups.';
+		} catch {
+			notice = 'Copy failed — use Download backup instead.';
 		}
 		anchor.remove();
-		notice = 'Backup copied. Paste it anywhere you keep backups.';
 	}
 
 	function discardChanges() {
@@ -186,6 +281,63 @@
 		notice = 'Started over from the original sample content.';
 	}
 
+	const STORAGE_KEY = 'pc:roadmap:editor:draft';
+	async function loadRoadmap() {
+		// Try sessionStorage draft first (like statusEditor)
+		try {
+			const stored = sessionStorage.getItem(STORAGE_KEY);
+			if (stored) {
+				const parsed = JSON.parse(stored) as RoadmapDoc;
+				if (Array.isArray((parsed as unknown as { chapters?: unknown }).chapters)) {
+					doc = parsed;
+					published = structuredClone(parsed);
+				}
+			}
+		} catch {}
+		try {
+			const { data: sess } = await supabase!.auth.getSession();
+			const token = sess.session?.access_token;
+			if (!token) {
+				loading = false;
+				return;
+			}
+			// Also fetch tenant slug for preview link
+			try {
+				if (!supabase) return;
+				const { data: tSess } = await supabase!.auth.getUser();
+				if (tSess.user) {
+					const { data: tRow } = await supabase!.from('tenants').select('slug').eq('owner_id', tSess.user.id).maybeSingle();
+					if (tRow) tenantSlug = (tRow as { slug: string }).slug;
+				}
+			} catch {}
+			const res = await fetch('/api/roadmap/publish', { headers: { authorization: `Bearer ${token}` } });
+			const j = (await res.json().catch(() => null)) as { ok?: boolean; doc?: RoadmapDoc; version?: number } | null;
+			if (j?.ok && j.doc) {
+				doc = j.doc as RoadmapDoc;
+				published = structuredClone(j.doc as RoadmapDoc);
+				publishedVersion = j.version ?? 0;
+				try {
+					sessionStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
+				} catch {}
+			}
+		} catch {
+			// keep seed
+		} finally {
+			loading = false;
+		}
+	}
+	$effect(() => {
+		// Persist draft to sessionStorage on change (throttled via validate debounce)
+		void doc;
+		try {
+			sessionStorage.setItem(STORAGE_KEY, JSON.stringify($state.snapshot(doc) as RoadmapDoc));
+		} catch {}
+	});
+	// Single Publish Writes: only Publish persists to Supabase + D1; edits stay in memory until then
+	onMount(() => {
+		void loadRoadmap();
+	});
+
 	async function publish() {
 		if (issues.length > 0) {
 			notice = `Fix ${issues.length === 1 ? 'the problem listed above' : `all ${issues.length} problems listed above`} before publishing.`;
@@ -194,22 +346,41 @@
 		if (!dirty) return;
 		publishing = true;
 		try {
+			const { data: sess } = await supabase!.auth.getSession();
+			const token = sess.session?.access_token;
+			if (!token) {
+				notice = 'Sign in again to publish.';
+				return;
+			}
 			const response = await fetch('/api/roadmap/publish', {
 				method: 'POST',
-				headers: { 'content-type': 'application/json' },
+				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'if-match': `W/"${publishedVersion}"` },
 				body: JSON.stringify({ doc })
 			});
-			const result = (await response.json().catch(() => null)) as { ok?: boolean; code?: string } | null;
+			const result = (await response.json().catch(() => null)) as { ok?: boolean; code?: string; slug?: string; currentVersion?: number } | null;
 			if (!response.ok || !result?.ok) {
+				if (result?.code === 'CONFLICT') {
+					notice = 'Someone else published changes. Reload to get the latest, then publish again.';
+					// Auto-reload latest
+					await loadRoadmap();
+					return;
+				}
 				if (result?.code === 'NOT_CONFIGURED') {
 					notice = 'Publishing is not switched on for your site yet. Your changes are safe — download a backup below.';
+				} else if (result?.code === 'UNAUTHORIZED') {
+					notice = 'Sign in again to publish.';
 				} else {
 					notice = 'Publishing failed. Nothing went live — try again in a moment.';
 				}
 				return;
 			}
 			published = structuredClone(doc);
-			notice = 'Published. Your site rebuilds itself — live in about a minute.';
+			publishedVersion = (result as unknown as { version?: number })?.version ?? publishedVersion + 1;
+			if (result.slug) tenantSlug = result.slug;
+			try {
+				sessionStorage.removeItem(STORAGE_KEY);
+			} catch {}
+			notice = 'Published — Live site updated.';
 		} catch {
 			notice = 'Could not reach the publishing service. Nothing went live — check your connection and try again.';
 		} finally {
@@ -218,24 +389,30 @@
 	}
 
 	function armDelete(key: string) {
-		if (armedTimer) window.clearTimeout(armedTimer);
+		const existing = armedTimers.get(key);
+		if (existing) window.clearTimeout(existing);
 		if (armedDelete === key) {
 			armedDelete = null;
+			armedTimers.delete(key);
 			return false;
 		}
 		armedDelete = key;
-		armedTimer = window.setTimeout(() => {
-			armedDelete = null;
+		const timer = window.setTimeout(() => {
+			if (armedDelete === key) armedDelete = null;
+			armedTimers.delete(key);
 		}, 4000);
+		armedTimers.set(key, timer);
 		return true;
 	}
 
 	function addChapter() {
-		const base = `chapter-${doc.chapters.length + 1}`;
+		const nums = doc.chapters.map((c) => Number(c.id.match(/^chapter-(\d+)$/)?.[1] ?? 0));
+		const nextNum = (nums.length ? Math.max(...nums) : 0) + 1;
+		const base = `chapter-${nextNum}`;
 		let id = base;
 		let suffix = 2;
 		while (doc.chapters.some((c) => c.id === id)) id = `${base}-${suffix++}`;
-		doc.chapters.push({ id, label: 'Untitled horizon', hint: '', items: [] });
+		doc.chapters.push({ id, label: 'Untitled horizon', hint: 'Items will appear in this horizon once they are planned.', items: [] });
 		selection = { area: 'chapter', chapterId: id };
 		notice = 'Chapter added. Give it a name and at least one item.';
 	}
@@ -335,9 +512,13 @@
 			notice = 'That key already exists.';
 			return false;
 		}
-		doc[kind][cleanKey] = { label: label.trim() };
+		doc[kind] = { ...doc[kind], [cleanKey]: { label: label.trim() } };
 		notice = 'Entry added.';
 		return true;
+	}
+
+	function updateVocab(kind: 'stages' | 'confidence', key: string, label: string) {
+		doc[kind] = { ...doc[kind], [key]: { label } };
 	}
 
 	function removeVocab(kind: 'stages' | 'confidence', key: string) {
@@ -385,8 +566,18 @@
 				first.focus();
 			}
 		};
+		const handlePublishShortcut = (event: KeyboardEvent) => {
+			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+				event.preventDefault();
+				if (!publishing && dirty && issues.length === 0) void publish();
+			}
+		};
 		window.addEventListener('keydown', handleDialogKeydown);
-		return () => window.removeEventListener('keydown', handleDialogKeydown);
+		window.addEventListener('keydown', handlePublishShortcut);
+		return () => {
+			window.removeEventListener('keydown', handleDialogKeydown);
+			window.removeEventListener('keydown', handlePublishShortcut);
+		};
 	});
 </script>
 
@@ -395,21 +586,25 @@
 	<meta name="description" content="Edit your public roadmap and publish it live." />
 </svelte:head>
 
-<div class="briefing-page" inert={dialog ? true : undefined}>
+	<div class="briefing-page" inert={dialog ? true : undefined}>
 	<header class="page-header">
 		<div>
 			<h1>Roadmap editor</h1>
 			<p class="lede">Shape what your customers see on your public roadmap. Nothing goes live until you publish.</p>
 		</div>
 		<div class="briefing-summary" aria-label="Editor summary">
-			<span><strong>{chapterCount}</strong> chapters</span>
-			<span><strong>{itemCount}</strong> items</span>
-			{#if issues.length > 0}
-				<span class="validity invalid">{issues.length} to fix</span>
-			{:else if dirty}
-				<span class="validity pending">Unpublished changes</span>
+			{#if loading}
+				<span class="validity pending animate-pulse">Loading…</span>
 			{:else}
-				<span class="validity valid">Published</span>
+				<span><strong>{chapterCount}</strong> chapters</span>
+				<span><strong>{itemCount}</strong> items</span>
+				{#if issues.length > 0}
+					<span class="validity invalid">{issues.length} to fix</span>
+				{:else if dirty}
+					<span class="validity pending">Unpublished changes</span>
+				{:else}
+					<span class="validity valid animate-[pop_300ms_ease]">Published ✓</span>
+				{/if}
 			{/if}
 		</div>
 	</header>
@@ -427,9 +622,12 @@
 		{#if dirty}
 			<button type="button" class="reset-button" onclick={discardChanges}>Discard changes</button>
 		{:else}
-			<button type="button" class="reset-button" onclick={resetDoc}><Refresh size={13} weight="Outline" aria-hidden="true" />Start over</button>
+			<button type="button" class="reset-button" onclick={() => { if (confirm('Start over will replace your current draft with the original sample. This cannot be undone. Continue?')) resetDoc(); }}><Refresh size={13} weight="Outline" aria-hidden="true" />Start over</button>
 		{/if}
 	</div>
+	{#if tenantSlug}
+		<a href={`https://roadmap.productclient.com/${tenantSlug}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-[14px] text-[var(--pc-accent-light)] hover:underline"><Globe size={14} weight="Outline" aria-hidden="true" /> Live site</a>
+	{/if}
 
 	{#if notice}<p class="save-notice" role="status" aria-live="polite">{notice}</p>{/if}
 
@@ -486,10 +684,10 @@
 					<div class="field field-wide"><Label for="ed-site-description" required>Short description</Label><Textarea id="ed-site-description" rows={3} bind:value={site.description} /></div>
 					<div class="field"><Label for="ed-site-url" required>Website address</Label><Input id="ed-site-url" bind:value={site.url} placeholder="https://roadmap.example.com" /></div>
 					<div class="field"><Label for="ed-site-locale" required>Language</Label><Input id="ed-site-locale" bind:value={site.locale} placeholder="en-US" /></div>
-					<div class="field"><Label for="ed-site-logo-src" required>Logo image</Label><Input id="ed-site-logo-src" bind:value={site.logo.src} /></div>
+					<div class="field"><Label for="ed-site-logo-src" required>Logo image</Label><div class="flex gap-2"><Input id="ed-site-logo-src" bind:value={site.logo.src} class="flex-1" /><label class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--pc-surface)] px-3 text-xs hover:bg-[var(--pc-surface-2)]"><Upload size={14} weight="Outline" aria-hidden="true" />{uploadingField === 'logo' ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" class="hidden" onchange={(e) => handleAssetUpload('logo', e)} /></label></div>{#if site.logo.src}<img src={site.logo.src} alt="" class="mt-2 h-10 w-10 rounded-lg object-cover" />{/if}</div>
 					<div class="field"><Label for="ed-site-logo-alt" required>Logo description</Label><Input id="ed-site-logo-alt" bind:value={site.logo.alt} /></div>
-					<div class="field"><Label for="ed-site-icon" required>App icon</Label><Input id="ed-site-icon" bind:value={site.icon} /></div>
-					<div class="field"><Label for="ed-site-favicon" required>Browser tab icon</Label><Input id="ed-site-favicon" bind:value={site.favicon} /></div>
+					<div class="field"><Label for="ed-site-icon" required>App icon</Label><div class="flex gap-2"><Input id="ed-site-icon" bind:value={site.icon} class="flex-1" /><label class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--pc-surface)] px-3 text-xs hover:bg-[var(--pc-surface-2)]"><Upload size={14} weight="Outline" aria-hidden="true" />{uploadingField === 'icon' ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" class="hidden" onchange={(e) => handleAssetUpload('icon', e)} /></label></div>{#if site.icon}<img src={site.icon} alt="" class="mt-2 h-10 w-10 rounded-lg object-cover" />{/if}</div>
+					<div class="field"><Label for="ed-site-favicon" required>Browser tab icon</Label><div class="flex gap-2"><Input id="ed-site-favicon" bind:value={site.favicon} class="flex-1" /><label class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--pc-surface)] px-3 text-xs hover:bg-[var(--pc-surface-2)]"><Upload size={14} weight="Outline" aria-hidden="true" />{uploadingField === 'favicon' ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" class="hidden" onchange={(e) => handleAssetUpload('favicon', e)} /></label></div>{#if site.favicon}<img src={site.favicon} alt="" class="mt-2 h-8 w-8 rounded object-cover" />{/if}</div>
 				</div>
 			{:else if selection.area === 'seo'}
 				{@const seo = doc.seo}
@@ -499,7 +697,7 @@
 					<div class="field"><Label for="ed-seo-title" required>Main title</Label><Input id="ed-seo-title" bind:value={seo.defaultTitle} /></div>
 					<div class="field"><Label for="ed-seo-color" required>Browser theme color</Label><Input id="ed-seo-color" bind:value={seo.themeColor} placeholder="#101010" /></div>
 					<div class="field field-wide"><Label for="ed-seo-description" required>Search description</Label><Textarea id="ed-seo-description" rows={3} bind:value={seo.description} /></div>
-					<div class="field"><Label for="ed-seo-og" required>Share image</Label><Input id="ed-seo-og" bind:value={seo.ogImage} /></div>
+					<div class="field"><Label for="ed-seo-og" required>Share image</Label><div class="flex gap-2"><Input id="ed-seo-og" bind:value={seo.ogImage} class="flex-1" /><label class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-[var(--pc-surface)] px-3 text-xs hover:bg-[var(--pc-surface-2)]"><Upload size={14} weight="Outline" aria-hidden="true" />{uploadingField === 'ogImage' ? 'Uploading…' : 'Upload'}<input type="file" accept="image/*" class="hidden" onchange={(e) => handleAssetUpload('ogImage', e)} /></label></div>{#if seo.ogImage}<img src={seo.ogImage} alt="" class="mt-2 h-20 w-auto rounded-lg object-cover" />{/if}</div>
 				</div>
 				<p class="section-note">In the title pattern, &#123;title} becomes the page name and &#123;site} becomes your product name.</p>
 			{:else if selection.area === 'navigation'}
@@ -524,11 +722,11 @@
 			{:else if selection.area === 'stages'}
 				<div class="surface-heading"><div><h2>Work stages</h2></div><span>{Object.keys(doc.stages).length} entries</span></div>
 				<p class="section-note">The status words items can carry, like Building or Idea. Customers see the labels.</p>
-				<VocabEditor kind="stages" entries={doc.stages} usage={stageUsage} onAdd={addVocab} onRemove={removeVocab} armedKey={armedDelete} />
+				<VocabEditor kind="stages" entries={doc.stages} usage={stageUsage} onAdd={addVocab} onRemove={removeVocab} onUpdate={updateVocab} armedKey={armedDelete} />
 			{:else if selection.area === 'confidence'}
 				<div class="surface-heading"><div><h2>Confidence levels</h2></div><span>{Object.keys(doc.confidence).length} entries</span></div>
 				<p class="section-note">How sure you are, in plain words. Shown under every item instead of dates.</p>
-				<VocabEditor kind="confidence" entries={doc.confidence} usage={confidenceUsage} onAdd={addVocab} onRemove={removeVocab} armedKey={armedDelete} />
+				<VocabEditor kind="confidence" entries={doc.confidence} usage={confidenceUsage} onAdd={addVocab} onRemove={removeVocab} onUpdate={updateVocab} armedKey={armedDelete} />
 			{:else if selection.area === 'theme'}
 				{@const theme = doc.theme}
 				<div class="surface-heading"><div><h2>Appearance</h2></div></div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { AlertTriangle, Box, BranchDown, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, History, Inbox, MessageDots, QuoteUpSquare, Roadmap, Settings } from 'reicon-svelte';
 	import { Collapsible } from 'bits-ui';
@@ -6,6 +7,9 @@
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
 	import { panelRegistry } from './sidebar/panelRegistry';
 	import WorkspaceHoverPanel from './sidebar/WorkspaceHoverPanel.svelte';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
+	import type { SignalKey } from '$lib/data/signalRegistry.svelte';
 
 	let {
 		collapsed = $bindable(false),
@@ -27,7 +31,7 @@
 			label: 'Understand',
 			items: [
 				{ label: 'Products', href: '/workspace/products', icon: Box },
-				{ label: 'Inbox', href: '/workspace/inbox', icon: Inbox, badge: 6 },
+				{ label: 'Inbox', href: '/workspace/inbox', icon: Inbox, signalKey: 'inbox' as SignalKey },
 				{ label: 'Feedback', href: '/workspace/feedback', icon: MessageDots },
 				{ label: 'Docs', href: '/workspace/docs', icon: FileText },
 				{ label: 'Proof', href: '/workspace/proof', icon: QuoteUpSquare }
@@ -44,7 +48,7 @@
 			label: 'Deliver',
 			items: [
 				{ label: 'Releases', href: '/workspace/releases', icon: History },
-				{ label: 'Incidents', href: '/workspace/incidents', icon: AlertTriangle, badge: 2 }
+				{ label: 'Incidents', href: '/workspace/incidents', icon: AlertTriangle, signalKey: 'incidents' as SignalKey }
 			]
 		},
 		{
@@ -60,6 +64,7 @@
 
 	function isActive(href: string) {
 		if (href === '/') return path === '/';
+		if (href === '/workspace/incidents' && (path === '/workspace/status' || path.startsWith('/workspace/status/'))) return true;
 		return path === href || path.startsWith(`${href}/`);
 	}
 
@@ -68,6 +73,10 @@
 	}
 
 	const panelDefs = panelRegistry;
+
+	onMount(() => {
+		void hydrateSignalRegistry();
+	});
 
 	let pinnedHref = $derived(workspaceItems.find((item) => isActive(item.href))?.href ?? null);
 	let displayHref = $derived(pinnedHref);
@@ -98,15 +107,16 @@
 							<div>
 								<p class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] text-[var(--pc-text-faint)] antialiased">{group.label}</p>
 								<nav class="space-y-1" aria-label={group.label}>
-									{#each group.items as item (item.href)}
-										{@const Icon = item.icon}
-										<a
+										{#each group.items as item (item.href)}
+											{@const Icon = item.icon}
+											{@const badge = item.signalKey ? signalRegistry[item.signalKey].count : 0}
+											<a
 											href={item.href}
 											aria-current={isActive(item.href) ? 'page' : undefined}
 											class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium leading-[1.3] tracking-[-0.01em] transition-[background-color,color,transform] duration-100 active:scale-[0.98] {isActive(item.href) ? activeClass : inactiveClass} {focusClass}"
 										>
 											<Icon size={16} weight="Filled" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>
-											{#if item.badge}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[11px] font-medium leading-none tracking-[-0.01em] text-white">{item.badge}</span>{/if}
+												{#if badge > 0}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[11px] font-medium leading-none tracking-[-0.01em] text-white">{badge}</span>{/if}
 										</a>
 									{/each}
 								</nav>
@@ -132,15 +142,16 @@
 					<div class="flex w-full flex-col items-center gap-3 px-1" role="group" aria-label="Workspace groups">
 						{#each workspaceGroups as group (group.label)}
 							<nav class="flex w-full flex-col items-center gap-1.5" aria-label={group.label}>
-								{#each group.items as item (item.href)}
-									{@const Icon = item.icon}
+												{#each group.items as item (item.href)}
+													{@const Icon = item.icon}
+													{@const badge = item.signalKey ? signalRegistry[item.signalKey].count : 0}
 									<a
 										href={item.href}
 										aria-current={isActive(item.href) ? 'page' : undefined}
 										aria-label={item.label}
-										title={item.label}
-										class="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-100 active:scale-[0.96] {isActive(item.href) ? activeClass : inactiveClass} {focusClass}"
-									><Icon size={18} weight="Filled" aria-hidden="true" />{#if item.badge}<span class="absolute -right-0.5 -top-0.5 grid size-3.5 place-items-center rounded-full bg-[var(--pc-accent)] text-[7px] font-medium leading-none text-white">{item.badge}</span>{/if}</a>
+										class="relative grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color,transform] duration-100 active:scale-[0.96] {isActive(item.href) ? activeClass : inactiveClass} {focusClass} after:absolute after:-inset-1 after:content-[''] after:rounded-xl"
+										use:tooltip={{ text: item.label, typeX: 'right', typeY: 'center' }}
+													><Icon size={18} weight="Filled" aria-hidden="true" />{#if badge > 0}<span class="absolute -right-0.5 -top-0.5 grid size-3.5 place-items-center rounded-full bg-[var(--pc-accent)] text-[7px] font-medium leading-none text-white">{badge}</span>{/if}</a>
 								{/each}
 							</nav>
 							{#if group.label !== 'Observe'}<div class="h-px w-6 bg-[var(--pc-border-strong)] opacity-[0.08]" aria-hidden="true"></div>{/if}
@@ -148,8 +159,8 @@
 					</div>
 				</div>
 				<div class="flex shrink-0 flex-col items-center gap-2 border-t border-[var(--pc-border-strong)]/10 px-2 pb-1 pt-3">
-					<a href="/workspace/settings" aria-label="Settings" title="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass}"><Settings size={18} weight="Filled" aria-hidden="true" /></a>
-					<a href="/you" aria-label="Profile — Lorenze" title="Lorenze" class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''}"><Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile — Lorenze" size="sm" /></a>
+					<a href="/workspace/settings" aria-label="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: 'Settings', typeX: 'right', typeY: 'center' }}><Settings size={18} weight="Filled" aria-hidden="true" /></a>
+					<a href="/you" aria-label="Profile — Lorenze" class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: 'Lorenze — Profile', typeX: 'right', typeY: 'center' }}><Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile — Lorenze" size="sm" /></a>
 				</div>
 			</div>
 		{/if}
@@ -192,7 +203,9 @@
 					<nav class="space-y-0.5" aria-label={group.label}>
 						<p class="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] antialiased text-[var(--pc-text-faint)]">{group.label}</p>
 						{#each group.items as item (item.href)}
-							{@const Icon = item.icon}<a href={item.href} onclick={closeMobile} class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] {isActive(item.href) ? activeClass + ' font-medium' : inactiveClass} {focusClass}"><Icon size={16} weight="Filled" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>{#if item.badge}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[9px] font-medium text-white">{item.badge}</span>{/if}</a>
+							{@const Icon = item.icon}
+							{@const badge = item.signalKey ? signalRegistry[item.signalKey].count : 0}
+							<a href={item.href} onclick={closeMobile} class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] {isActive(item.href) ? activeClass + ' font-medium' : inactiveClass} {focusClass}"><Icon size={16} weight="Filled" aria-hidden="true" /><span class="min-w-0 flex-1 truncate">{item.label}</span>{#if badge > 0}<span class="grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[9px] font-medium text-white">{badge}</span>{/if}</a>
 						{/each}
 					</nav>
 				{/each}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Select } from 'bits-ui';
 	import { ChevronDown, Check } from 'reicon-svelte';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	export type SelectOption = { value: string; label: string; disabled?: boolean };
 
@@ -11,7 +12,8 @@
 		id,
 		name,
 		disabled = false,
-		invalid = false
+		invalid = false,
+		onValueChange
 	}: {
 		value?: string;
 		options?: SelectOption[];
@@ -20,12 +22,14 @@
 		name?: string;
 		disabled?: boolean;
 		invalid?: boolean;
+		onValueChange?: (value: string) => void;
 	} = $props();
 
 	let selectedLabel = $derived(options.find((o) => o.value === value)?.label ?? '');
 </script>
 
-<Select.Root type="single" bind:value items={options} {name} {disabled}>
+<div class="pc-select-wrapper" use:tooltip={{ text: selectedLabel || placeholder, typeX: 'center', typeY: 'auto' }}>
+<Select.Root type="single" bind:value items={options} {name} {disabled} {onValueChange}>
 	<Select.Trigger
 		{id}
 		class="pc-select-trigger {invalid ? 'pc-select-invalid' : ''}"
@@ -49,8 +53,9 @@
 				{/each}
 			</Select.Viewport>
 		</Select.Content>
-	</Select.Portal>
-</Select.Root>
+		</Select.Portal>
+	</Select.Root>
+</div>
 
 <style>
 	:global(.pc-select-trigger) {
@@ -76,7 +81,7 @@
 		transition: background-color 100ms ease, border-color 100ms ease;
 	}
 	:global(.pc-select-trigger:hover) { background: var(--pc-surface); }
-	:global(.pc-select-trigger:focus-visible) { border-color: var(--pc-focus-ring); box-shadow: 0 0 0 0.5px var(--pc-focus-ring); }
+	:global(.pc-select-trigger:focus-visible) { border-color: var(--pc-focus-ring); box-shadow: 0 0 0 2px var(--pc-focus-ring); }
 	:global(.pc-select-trigger[data-placeholder]) { color: var(--pc-text-faint); }
 	:global(.pc-select-trigger[aria-disabled="true"]) { cursor: not-allowed; opacity: 0.5; }
 	:global(.pc-select-value) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

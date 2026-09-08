@@ -104,7 +104,7 @@ export type IncidentRecord = {
 	id: string;
 	title: string;
 	summary: string;
-	status: 'Investigating' | 'Monitoring' | 'Resolved';
+	status: 'Investigating' | 'Identified' | 'Monitoring' | 'Resolved';
 	severity: 'Critical' | 'High impact' | 'Medium impact';
 	productSlug: string;
 	productName: string;

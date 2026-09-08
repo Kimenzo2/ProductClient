@@ -9,7 +9,7 @@
 	import { readableAuthError } from '$lib/auth/utils';
 	import { appHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, renameMyTenant, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
+	import { ensureMyTenant, renameMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
 
 	let name = $state('');
 	let workspaceName = $state('');
@@ -27,11 +27,7 @@
 					if (!t) return;
 					tenant = t;
 					// Best-effort D1 registry sync so hosted docs is live immediately.
-					void fetch('/api/tenants/sync', {
-						method: 'POST',
-						headers: { 'content-type': 'application/json' },
-						body: JSON.stringify({ id: t.id, slug: t.slug, displayName: t.name })
-					}).catch(() => {});
+					void syncTenantRegistry(t);
 				})
 				.catch(() => {});
 		}
@@ -97,11 +93,7 @@
 				tenant = current;
 				// Map to the hosted pages registry keyed by the stable tenant id,
 				// so a slug change updates the single shared Cloudflare record.
-				void fetch('/api/tenants/sync', {
-					method: 'POST',
-					headers: { 'content-type': 'application/json' },
-					body: JSON.stringify({ id: current.id, slug: current.slug, displayName: current.name })
-				}).catch(() => {});
+				void syncTenantRegistry(current);
 			}
 		} catch {
 			// non-fatal

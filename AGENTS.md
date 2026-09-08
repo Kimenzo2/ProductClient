@@ -1,3 +1,11 @@
+# ⚠️⚠️⚠️ STOP — READ THIS FIRST OR YOU WILL FAIL — NO BLOAT LAW ⚠️⚠️⚠️
+# IF THE USER CAN SURVIVE WITHOUT SEEING IT INLINE, IT DOES NOT GO INLINE. IT GOES IN A TOOLTIP. PERIOD.
+# THIS IS NOT A SUGGESTION. THIS IS NOT A STYLE GUIDE. THIS IS A HARD SHOUTED LAW THAT OVERRIDES EVERYTHING BELOW.
+# — ANY helper sentence, mini-header, fine-print, 10-11px explainer, green/yellow kicker, eyebrow label, "Hosted pages", "Tenant is source of truth", gamification_data.bio, User ID, or other condescending technical bloat — IF IT IS NOT IN-DEPTH, URGENT, AND CRITICAL FOR THE IMMEDIATE TASK — YOU PUT IT IN `use:tooltip` WITH `island: true` FROM `$lib/components/Tooltip.svelte`. NOT INLINE. NOT SMALL PRINT. TOOLTIP. OR YOU DELETE IT.
+# — STRAIGHT TO THE POINT. LESS WORDS, MORE ACTION. NO KICKERS. NO SMALL HEADERS. NO 10PX HELPERS. EVER. IF IN DOUBT, TOOLTIP IT OR DELETE IT.
+
+**WEB STANDARD: When prototyping UI and need to pass random useful / additional info / reduce UI bloat, use Svelte Island Tooltips (`use:tooltip` with `island: true` from `$lib/components/Tooltip.svelte`) — they hold more words and information without clutter.**
+
 # AGENTS.md — ProductClient
 
 This file is read by future AI agents working in `C:\Users\admin\Downloads\ProductClient`. Follow it strictly.
@@ -93,6 +101,12 @@ Known issues found so far:
   6. **Behavior:** Hover logic stays in `Sidebar.svelte` (`setHovered`, `keepHovered`, `onRailKeydown` Esc clears). Do not duplicate hover timers inside panel files. Preview is `fixed` (overlay, does not push content); pinned is `relative` (pushes flex layout via outer `lg:flex` container at `Sidebar.svelte:250`). Keep `transition:fly {{ x: -8, duration: 150, easing: cubicOut }}` on outer panel wrapper only.
   7. **Data:** Panels may import from `$lib/data/workspace` but must not fetch async or create stores — keep synchronous derived from mock data so SSR is deterministic. For real navigation (filters, sub-routes like `/workspace/docs/[slug]`), the route's own `+page.svelte`/`+layout.svelte` remains source of truth; panel is preview/nav shortcut only, not replacement.
   8. **Checklist when adding a panel:** `rg -n "<svg" src` → empty, `bun run check` 0 errors, `bun run build` success (ignore Windows `adapter-vercel` symlink EPERM at `closeBundle` — Vite client/server chunks must still build), manual hover test on `localhost:5175/workspace/<route>` in both dark/light (panel must be fully opaque and sit above roadmap/cards, no bleed-through).
+## 10) Typography — No Kickers, No Small Headers, No Bloat
+- **Never add green/yellow kickers** like `CUSTOMER-FACING RECORD`, `RESPONSE`, or `INCIDENTS` eyebrow labels. The ProductClient UI is straight to the point — headings are plain `h2`/`h3` at 16-22px, no 10px uppercase letter-spacing.
+- **Never add tiny helper text** at 10-11px to explain the obvious. User knows their way around. If extra info is needed, use Svelte Island Tooltips (`use:tooltip island:true` from `$lib/components/Tooltip.svelte`) — not inline small print or condescending technical terms (`Tenant is source of truth`, `gamification_data.bio`, `User ID`, `Hosted pages`).
+- **Modals:** `Public incident history` modal must be plain: title `Public incident history` only, no `CUSTOMER-FACING RECORD` eyebrow, no `INCIDENTS 1` picker heading, no `Published updates` list heading. Detail shows title/date/summary/facts/updates only. Less words, more action.
+- **Declare flow:** `Declare incident` has no `What should customers hear?` section — the incident summary is the public message. No extra toggles or post-incident flow checkboxes in the compose step.
+
 # ProductClient Agent Rules
 
 ## NON-NEGOTIABLE BRANDING RULE

@@ -5,7 +5,8 @@
 	import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, CloseCircle, Export, History, Search, User } from 'reicon-svelte';
 	import { Button, Input, Label, Select } from '$lib/components/ui';
 	import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '$lib/data/postIncidentFlow.svelte';
-	import { incidents, type IncidentRecord, type PostIncidentTask } from '$lib/data/workspace';
+	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+	import type { IncidentRecord, PostIncidentTask } from '$lib/data/workspace';
 
 	type FlowPhase = PostIncidentTask['phase'];
 	type FlowFilter = 'All flows' | 'Needs action' | 'Complete';
@@ -41,7 +42,7 @@
 
 	let tasks = $derived(postIncidentFlowPreview.tasks);
 	let flowIncidents = $derived<FlowIncident[]>(
-		incidents
+		incidentRecordsForWorkspace()
 			.map((incident) => {
 				const incidentTasks = tasks.filter((task) => task.incidentId === incident.id);
 				const completeCount = incidentTasks.filter(isClosed).length;
@@ -76,10 +77,7 @@
 	);
 
 	onMount(() => {
-		hydratePostIncidentFlow();
-		const requestedId = page.url.searchParams.get('selected');
-		selectedId = flowIncidents.some((flow) => flow.id === requestedId) ? requestedId ?? '' : '';
-
+		let disposed = false;
 		const handleEditorKeydown = (event: KeyboardEvent) => {
 			if (!editingTask) return;
 			if (event.key === 'Escape') {
@@ -101,7 +99,17 @@
 			}
 		};
 		window.addEventListener('keydown', handleEditorKeydown);
-		return () => window.removeEventListener('keydown', handleEditorKeydown);
+		void (async () => {
+			await hydrateStatusEditor();
+			await hydratePostIncidentFlow(true);
+			if (disposed) return;
+			const requestedId = page.url.searchParams.get('selected');
+			selectedId = flowIncidents.some((flow) => flow.id === requestedId) ? requestedId ?? '' : '';
+		})();
+		return () => {
+			disposed = true;
+			window.removeEventListener('keydown', handleEditorKeydown);
+		};
 	});
 
 	$effect(() => {

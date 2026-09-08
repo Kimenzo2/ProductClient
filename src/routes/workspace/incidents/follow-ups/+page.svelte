@@ -5,7 +5,8 @@
 	import { AlertTriangle, ArrowRight, Calendar, CheckCircle, Clock, Export, History, Search, User } from 'reicon-svelte';
 	import { Button, Input, Label, Select } from '$lib/components/ui';
 	import { followUpPreview, hydrateFollowUps, resetFollowUps, updateFollowUp } from '$lib/data/followUps.svelte';
-	import { incidents, type FollowUpRecord, type IncidentRecord } from '$lib/data/workspace';
+	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+	import type { FollowUpRecord, IncidentRecord } from '$lib/data/workspace';
 
 	type FollowUpFilter = 'Everything' | FollowUpRecord['status'];
 	type EnrichedFollowUp = FollowUpRecord & { incident?: IncidentRecord };
@@ -22,7 +23,7 @@
 
 	let records = $derived<EnrichedFollowUp[]>(followUpPreview.records.map((followUp) => ({
 		...followUp,
-		incident: incidents.find((incident) => incident.id === followUp.incidentId)
+		incident: incidentRecordsForWorkspace().find((incident) => incident.id === followUp.incidentId)
 	})));
 	let openCount = $derived(records.filter((followUp) => followUp.status !== 'Done').length);
 	let normalizedQuery = $derived(query.trim().toLowerCase());
@@ -47,8 +48,9 @@
 			.map((owner) => ({ value: owner, label: owner }))
 	);
 
-	onMount(() => {
-		hydrateFollowUps();
+	onMount(async () => {
+		await hydrateStatusEditor();
+		await hydrateFollowUps(true);
 		const requestedId = page.url.searchParams.get('selected');
 		selectedId = records.some((followUp) => followUp.id === requestedId) ? requestedId ?? '' : records[0]?.id ?? '';
 	});
@@ -226,7 +228,7 @@
 <style>
 	.follow-up-page { width: min(100% - 32px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
-	.kicker { margin: 0 0 8px; color: var(--pc-accent-light); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+
 	h1, h2, h3, p { margin-top: 0; }
 	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
 	.lede { max-width: 54ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }

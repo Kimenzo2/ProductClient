@@ -7,9 +7,9 @@ export const proofPanel: PanelDef = {
 	icon: QuoteUpSquare,
 	description: 'Customer stories and social proof',
 	links: [
-		{ label: 'All stories', href: '/workspace/proof', badge: proofs.length },
-		{ label: 'Approved', href: '/workspace/proof?status=Approved', badge: proofs.filter((p) => p.status === 'Approved').length },
-		{ label: 'Needs review', href: '/workspace/proof?status=Needs+review', badge: proofs.filter((p) => p.status === 'Needs review').length }
+		{ label: 'All stories', href: '/workspace/proof' },
+		{ label: 'Approved', href: '/workspace/proof?status=Approved' },
+		{ label: 'Needs review', href: '/workspace/proof?status=Needs+review' }
 	],
 	recent: proofs.slice(0, 3).map((p) => ({ label: p.quote.slice(0, 42) + '…', subtitle: `${p.name} · ${p.status}`, href: `/workspace/proof#${p.id}` })),
 	action: { label: 'Add story', href: '/workspace/proof' }

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import type { PanelDef } from './types';
+	import { signalRegistry } from '$lib/data/signalRegistry.svelte';
 
 	let {
 		panel,
@@ -48,6 +49,8 @@
 		<nav class="space-y-1" aria-label={`${panel.label} quick links`}>
 			{#each panel.links as link (link.href + link.label)}
 				{@const active = isLinkActive(link.href)}
+				{@const signalCount = link.signalKey ? signalRegistry[link.signalKey].count : 0}
+				{@const hasBadge = link.signalKey ? signalCount > 0 : link.badge !== undefined}
 				<a
 					href={link.href}
 					target={link.external ? '_blank' : undefined}
@@ -58,7 +61,7 @@
 					aria-current={active ? 'page' : undefined}
 				>
 					<span class="flex items-center gap-2"><span class="size-1 rounded-full bg-[var(--pc-text-faint)]" aria-hidden="true"></span>{link.label}</span>
-					{#if link.badge !== undefined}<span class="grid min-w-5 place-items-center rounded-full bg-[var(--pc-surface-2)] px-1.5 py-0.5 text-[11px] font-medium leading-none text-[var(--pc-text-muted)]">{link.badge}</span>{/if}
+					{#if hasBadge}<span class="grid min-w-5 place-items-center rounded-full bg-[var(--pc-surface-2)] px-1.5 py-0.5 text-[11px] font-medium leading-none text-[var(--pc-text-muted)]">{link.signalKey ? signalCount : link.badge}</span>{/if}
 				</a>
 			{/each}
 		</nav>

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { ArrowRight, History, Rocket } from 'reicon-svelte';
+	import { ArrowRight, History, InfoCircle, Rocket } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
 	import { Button, Card, Chip, Select } from '$lib/components/ui';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
 	import { releases, products } from '$lib/data/workspace';
 
 	type InternalStatus = 'Draft' | 'In review' | 'Ready' | 'Published';
@@ -49,6 +50,16 @@
 		<div class="flex items-center gap-2">
 			<span class="text-xs font-medium text-[var(--pc-text-muted)]">Product:</span>
 			<Select id="workspace-product" bind:value={productFilter} options={productOptions} placeholder="Select product" />
+			<span
+				class="inline-flex cursor-help"
+				use:tooltip={{
+					text: 'You’re viewing all products in this workspace. In production this list is scoped by workspace_id via RLS, not global mock.',
+					typeX: 'center',
+					typeY: 'bottom',
+					island: true
+				}}
+				aria-label="Workspace scope info"
+			><InfoCircle size={14} weight="Outline" class="opacity-50 hover:opacity-100 transition-opacity" aria-hidden="true" /></span>
 		</div>
 		<div class="h-5 w-px bg-[var(--pc-border-strong)]/30 hidden sm:block" aria-hidden="true"></div>
 		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Status filter">
@@ -58,7 +69,6 @@
 		</div>
 		<span class="ml-auto text-xs text-[var(--pc-text-faint)] tabular-nums">{filtered.length} internal</span>
 	</div>
-	<p class=" -mt-2 mb-4 text-xs leading-relaxed text-[var(--pc-text-faint)] max-w-[60ch]">You’re viewing <strong class="text-[var(--pc-text)] font-medium">{productFilter === 'all' ? 'all products in this workspace' : productOptions.find(p=>p.value===productFilter)?.label}</strong>. In production this list is scoped by <code class="rounded bg-[var(--pc-surface)] px-1 py-0.5">workspace_id</code> via RLS, not global mock.</p>
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Internal release timeline">
 			{#each filtered as release (release.id)}

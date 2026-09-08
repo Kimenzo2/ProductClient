@@ -35,7 +35,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* Button base + variants — oklch slash for any alpha (per conversion.md) */
-@source inline("inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity,transform] transition-[background-color,color,opacity] transition-[background-color] duration-150 duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96] bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)] bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] h-8 h-9 h-10 px-3 px-4 px-5 text-xs text-[13px] text-sm size-8 size-9 size-10 size-4 size-5 size-6 size-7 size-12 size-20 border-2 border-current border-t-transparent rounded-full animate-spin pointer-events-none opacity-50");
+@source inline("inline-flex items-center justify-center gap-2 font-medium rounded-full transition-[background-color,color,opacity,transform] transition-[background-color,color,opacity] transition-[background-color] duration-150 duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96] bg-[var(--pc-surface-2)] text-[var(--pc-text)] hover:bg-[var(--pc-border-strong)] bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] hover:border-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)] h-8 h-9 h-10 px-3 px-4 px-5 text-xs text-[13px] text-sm size-8 size-9 size-10 size-4 size-5 size-6 size-7 size-12 size-20 border-2 border-current border-t-transparent rounded-full animate-spin pointer-events-none opacity-50");
 
 /* Card + Chip */
 @source inline("rounded-[20px] bg-[var(--pc-surface)] block p-3 p-4 p-5 rounded-full font-normal whitespace-nowrap transition-[background-color,color] duration-150 text-[var(--pc-text-muted)] hover:bg-[var(--pc-border-strong)] bg-[rgba(119,152,18,0.15)] text-[rgb(119,152,18)] bg-transparent text-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)] px-2 py-0.5 text-[10px] px-2.5 py-1 items-center rounded-full font-medium");
@@ -61,8 +61,8 @@
 /* Separator + Label */
 @source inline("h-px w-full w-px h-full bg-[var(--pc-border-strong)] opacity-[0.15] block text-[13px] font-medium text-[var(--pc-text)] ml-0.5");
 
-/* Scrollbar + misc */
-@source inline("scrollbar-none flex flex-col items-center gap-1 space-y-0.5 px-3 pb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--pc-text-muted)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--pc-text-faint)] mt-0.5 mt-1 space-y-4 space-y-2 pt-3 opacity-65 hover:opacity-100 w-full justify-start gap-2.5 px-2.5 gap-2.5 rounded-xl px-2.5 py-2 text-[13px] transition-[background-color,color] duration-100 min-w-[56px] flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium text-[var(--pc-text-muted)] transition-[background-color,color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] bg-[var(--pc-bg)]/95 px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t border-[var(--pc-border-strong)]/20");
+/* Scrollbar + misc — includes deeply-routed Settings gap/rounded safeguards */
+@source inline("scrollbar-none flex flex-col items-center gap-1 space-y-0.5 px-3 pb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--pc-text-muted)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--pc-text-faint)] mt-0.5 mt-1 space-y-4 space-y-2 pt-3 opacity-65 hover:opacity-100 w-full justify-start gap-2.5 px-2.5 gap-2.5 rounded-xl px-2.5 py-2 text-[13px] transition-[background-color,color] duration-100 min-w-[56px] flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium text-[var(--pc-text-muted)] transition-[background-color,color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] bg-[var(--pc-bg)]/95 px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t border-[var(--pc-border-strong)]/20 lg:grid-cols-[200px_minmax(0,1fr)] gap-6 gap-4 gap-3 gap-2 rounded-[12px] rounded-[14px] rounded-[16px] p-4 px-4 py-3");
 
 /* Open Props utility overrides */
 @source inline("rounded-b-lg shadow-md rounded border border-gray-300 text-lg font-bold text-gray-900");
@@ -162,7 +162,7 @@
 	--pc-accent-hover: oklch(0.55 0.13 115);
 	--pc-accent-light: oklch(0.86 0.135 112);
 	--pc-accent-soft: oklch(0.68 0.12 115 / 0.16);
-	--pc-focus-ring: oklch(1 0 0 / 0.18);
+	--pc-focus-ring: oklch(0.95 0 0);
 	--pc-accent-strong: oklch(0.84 0.15 115);
 	--pc-accent-ring: oklch(0.86 0.135 112 / 0.45);
 	--pc-text-soft: oklch(0.72 0.01 0);
@@ -298,7 +298,7 @@ html.dark, :root.dark, .dark {
 	--pc-accent-hover: oklch(0.48 0.12 115);
 	--pc-accent-light: oklch(0.88 0.135 112);
 	--pc-accent-soft: oklch(0.95 0.05 115);
-	--pc-focus-ring: oklch(0 0 0 / 0.18);
+	--pc-focus-ring: oklch(0.25 0 0);
 	--pc-accent-strong: oklch(0.42 0.13 115);
 	--pc-accent-ring: oklch(0.88 0.135 112 / 0.35);
 	--pc-surface-raised: oklch(0.98 0 0);
@@ -382,7 +382,7 @@ a:where([href]):active, a:where([href]):visited, a:where([href]):focus-visible {
 }
 
 :focus-visible {
-	outline: 0.5px solid var(--pc-focus-ring);
+	outline: 2px solid var(--pc-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -471,3 +471,82 @@ html { scroll-behavior: smooth; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* ── Genesis Global Tooltip — toned down for ProductClient: subtle, not luxury — */
+.genesis-tooltip {
+  position: absolute;
+  border-radius: 8px;
+  background: var(--background, var(--pc-bg));
+  padding: 3px 9px;
+  text-transform: none;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--foreground, var(--pc-text));
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  max-width: min(240px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  transform: translateY(2px) scale(0.98);
+  opacity: 0;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground, var(--pc-text)) 10%, transparent), 0 4px 14px oklch(0 0 0 / 0.18);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  pointer-events: none;
+  z-index: 9999;
+  inset-inline-start: 0; /* logical for RTL */
+}
+.genesis-tooltip.anim {
+  transition-duration: 0.14s;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition-property: opacity, transform;
+}
+.genesis-tooltip.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.genesis-tooltip .txt {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  line-height: inherit;
+}
+/* Island — holds more words & information: title + desc, wider, card-like */
+.genesis-tooltip.island {
+  max-width: min(360px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  padding: 10px 12px;
+  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: start;
+  white-space: normal;
+}
+.genesis-tooltip.island .island-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--foreground, var(--pc-text));
+}
+.genesis-tooltip.island .island-desc {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--pc-text-muted, oklch(0.6 0 0));
+  margin-top: 4px;
+}
+.genesis-tooltip.island .island-body {
+  font-size: 12px;
+  line-height: 1.5;
+}
+:is(html.dark, .theme-dark) .genesis-tooltip {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground, var(--pc-text)) 12%, transparent), 0 4px 16px oklch(0 0 0 / 0.42);
+}
+@media (prefers-reduced-motion: reduce) {
+  .genesis-tooltip.anim { transition: none; }
+  .genesis-tooltip { transform: none; opacity: 0; }
+  .genesis-tooltip.show { transform: none; opacity: 1; }
+}
