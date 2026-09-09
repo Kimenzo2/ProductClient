@@ -17,7 +17,7 @@
 				<Input value={apiKey} disabled class="flex-1 font-mono" />
 				<Button size="sm" variant="outline" onclick={() => navigator.clipboard.writeText(apiKey)}><Copy size={14} weight="Outline" aria-hidden="true" /></Button>
 			</div>
-			<p class="mt-2 text-[13px] text-[var(--pc-text-muted)]">Last used 2 hours ago. <button type="button" class="text-[var(--pc-accent-light)] hover:underline">Revoke</button></p>
+			<p class="mt-2 text-[13px] text-[var(--pc-text-muted)]">Last used 2 hours ago. <button type="button" class="settings-text-action">Revoke</button></p>
 		</div>
 		<div class="rounded-[14px] bg-[var(--pc-surface)] p-4">
 			<h3 class="flex items-center gap-2 text-[14px] font-medium"><Share size={14} weight="Outline" aria-hidden="true" /> Webhooks</h3>

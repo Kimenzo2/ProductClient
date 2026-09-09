@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { statusPageForProduct, type StatusIncident, type StatusIncidentUpdate } from '$lib/data/status';
-import { incidents as workspaceIncidents } from '$lib/data/workspace';
+import { incidents as workspaceIncidents, productBySlug, products } from '$lib/data/workspace';
 import { getMyTenant, tenantStatusUrl } from '$lib/tenant';
 import { supabase } from '$lib/supabaseClient';
 
@@ -58,6 +58,7 @@ export type StatusEditorPage = {
 };
 
 export type StartPublicIncidentInput = {
+	productSlug: string;
 	title: string;
 	summary: string;
 	leadName: string;
@@ -138,8 +139,8 @@ function workspaceStatus(status: PublicIncidentStatus): StatusIncident['status']
 	return status === 'identified' ? 'Identified' : status === 'monitoring' ? 'Monitoring' : status === 'resolved' ? 'Resolved' : 'Investigating';
 }
 
-function incidentSeverity(incident: PublicIncident, serviceIds: string[]): StatusIncident['severity'] {
-	const services = statusEditorPreview.page.services.filter((service) => serviceIds.includes(service.id));
+function incidentSeverity(incident: PublicIncident, serviceIds: string[], servicesSource = statusEditorPreview.page.services): StatusIncident['severity'] {
+	const services = servicesSource.filter((service) => serviceIds.includes(service.id));
 	if (services.some((service) => service.status === 'outage')) return 'High impact';
 	if (services.some((service) => service.status === 'degraded')) return 'Medium impact';
 	return workspaceIncidents.find((record) => record.id === incident.id)?.severity ?? 'Medium impact';
@@ -211,6 +212,7 @@ function isStoredPage(value: unknown): value is StatusEditorPage {
 
 export const statusEditorPreview = $state({
 	page: createSeedPage(),
+	productPages: {} as Record<string, StatusEditorPage>,
 	hydrated: false,
 	loadState: 'loading' as StatusEditorLoadState,
 	loadError: '',
@@ -221,41 +223,82 @@ export const statusEditorPreview = $state({
 	edgeSynced: true
 });
 
+function pageForProduct(slug: string): StatusEditorPage {
+	if (statusEditorPreview.page.productSlug === slug) return statusEditorPreview.page;
+	const cached = statusEditorPreview.productPages[slug];
+	if (cached) return cached;
+	const created = createSeedPage(slug, productBySlug(slug)?.name ?? slug);
+	statusEditorPreview.productPages[slug] = created;
+	return created;
+}
+
+function getPageForProduct(slug: string): StatusEditorPage {
+	if (statusEditorPreview.page.productSlug === slug) return statusEditorPreview.page;
+	return statusEditorPreview.productPages[slug] ?? createSeedPage(slug, productBySlug(slug)?.name ?? slug);
+}
+
+export function servicesForProduct(slug: string): StatusEditorService[] {
+	return getPageForProduct(slug).services;
+}
+
+function productSlugsInPreview() {
+	return [...new Set([
+		...products.map((product) => product.slug),
+		statusEditorPreview.page.productSlug,
+		...Object.keys(statusEditorPreview.productPages)
+	])];
+}
+
+function pageForIncident(incidentId: string): StatusEditorPage | undefined {
+	return productSlugsInPreview()
+		.map((slug) => pageForProduct(slug))
+		.find((page) => page.incidents.some((incident) => incident.id === incidentId));
+}
+
 /**
  * Internal Incident surfaces read this projection instead of a second fixture.
  * The editor remains the source of truth for the customer-facing incident, while
  * workspace-only fields fall back to the original incident record when present.
  */
 export function incidentRecordsForWorkspace(): StatusIncident[] {
-	const page = statusEditorPreview.page;
-	const productName = page.pageTitle.replace(/\s+status$/i, '');
-	return page.incidents.map((incident) => {
-		const original = workspaceIncidents.find((record) => record.id === incident.id);
-		return {
-			id: incident.id,
-			title: incident.title,
-			summary: incident.summary,
-			status: workspaceStatus(incident.status),
-			severity: original?.severity ?? incidentSeverity(incident, incident.affectedServices),
-			productSlug: page.productSlug,
-			productName: original?.productName ?? productName,
-			startedAt: displayTimestamp(incident.startedAt, original?.startedAt ?? 'Unknown'),
-			...(incident.resolvedAt ? { resolvedAt: displayTimestamp(incident.resolvedAt, incident.resolvedAt) } : {}),
-			owner: incident.leadName?.trim() || original?.owner || 'Unassigned',
-			publicPath: original?.publicPath ?? tenantStatusUrl(page.productSlug),
-			workspacePath: `/workspace/incidents/${incident.id}`,
-			affectedComponentIds: [...incident.affectedServices],
-			updates: incident.updates.map((update): StatusIncidentUpdate => ({
-				id: update.id,
-				status: update.status === 'investigating' ? 'Investigating' : update.status === 'identified' ? 'Identified' : update.status === 'monitoring' ? 'Monitoring' : 'Resolved',
-				timestamp: displayTimestamp(update.publishedAt, update.publishedAt),
-				message: update.message
-			}))
-		};
+	const hostedStatusHref = tenantStatusUrl(statusEditorPreview.page.productSlug);
+	return productSlugsInPreview().flatMap((productSlug) => {
+		const page = getPageForProduct(productSlug);
+		const productName = productBySlug(productSlug)?.name ?? page.pageTitle.replace(/\s+status$/i, '');
+		return page.incidents.map((incident) => {
+			const original = workspaceIncidents.find((record) => record.id === incident.id);
+			return {
+				id: incident.id,
+				title: incident.title,
+				summary: incident.summary,
+				status: workspaceStatus(incident.status),
+				severity: original?.severity ?? incidentSeverity(incident, incident.affectedServices, page.services),
+				productSlug,
+				productName: original?.productName ?? productName,
+				startedAt: displayTimestamp(incident.startedAt, original?.startedAt ?? 'Unknown'),
+				...(incident.resolvedAt ? { resolvedAt: displayTimestamp(incident.resolvedAt, incident.resolvedAt) } : {}),
+				owner: incident.leadName?.trim() || original?.owner || 'Unassigned',
+				// The hosted Status Page is tenant-scoped today. Product context is
+				// carried by the Incident record without inventing a product hostname.
+				publicPath: original?.publicPath ?? hostedStatusHref,
+				workspacePath: `/workspace/incidents/${incident.id}`,
+				affectedComponentIds: [...incident.affectedServices],
+				updates: incident.updates.map((update): StatusIncidentUpdate => ({
+					id: update.id,
+					status: update.status === 'investigating' ? 'Investigating' : update.status === 'identified' ? 'Identified' : update.status === 'monitoring' ? 'Monitoring' : 'Resolved',
+					timestamp: displayTimestamp(update.publishedAt, update.publishedAt),
+					message: update.message
+				}))
+			};
+		});
 	});
 }
 
-type StoredPreview = { page: StatusEditorPage; savedAt: number };
+type StoredPreview = {
+	page: StatusEditorPage;
+	productPages?: Record<string, StatusEditorPage>;
+	savedAt: number;
+};
 
 let storageKey = `${STORAGE_KEY_PREFIX}.guest.mossbit`;
 // Enterprise: Click Publish is the only source of truth — no debounced auto-save.
@@ -272,9 +315,15 @@ function readStoredPreview(): StoredPreview | null {
 	try {
 		const parsed: unknown = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null');
 		if (!parsed || typeof parsed !== 'object') return null;
-		const candidate = parsed as { page?: unknown; savedAt?: unknown };
+		const candidate = parsed as { page?: unknown; productPages?: unknown; savedAt?: unknown };
 		if (!isStoredPage(candidate.page) || typeof candidate.savedAt !== 'number') return null;
-		return { page: clonePage(candidate.page), savedAt: candidate.savedAt };
+		const storedPages: Record<string, StatusEditorPage> = {};
+		if (candidate.productPages && typeof candidate.productPages === 'object' && !Array.isArray(candidate.productPages)) {
+			for (const [slug, page] of Object.entries(candidate.productPages)) {
+				if (isStoredPage(page)) storedPages[slug] = clonePage(page);
+			}
+		}
+		return { page: clonePage(candidate.page), productPages: storedPages, savedAt: candidate.savedAt };
 	} catch {
 		return null;
 	}
@@ -317,8 +366,10 @@ async function writeRemote(snapshot: StatusEditorPage): Promise<StatusEditorSave
 function persistLocal() {
 	if (!browser) return;
 	try {
-		sessionStorage.setItem(storageKey, JSON.stringify({ page: statusEditorPreview.page, savedAt: Date.now() } satisfies StoredPreview));
-		statusEditorPreview.lastSavedAt = Date.now();
+		const savedAt = Date.now();
+		const productPages = Object.fromEntries(Object.entries(statusEditorPreview.productPages).map(([slug, page]) => [slug, clonePage(page)]));
+		sessionStorage.setItem(storageKey, JSON.stringify({ page: clonePage(statusEditorPreview.page), productPages, savedAt } satisfies StoredPreview));
+		statusEditorPreview.lastSavedAt = savedAt;
 	} catch {
 		// The in-memory preview remains useful if storage is unavailable.
 	}
@@ -374,6 +425,7 @@ export async function hydrateStatusEditor() {
 		const stored = readStoredPreview();
 		if (stored && (!loadedRemote || stored.savedAt > remotePublishedAt)) {
 			statusEditorPreview.page = stored.page;
+			statusEditorPreview.productPages = stored.productPages ?? {};
 			// Do NOT auto-publish — draft stays local until explicit Publish click
 		} else if (loadedRemote) {
 			// Ensure snapshot matches what we hydrated from server
@@ -413,6 +465,20 @@ export async function saveStatusEditor(): Promise<StatusEditorSaveResult> {
 	}
 }
 
+/**
+ * The current API publishes the tenant's primary Status Page. Product-specific
+ * drafts still remain reactive and durable in this browser, but must not be
+ * sent as if they were that tenant page until the product-scoped API exists.
+ */
+export async function saveProductStatusEditor(productSlug: string): Promise<StatusEditorSaveResult> {
+	if (productSlug === statusEditorPreview.page.productSlug) return saveStatusEditor();
+	persistLocal();
+	statusEditorPreview.saveState = 'local';
+	statusEditorPreview.saveError = '';
+	statusEditorPreview.edgeSynced = false;
+	return { ok: true, localOnly: true, edgeSynced: false, message: 'Saved as a product preview in this browser. Publishing this product needs product-scoped Status Page storage.' };
+}
+
 export function updateServiceStatus(id: string, status: PublicStatusState): boolean {
 	if (!statusEditorPreview.page.services.some((service) => service.id === id)) return false;
 	statusEditorPreview.page.services = statusEditorPreview.page.services.map((service) => (service.id === id ? { ...service, status } : service));
@@ -449,7 +515,8 @@ export function updateStatusPageDetails(pageTitle: string, pageDescription: stri
 
 export function startPublicIncident(input: StartPublicIncidentInput): string | null {
 	const parsedStartedAt = new Date(input.startedAt);
-	if (Number.isNaN(parsedStartedAt.getTime()) || !input.title.trim() || !input.summary.trim() || !input.message.trim()) return null;
+	if (!products.some((product) => product.slug === input.productSlug) || Number.isNaN(parsedStartedAt.getTime()) || !input.title.trim() || !input.summary.trim() || !input.message.trim()) return null;
+	const targetPage = pageForProduct(input.productSlug);
 	const id = `status-incident-${typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : Date.now().toString(36)}`;
 	const startedAt = parsedStartedAt.toISOString();
 	const incident: PublicIncident = {
@@ -471,8 +538,8 @@ export function startPublicIncident(input: StartPublicIncidentInput): string | n
 		}]
 	};
 
-	statusEditorPreview.page.incidents = [incident, ...statusEditorPreview.page.incidents];
-	statusEditorPreview.page.services = statusEditorPreview.page.services.map((service) => input.affectedServices.includes(service.id) ? { ...service, status: input.impact } : service);
+	targetPage.incidents = [incident, ...targetPage.incidents];
+	targetPage.services = targetPage.services.map((service) => input.affectedServices.includes(service.id) ? { ...service, status: input.impact } : service);
 	persistLocal();
 	return id;
 }
@@ -480,7 +547,8 @@ export function startPublicIncident(input: StartPublicIncidentInput): string | n
 export function appendIncidentUpdate(incidentId: string, input: AddIncidentUpdateInput): boolean {
 	const message = input.message.trim();
 	const publishedAt = new Date(input.publishedAt);
-	const incident = statusEditorPreview.page.incidents.find((record) => record.id === incidentId);
+	const targetPage = pageForIncident(incidentId);
+	const incident = targetPage?.incidents.find((record) => record.id === incidentId);
 	if (!incident || !message || Number.isNaN(publishedAt.getTime())) return false;
 	if (incidentStatusRank[input.status] < incidentStatusRank[incident.status]) {
 		console.warn('[status-editor][status-integrity] blocked backward incident transition', {
@@ -505,6 +573,7 @@ export function appendIncidentUpdate(incidentId: string, input: AddIncidentUpdat
 
 export function resetStatusEditor() {
 	statusEditorPreview.page = createSeedPage();
+	statusEditorPreview.productPages = {};
 	publishedSnapshot = clonePage(statusEditorPreview.page);
 	statusEditorPreview.lastSavedAt = Date.now();
 	if (!browser) return;

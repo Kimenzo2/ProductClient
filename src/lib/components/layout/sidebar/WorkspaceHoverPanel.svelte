@@ -57,7 +57,7 @@
 					rel={link.external ? 'noopener noreferrer' : undefined}
 					class="flex items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium leading-[1.3] tracking-[-0.01em] transition-[background-color,color] duration-100 {active
 						? 'bg-[var(--pc-surface-2)] text-[var(--pc-text)]'
-						: 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)]'} {focusClass}"
+				 : 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)]'} {focusClass}"
 					aria-current={active ? 'page' : undefined}
 				>
 					<span class="flex items-center gap-2"><span class="size-1 rounded-full bg-[var(--pc-text-faint)]" aria-hidden="true"></span>{link.label}</span>

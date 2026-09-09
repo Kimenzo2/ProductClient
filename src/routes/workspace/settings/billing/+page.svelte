@@ -15,8 +15,8 @@
 		</div>
 	</div>
 	<div class="mt-4 flex gap-2 text-[13px]">
-		<button type="button" class="text-[var(--pc-accent-light)] hover:underline">View invoices</button>
+		<button type="button" class="settings-text-action">View invoices</button>
 		<span class="text-[var(--pc-text-faint)]">·</span>
-		<button type="button" class="text-[var(--pc-accent-light)] hover:underline">Change plan</button>
+		<button type="button" class="settings-text-action">Change plan</button>
 	</div>
 </Card>

@@ -19,7 +19,7 @@
 
 <svelte:head><title>Settings · ProductClient</title></svelte:head>
 
-<div class="mx-auto w-full max-w-[1080px] px-4 sm:px-6">
+<div class="mx-auto min-h-full w-full max-w-[1080px] px-4 pb-12 sm:px-6">
 	<WorkspaceHeader title="Settings" description="Global workspace controls. One change here defines the default everywhere." />
 	<div class="mt-6 grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
 		<nav class="hidden lg:block" aria-label="Settings">
@@ -43,8 +43,26 @@
 				<a href={s.href} class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium {isActive(s.href) ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface)] text-[var(--pc-text-muted)]'}"><Icon size={14} weight="Outline" aria-hidden="true" />{s.label}</a>
 			{/each}
 		</div>
-		<div class="min-w-0">
+		<div class="min-w-0 grid gap-6">
 			{@render children()}
 		</div>
 	</div>
 </div>
+
+<style>
+	:global(.settings-text-action) {
+		appearance: none;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		color: var(--pc-accent-light);
+		font: inherit;
+		cursor: pointer;
+	}
+
+	:global(.settings-text-action:hover) {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+</style>

@@ -209,7 +209,7 @@
 					<div class="mt-4 flex flex-wrap items-center gap-2">
 						<div class="flex min-w-0 flex-1 items-center gap-2 rounded-[12px] bg-[var(--pc-surface)] px-3 py-2">
 							<Link size={14} weight="Outline" class="opacity-60" aria-hidden="true" />
-							<Input id="you-slug" bind:value={slugDraft} placeholder="gemma" class="min-w-0 flex-1 font-mono !border-0 !bg-transparent p-0 text-[14px] focus:ring-0" error={slugError} />
+							<Input id="you-slug" bind:value={slugDraft} placeholder="gemma" class="min-w-0 flex-1 font-mono !border-0 !bg-transparent p-0 text-[14px]" error={slugError} />
 							<Button size="sm" loading={savingSlug} onclick={saveSlug}>Save</Button>
 						</div>
 					</div>

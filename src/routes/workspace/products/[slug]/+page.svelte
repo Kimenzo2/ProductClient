@@ -30,4 +30,3 @@
 	<div class="px-4 sm:px-6"><StatePanel size="page" icon={Box} title="Product not found" description={`There is no product overview for “${slug}”.`} actionLabel="Back to products" actionHref="/workspace/products" class="pc-enter" /></div>
 {/if}
 
-

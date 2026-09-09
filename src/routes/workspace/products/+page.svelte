@@ -25,4 +25,3 @@
 	{#if filtered.length === 0}<StatePanel icon={Box} title="No products match that filter" description="Try a maker name or category." class="sm:col-span-2 xl:col-span-3" />{/if}
 </div>
 
-
