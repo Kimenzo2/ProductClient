@@ -107,6 +107,13 @@ Known issues found so far:
 - **Modals:** `Public incident history` modal must be plain: title `Public incident history` only, no `CUSTOMER-FACING RECORD` eyebrow, no `INCIDENTS 1` picker heading, no `Published updates` list heading. Detail shows title/date/summary/facts/updates only. Less words, more action.
 - **Declare flow:** `Declare incident` has no `What should customers hear?` section — the incident summary is the public message. No extra toggles or post-incident flow checkboxes in the compose step.
 
+## 11) Class merging — ALWAYS use cn (not clsx / tailwind-merge)
+- **`cn` is the Tailwind merge engine (`cn@0.2.6` replaces `clsx@2.1.1` + `tailwind-merge@3.6.0`, 30× faster, zero deps, Tailwind v4). Docs: https://github.com/shadcn-ui/cn**
+- **Canonical import:** `import { cn } from "$lib/utils.js"` — `src/lib/utils.ts:1` re-exports `export { cn, twMerge, twJoin, clsx } from "cn"` + `ClassValue` types. **Never** `import { clsx } from "clsx"` or `import { twMerge } from "tailwind-merge"` directly.
+- **Aliased in `vite.config.ts:8`** `resolve.alias: { 'tailwind-merge': 'cn', clsx: 'cn' }` so transitive deps stay deduped (see `cn/docs/aliasing.md`).
+- **All UI components** (`Button`, `Card`, `Badge`, `Chip`, `Input`, `Textarea`, `Toggle`, `Avatar`, `Label`, `Separator`, `StatePanel`) **must use** `cn(base, variant, className)` — never `[].filter(Boolean).join(' ')` or string interpolation `"{base} {className}"`. This gives correct last-wins merging (`p-4` + `p-3` → `p-3`).
+- **Verification:** `bun pm ls` must show `cn` only (no top-level `clsx`/`tailwind-merge`), `rg -n "from \"clsx\"|from \"tailwind-merge\"" src` → empty, `bun run check` 0 errors.
+
 # ProductClient Agent Rules
 
 ## NON-NEGOTIABLE BRANDING RULE

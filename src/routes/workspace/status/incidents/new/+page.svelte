@@ -101,7 +101,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	async function createIncident() {
 		if (isSubmitting) return;
 		errorMessage = '';
+		const resolvedProductSlug = productSlug === 'current' ? statusEditorPreview.page.productSlug : productSlug;
 		const incidentId = startPublicIncident({
+			productSlug: resolvedProductSlug,
 			title,
 			summary,
 			leadName,
@@ -230,12 +232,16 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	.service-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 	.service-option { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--pc-border-strong); border-radius: 12px; cursor: pointer; transition: border-color 120ms ease, background-color 120ms ease; }
 	.service-option:hover, .service-option.selected { border-color: var(--pc-focus-ring); background: var(--pc-surface-2); }
-	.service-option:focus-within { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
+	.service-option:focus-within { outline: 1px solid var(--pc-focus-ring); outline-offset: 3px; }
+	@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) { .service-option:focus-within { outline-width: 0.5px; } }
+	@media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) { .service-option:focus-within { outline-width: 0.33px; } }
 	.service-checkbox { appearance: none; display: grid; flex: 0 0 auto; width: 24px; height: 24px; place-items: center; margin: 0; border: 1px solid var(--pc-border-strong); border-radius: 7px; background: transparent; cursor: pointer; }
 	.service-checkbox::after { width: 6px; height: 11px; border: solid var(--pc-status-operational); border-width: 0 2px 2px 0; content: ''; opacity: 0; transform: rotate(45deg) scale(.7); transition: opacity 120ms ease, transform 120ms ease; }
 	.service-checkbox:checked { border-color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 12%, transparent); }
 	.service-checkbox:checked::after { opacity: 1; transform: rotate(45deg) scale(1); }
-	.service-checkbox:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
+	.service-checkbox:focus-visible { outline: 1px solid var(--pc-focus-ring); outline-offset: 2px; }
+	@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) { .service-checkbox:focus-visible { outline-width: 0.5px; } }
+	@media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) { .service-checkbox:focus-visible { outline-width: 0.33px; } }
 	.service-option-copy { display: grid; min-width: 0; gap: 4px; }
 	.service-option-copy strong { overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 	.service-option-copy small { color: var(--pc-text-muted); font-size: 11px; line-height: 1.45; }

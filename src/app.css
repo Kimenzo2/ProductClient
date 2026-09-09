@@ -381,9 +381,23 @@ a:where([href]):active, a:where([href]):visited, a:where([href]):focus-visible {
 	text-decoration: none !important;
 }
 
-:focus-visible {
-	outline: 2px solid var(--pc-focus-ring);
-	outline-offset: 2px;
+/* Default focus — hairline 0.5px per extensive research (Hightouch hairline, CSSWG hairline, 1px.com, UX Planet) — density-adaptive */
+:focus {
+	outline: 1px solid var(--pc-focus-ring);
+	outline-offset: 0;
+}
+@media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
+	:focus {
+		outline-width: 0.5px;
+	}
+}
+@media (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3) {
+	:focus {
+		outline-width: 0.33px;
+	}
+}
+:focus:not(:focus-visible) {
+	outline: none;
 }
 
 ::selection {

@@ -4,6 +4,12 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: {
+		alias: {
+			'tailwind-merge': 'cn',
+			clsx: 'cn'
+		}
+	},
 	server: {
 		host: 'localhost',
 		// Pinned per AGENTS.md contract: Supabase redirect URLs are registered

@@ -102,6 +102,7 @@
 		error = '';
 		await hydrateStatusEditor();
 		const incidentId = startPublicIncident({
+			productSlug,
 			title,
 			summary,
 			leadName: lead,

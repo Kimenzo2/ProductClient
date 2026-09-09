@@ -34,11 +34,10 @@
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
 		"bits-ui": "^2.19.0",
-		"clsx": "^2.1.1",
+		"cn": "^0.2.6",
 		"open-props": "^1.7.23",
 		"reicon-svelte": "^1.0.103",
 		"sveltekit-superforms": "^2.30.2",
-		"tailwind-merge": "^3.6.0",
 		"zod": "^4.5.4"
 	}
 }
