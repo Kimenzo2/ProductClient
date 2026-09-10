@@ -40,9 +40,7 @@
 		<div class="flex items-center gap-2.5">
 			<span class="grid size-8 place-items-center rounded-[10px] bg-[var(--pc-surface-2)] text-[var(--pc-text)]"><PanelIcon size={16} weight="Outline" aria-hidden="true" /></span>
 			<h2 class="text-[14px] font-semibold tracking-[-0.01em] text-[var(--pc-text)]">{panel.label}</h2>
-			{#if isPreview}<span class="ml-auto rounded-full bg-[var(--pc-surface-2)] px-2 py-0.5 text-[10px] font-medium tracking-[0.04em] text-[var(--pc-text-muted)]">Preview</span>{/if}
 		</div>
-		<p class="mt-2 text-[12px] leading-[1.5] text-[var(--pc-text-muted)]">{panel.description}</p>
 	</div>
 
 	<div class="flex-1 overflow-y-auto px-3 py-4" style="scrollbar-width: thin;">

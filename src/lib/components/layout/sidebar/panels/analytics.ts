@@ -5,11 +5,14 @@ import type { PanelDef } from '../types';
 export const analyticsPanel: PanelDef = {
 	label: 'Analytics',
 	icon: ChartBarTrendUp,
-	description: 'Measure how releases and docs perform',
+	description: 'See how people find your products, return to them, and respond to updates',
 	links: [
 		{ label: 'Overview', href: '/workspace/analytics' },
-		{ label: 'Releases', href: '/workspace/releases' },
-		{ label: 'Help searches', href: '/workspace/docs' }
+		{ label: 'Documentation', href: '/workspace/analytics/docs' },
+		{ label: 'Feedback', href: '/workspace/analytics/feedback' },
+		{ label: 'Roadmap', href: '/workspace/analytics/roadmap' },
+		{ label: 'Incidents', href: '/workspace/analytics/incidents' },
+		{ label: 'Status page', href: '/workspace/analytics/status' }
 	],
 	recent: searchGaps.slice(0, 3).map((g) => ({ label: g.query, subtitle: `${g.searches} searches · ${g.status}`, href: '/workspace/analytics' })),
 	action: { label: 'View analytics', href: '/workspace/analytics' }

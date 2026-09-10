@@ -616,7 +616,6 @@
 			<Input id="roadmap-editor-search" bind:value={query} placeholder="Search chapters or items" />
 		</div>
 		<div class="toolbar-actions">
-			<Button variant="outline" size="md" onclick={copyBackup}><Copy size={15} weight="Outline" aria-hidden="true" />Copy backup</Button>
 			<Button variant="primary" size="md" disabled={!dirty || issues.length > 0 || publishing} loading={publishing} onclick={publish}><CheckCircle size={15} weight="Outline" aria-hidden="true" />{publishing ? 'Publishing' : 'Publish'}</Button>
 		</div>
 		{#if dirty}

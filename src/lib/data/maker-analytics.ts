@@ -73,6 +73,38 @@ export type BoostPerformance = {
 	linkClicksGained: number;
 };
 
+export type AnalyticsRange = '7d' | '30d' | '90d';
+
+export type ViewTrendBucket = {
+	startAt: string;
+	views: number;
+	agentViews: number;
+	returnVisits: number;
+	followerGains: number;
+	linkClicks: number;
+	feedbackFiled: number;
+	feedbackMoved: number;
+	assistantTraffic: number;
+};
+
+export type AnalyticsRangeMetrics = {
+	views: number;
+	returnVisits: number;
+	followerGains: number;
+	linkClicks: number;
+	feedbackFiled: number;
+	feedbackMoved: number;
+	assistantTraffic: number;
+	previousViews: number;
+	previousReturnVisits: number;
+	previousFollowerGains: number;
+	previousLinkClicks: number;
+	previousFeedbackFiled: number;
+	previousFeedbackMoved: number;
+	previousAssistantTraffic: number;
+	buckets: ViewTrendBucket[];
+};
+
 export type MakerAnalytics = {
 	products: MakerProductAnalytics[];
 	metrics: {
@@ -98,11 +130,54 @@ export type MakerAnalytics = {
 		liveUrl: number;
 		total: number;
 	};
+	ranges: Record<AnalyticsRange, AnalyticsRangeMetrics>;
 	activeBoost: BoostPerformance | null;
 	boosts: BoostPerformance[];
 };
 
 const shippedEventTypes = new Set(['launch', 'release', 'changelog', 'fix']);
+const rangeDays: Record<AnalyticsRange, number> = { '7d': 7, '30d': 30, '90d': 90 };
+const rangeBucketCounts: Record<AnalyticsRange, number> = { '7d': 7, '30d': 10, '90d': 13 };
+
+function emptyRangeMetrics(range: AnalyticsRange): AnalyticsRangeMetrics {
+	const durationMs = rangeDays[range] * 86_400_000;
+	const bucketDuration = durationMs / rangeBucketCounts[range];
+	return {
+		views: 0,
+		returnVisits: 0,
+		followerGains: 0,
+		linkClicks: 0,
+		feedbackFiled: 0,
+		feedbackMoved: 0,
+		assistantTraffic: 0,
+		previousViews: 0,
+		previousReturnVisits: 0,
+		previousFollowerGains: 0,
+		previousLinkClicks: 0,
+		previousFeedbackFiled: 0,
+		previousFeedbackMoved: 0,
+		previousAssistantTraffic: 0,
+		buckets: Array.from({ length: rangeBucketCounts[range] }, (_, index) => ({
+			startAt: new Date(Date.now() - durationMs + index * bucketDuration).toISOString(),
+			views: 0,
+			agentViews: 0,
+			returnVisits: 0,
+			followerGains: 0,
+			linkClicks: 0,
+			feedbackFiled: 0,
+			feedbackMoved: 0,
+			assistantTraffic: 0
+		}))
+	};
+}
+
+function emptyRanges(): Record<AnalyticsRange, AnalyticsRangeMetrics> {
+	return {
+		'7d': emptyRangeMetrics('7d'),
+		'30d': emptyRangeMetrics('30d'),
+		'90d': emptyRangeMetrics('90d')
+	};
+}
 
 function emptyAnalytics(): MakerAnalytics {
 	return {
@@ -124,9 +199,91 @@ function emptyAnalytics(): MakerAnalytics {
 			lastShippedAt: null
 		},
 		completeness: { docs: 0, roadmap: 0, status: 0, liveUrl: 0, total: 0 },
+		ranges: emptyRanges(),
 		activeBoost: null,
 		boosts: []
 	};
+}
+
+function countInteractions(rows: InteractionRow[], kind: string, startMs: number, endMs: number): number {
+	return rows.filter((row) => {
+		const timestamp = Date.parse(row.created_at);
+		return row.kind === kind && Number.isFinite(timestamp) && timestamp >= startMs && timestamp < endMs;
+	}).length;
+}
+
+function countEvents(rows: EventRow[], type: string, startMs: number, endMs: number): number {
+	return rows.filter((row) => {
+		const timestamp = Date.parse(row.published_at);
+		return row.type === type && Number.isFinite(timestamp) && timestamp >= startMs && timestamp < endMs;
+	}).length;
+}
+
+function rangeMetrics(interactions: InteractionRow[], events: EventRow[], nowMs: number): Record<AnalyticsRange, AnalyticsRangeMetrics> {
+	const ranges = {} as Record<AnalyticsRange, AnalyticsRangeMetrics>;
+	for (const range of Object.keys(rangeDays) as AnalyticsRange[]) {
+		const durationMs = rangeDays[range] * 86_400_000;
+		const currentStart = nowMs - durationMs;
+		const previousStart = currentStart - durationMs;
+		const current = {
+			views: countInteractions(interactions, 'human_view', currentStart, nowMs),
+			returnVisits: countInteractions(interactions, 'return_visit', currentStart, nowMs),
+			followerGains: countInteractions(interactions, 'follow', currentStart, nowMs),
+			linkClicks: countInteractions(interactions, 'clickout_nonbounce', currentStart, nowMs),
+			feedbackFiled: countInteractions(interactions, 'feedback_filed', currentStart, nowMs),
+			feedbackMoved: countEvents(events, 'feedback_moved', currentStart, nowMs),
+			assistantTraffic: interactions.filter((row) => (row.kind === 'agent_fetch' || row.kind === 'agent_citation') && Number.isFinite(Date.parse(row.created_at)) && Date.parse(row.created_at) >= currentStart && Date.parse(row.created_at) < nowMs).length
+		};
+		const previous = {
+			views: countInteractions(interactions, 'human_view', previousStart, currentStart),
+			returnVisits: countInteractions(interactions, 'return_visit', previousStart, currentStart),
+			followerGains: countInteractions(interactions, 'follow', previousStart, currentStart),
+			linkClicks: countInteractions(interactions, 'clickout_nonbounce', previousStart, currentStart),
+			feedbackFiled: countInteractions(interactions, 'feedback_filed', previousStart, currentStart),
+			feedbackMoved: countEvents(events, 'feedback_moved', previousStart, currentStart),
+			assistantTraffic: interactions.filter((row) => (row.kind === 'agent_fetch' || row.kind === 'agent_citation') && Number.isFinite(Date.parse(row.created_at)) && Date.parse(row.created_at) >= previousStart && Date.parse(row.created_at) < currentStart).length
+		};
+		const bucketDuration = durationMs / rangeBucketCounts[range];
+		const buckets = Array.from({ length: rangeBucketCounts[range] }, (_, index) => ({
+			startAt: new Date(currentStart + index * bucketDuration).toISOString(),
+			views: 0,
+			agentViews: 0,
+			returnVisits: 0,
+			followerGains: 0,
+			linkClicks: 0,
+			feedbackFiled: 0,
+			feedbackMoved: 0,
+			assistantTraffic: 0
+		}));
+		const bucketIndex = (timestamp: number) => Math.min(rangeBucketCounts[range] - 1, Math.max(0, Math.floor((timestamp - currentStart) / bucketDuration)));
+		for (const row of interactions) {
+			const timestamp = Date.parse(row.created_at);
+			if (!Number.isFinite(timestamp) || timestamp < currentStart || timestamp >= nowMs) continue;
+			const bucket = buckets[bucketIndex(timestamp)];
+			if (row.kind === 'human_view') bucket.views += 1;
+			if (row.kind === 'agent_fetch' || row.kind === 'agent_citation') { bucket.agentViews += 1; bucket.assistantTraffic += 1; }
+			if (row.kind === 'return_visit') bucket.returnVisits += 1;
+			if (row.kind === 'follow') bucket.followerGains += 1;
+			if (row.kind === 'clickout_nonbounce') bucket.linkClicks += 1;
+			if (row.kind === 'feedback_filed') bucket.feedbackFiled += 1;
+		}
+		for (const event of events) {
+			const timestamp = Date.parse(event.published_at);
+			if (event.type === 'feedback_moved' && Number.isFinite(timestamp) && timestamp >= currentStart && timestamp < nowMs) buckets[bucketIndex(timestamp)].feedbackMoved += 1;
+		}
+		ranges[range] = {
+			...current,
+			previousViews: previous.views,
+			previousReturnVisits: previous.returnVisits,
+			previousFollowerGains: previous.followerGains,
+			previousLinkClicks: previous.linkClicks,
+			previousFeedbackFiled: previous.feedbackFiled,
+			previousFeedbackMoved: previous.feedbackMoved,
+			previousAssistantTraffic: previous.assistantTraffic,
+			buckets
+		};
+	}
+	return ranges;
 }
 
 function latestShippedAt(product: ProductRow, events: EventRow[]): string | null {
@@ -232,6 +389,7 @@ export async function fetchMakerAnalytics(userId: string): Promise<MakerAnalytic
 		lastShippedAt
 	};
 	applyIncidentMetrics(metrics, incidents);
+	const ranges = rangeMetrics(interactions, events, Date.now());
 
 	const performance = boosts.map((boost) => {
 		const event = eventById.get(boost.event_id);
@@ -259,6 +417,7 @@ export async function fetchMakerAnalytics(userId: string): Promise<MakerAnalytic
 			liveUrl: productAnalytics.filter((product) => product.completeness.liveUrl).length,
 			total: productAnalytics.length
 		},
+		ranges,
 		activeBoost: performance.find((boost) => ['live', 'grace'].includes(boost.status) && Date.parse(boost.endsAt) > Date.now()) ?? null,
 		boosts: performance
 	};

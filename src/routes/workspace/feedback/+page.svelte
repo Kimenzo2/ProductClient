@@ -4,6 +4,8 @@
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
 	import { Button, Card, Input, StatePanel } from '$lib/components/ui';
 	import { feedback } from '$lib/data/workspace';
+	import { onMount } from 'svelte';
+	import { trackAnalyticsEvent } from '$lib/data/analytics';
 
 	let query = $state('');
 	let filter = $state<'All' | 'New' | 'Reviewed' | 'Planned' | 'Resolved'>('All');
@@ -13,6 +15,8 @@
 			return (filter === 'All' || item.status === filter) && haystack.includes(query.trim().toLowerCase());
 		})
 	);
+	onMount(() => { void trackAnalyticsEvent('feedback.new', { path: '/workspace/feedback' }); });
+	$effect(() => { void filter; void trackAnalyticsEvent('feedback.shipped', { value: filter }); });
 </script>
 
 <svelte:head><title>Feedback | Product Client</title></svelte:head>

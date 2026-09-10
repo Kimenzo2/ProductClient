@@ -117,11 +117,7 @@
 	h1 { font-size: clamp(30px, 4vw, 44px); }
 	h2 { font-size: 20px; }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.65; }
-	.signal-row { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--pc-border-strong); }
-	.signal-row div { display: grid; gap: 6px; padding: 20px 18px 19px 0; }
-	.signal-row div + div { padding-inline-start: 18px; border-inline-start: 1px solid var(--pc-border-strong); }
-	.signal-row strong { font-size: 24px; font-weight: 500; letter-spacing: -.04em; }
-	.signal-row span, .incident-context, .incident-meta small { color: var(--pc-text-muted); font-size: 12px; }
+	.incident-context, .incident-meta small { color: var(--pc-text-muted); font-size: 12px; }
 	.queue { padding-top: 42px; }
 	.queue-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
 	.filters { display: flex; gap: 4px; }
@@ -140,6 +136,6 @@
 	.incident-context { font-size: 11px; }
 	.incident-meta { display: inline-flex; align-items: center; gap: 12px; color: var(--pc-text-muted); font-size: 12px; white-space: nowrap; }
 	.incident-meta > span { color: var(--pc-text); }
-	@media (max-width: 640px) { .incident-page { width: min(100% - 24px, 960px); padding-top: 28px; } .incident-header { align-items: start; flex-direction: column; } .signal-row div { padding-inline-end: 10px; } .signal-row div + div { padding-inline-start: 10px; } .incident-row { grid-template-columns: 30px minmax(0, 1fr); } .incident-meta { grid-column: 2; justify-content: space-between; } .incident-copy > span:last-child { white-space: normal; } .queue-heading { align-items: start; flex-direction: column; } }
+	@media (max-width: 640px) { .incident-page { width: min(100% - 24px, 960px); padding-top: 28px; } .incident-header { align-items: start; flex-direction: column; } .incident-row { grid-template-columns: 30px minmax(0, 1fr); } .incident-meta { grid-column: 2; justify-content: space-between; } .incident-copy > span:last-child { white-space: normal; } .queue-heading { align-items: start; flex-direction: column; } }
 	@media (prefers-reduced-motion: reduce) { .incident-copy strong { transition: none; } }
 </style>
