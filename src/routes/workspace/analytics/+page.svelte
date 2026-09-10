@@ -96,7 +96,7 @@
 			return;
 		}
 		const ok = await requireSession('/workspace/analytics');
-		if (!ok || !supabase) { loading = false; if (!supabase) error = 'Supabase not configured'; return; }
+		if (!ok || !supabase) { loading = false; if (!supabase) error = 'Service is temporarily unavailable'; return; }
 		try {
 			const { data } = await supabase.auth.getUser();
 			if (!data.user) throw new Error('Not signed in');
@@ -221,7 +221,7 @@
 			</div>
 
 			<div class="rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-5">
-				<div class="flex items-center justify-between"><h2 class="text-sm font-medium">Product updates</h2><a href="/studio" class="inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)] hover:underline">Add product <ArrowRight size={12} weight="Outline" /></a></div>
+				<div class="flex items-center justify-between"><h2 class="text-sm font-medium">Product updates</h2><a href="/submit" class="inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)] hover:underline">Add product <ArrowRight size={12} weight="Outline" /></a></div>
 				<p class="mt-1 text-xs text-[var(--pc-text-muted)]">{analytics.products.length} products · {analytics.completeness.docs}/{analytics.completeness.total} docs complete</p>
 				<div class="mt-4 space-y-2">
 					<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-3 py-2 text-xs"><span class="text-[var(--pc-text-faint)]">Last shipped</span><span class="font-medium">{formatDate(analytics.metrics.lastShippedAt)}</span></div>

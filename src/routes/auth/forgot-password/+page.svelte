@@ -15,7 +15,7 @@
 	let formEl = $state<HTMLFormElement | undefined>(undefined);
 
 	onMount(() => {
-		if (!supabase) formError = 'Supabase is not configured for this app.';
+		if (!supabase) formError = 'Service is temporarily unavailable. Please try again.';
 	});
 
 	async function sendResetLink() {

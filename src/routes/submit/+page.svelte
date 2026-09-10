@@ -146,7 +146,7 @@
 </script>
 
 <svelte:head>
-	<title>Studio | Product Client</title>
+	<title>Submit | Product Client</title>
 	<meta name="description" content="Prepare product updates and launch pages for review." />
 </svelte:head>
 

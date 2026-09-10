@@ -7,7 +7,7 @@ export const SITE_TITLE = 'ProductClient — Interactive launches, roadmaps, doc
 export const SITE_DESCRIPTION =
 	'Boost distribution, conversion, ranking, accessibility & turnover with interactive launches, engaging roadmaps & automated docs. Get seen, ship more toward AGI.';
 
-// Static public routes — curated, indexable. Never include /workspace, /studio, /auth, /you, /notifications, /onboarding
+// Static public routes — curated, indexable. Never include /workspace, /submit, /auth, /you, /notifications, /onboarding
 // Mirrors docs: canonical versions only, no redirects, no noindex pages.
 // Update when adding public surfaces.
 export const STATIC_ROUTES: Array<{ path: string; changefreq?: 'daily' | 'weekly' | 'monthly'; priority?: number }> = [

@@ -29,6 +29,7 @@
 		"wrangler": "^4.97.0"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.44.0",
 		"@supabase/supabase-js": "^2.112.4",
 		"@sveltejs/adapter-vercel": "^6.3.4",
 		"@vercel/analytics": "^2.0.1",

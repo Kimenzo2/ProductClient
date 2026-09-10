@@ -6,7 +6,7 @@
 		title,
 		description,
 		actionLabel,
-		actionHref = '/studio',
+		actionHref = '/submit',
 		secondaryActionLabel,
 		secondaryActionHref,
 		secondaryActionExternal = false

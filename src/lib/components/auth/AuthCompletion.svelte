@@ -19,7 +19,7 @@
 	onMount(() => {
 		if (!supabase) {
 			status = 'error';
-			message = 'Supabase is not configured for this app.';
+			message = 'Service is temporarily unavailable. Please try again.';
 			return;
 		}
 

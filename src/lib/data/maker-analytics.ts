@@ -301,7 +301,7 @@ function countBetween(rows: InteractionRow[], kind: string, start: string, end: 
 }
 
 export async function fetchMakerAnalytics(userId: string): Promise<MakerAnalytics> {
-	if (!supabase) throw new Error('Supabase is not configured');
+	if (!supabase) throw new Error('Service is temporarily unavailable');
 
 	try {
 		const { data: productRows, error: productsError } = await supabase

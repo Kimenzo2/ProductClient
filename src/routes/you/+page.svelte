@@ -135,7 +135,7 @@
 			setTimeout(() => (notice = ''), 2000);
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : 'Avatar upload failed';
-			error = msg.includes('Bucket not found') ? 'Bucket not found — check Supabase storage buckets (avatars must be public)' : msg;
+			error = msg.includes('Bucket not found') ? 'Unable to upload image. Please try again.' : msg;
 		} finally { avatarUploading = false; }
 	}
 
@@ -155,7 +155,7 @@
 			setTimeout(() => (notice = ''), 2000);
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : 'Banner upload failed';
-			error = msg.includes('Bucket not found') ? 'Bucket not found — check Supabase storage buckets (avatars must be public)' : msg;
+			error = msg.includes('Bucket not found') ? 'Unable to upload image. Please try again.' : msg;
 		} finally { bannerUploading = false; }
 	}
 
@@ -326,29 +326,6 @@
 		{:else if analyticsError}
 			<section class="border-y border-[var(--pc-border-strong)] py-5" role="alert"><h2 class="text-[15px] font-medium">Product signals unavailable</h2><p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">Your profile is available, but the latest product data could not be loaded.</p></section>
 		{:else if makerAnalytics}
-			<section class="mt-6 border-y border-[var(--pc-border-strong)]" aria-labelledby="profile-signals-title">
-				<div class="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--pc-border-strong)] py-4">
-					<div><h2 id="profile-signals-title" class="text-[15px] font-medium">Product signals</h2><p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">A current read on how your products are being found and maintained.</p></div>
-					<a href="/workspace/analytics" class="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--pc-accent-light)] hover:underline">Open Analytics <ArrowRight size={13} weight="Outline" aria-hidden="true" /></a>
-				</div>
-				<div class="grid grid-cols-2 divide-x divide-y divide-[var(--pc-border-strong)] sm:grid-cols-4 sm:divide-y-0">
-					<div class="grid gap-1 px-0 py-4 pr-4"><strong class="text-[22px] font-medium tracking-tight tabular-nums">{stats.followers}</strong><span class="text-[11px] text-[var(--pc-text-muted)]">Followers</span></div>
-					<div class="grid gap-1 px-4 py-4"><strong class="text-[22px] font-medium tracking-tight tabular-nums">{formatCount(makerAnalytics.metrics.views)}</strong><span class="text-[11px] text-[var(--pc-text-muted)]">Views</span></div>
-					<div class="grid gap-1 px-0 py-4 pr-4 sm:pl-4"><strong class="text-[22px] font-medium tracking-tight tabular-nums">{formatCount(makerAnalytics.metrics.returnVisits)}</strong><span class="text-[11px] text-[var(--pc-text-muted)]">Return visits</span></div>
-					<div class="grid gap-1 px-4 py-4"><strong class="text-[22px] font-medium tracking-tight tabular-nums">{formatCount(makerAnalytics.metrics.linkClicks)}</strong><span class="text-[11px] text-[var(--pc-text-muted)]">Link clicks</span></div>
-				</div>
-			</section>
-
-			<section class="border-b border-[var(--pc-border-strong)] py-5" aria-labelledby="profile-completeness-title">
-				<div class="flex flex-wrap items-end justify-between gap-3"><div><h2 id="profile-completeness-title" class="text-[15px] font-medium">Listing completeness</h2><p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">Keep the public path useful with the essentials in place.</p></div><span class="text-[12px] text-[var(--pc-text-muted)]">{makerAnalytics.completeness.total} product{makerAnalytics.completeness.total === 1 ? '' : 's'}</span></div>
-				<div class="mt-4 grid gap-2 sm:grid-cols-4">
-					<div class="flex items-center justify-between border-t border-[var(--pc-border-strong)] py-2 text-[12px]"><span>Docs</span><span class="text-[var(--pc-text-muted)]">{makerAnalytics.completeness.docs}/{makerAnalytics.completeness.total}</span></div>
-					<div class="flex items-center justify-between border-t border-[var(--pc-border-strong)] py-2 text-[12px]"><span>Roadmap or feedback</span><span class="text-[var(--pc-text-muted)]">{makerAnalytics.completeness.roadmap}/{makerAnalytics.completeness.total}</span></div>
-					<div class="flex items-center justify-between border-t border-[var(--pc-border-strong)] py-2 text-[12px]"><span>Status</span><span class="text-[var(--pc-text-muted)]">{makerAnalytics.completeness.status}/{makerAnalytics.completeness.total}</span></div>
-					<div class="flex items-center justify-between border-t border-[var(--pc-border-strong)] py-2 text-[12px]"><span>Live URL</span><span class="text-[var(--pc-text-muted)]">{makerAnalytics.completeness.liveUrl}/{makerAnalytics.completeness.total}</span></div>
-				</div>
-			</section>
-
 			{#if makerAnalytics.activeBoost}
 				<section class="border-b border-[var(--pc-border-strong)] py-5" aria-labelledby="active-boost-title">
 					<div class="flex flex-wrap items-end justify-between gap-3"><div><h2 id="active-boost-title" class="text-[15px] font-medium">Active boost</h2><p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">{makerAnalytics.activeBoost.eventTitle}</p></div><span class="text-[12px] text-[var(--pc-accent-light)]">Visibility remaining: {formatRemaining(makerAnalytics.activeBoost.endsAt)}</span></div>

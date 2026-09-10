@@ -15,7 +15,7 @@
 	async function load() {
 		loading = true; error = '';
 		const ok = await requireSession('/workspace/analytics/docs');
-		if (!ok || !supabase) { loading = false; if (!supabase) error = 'Supabase not configured'; return; }
+		if (!ok || !supabase) { loading = false; if (!supabase) error = 'Service is temporarily unavailable'; return; }
 		try {
 			const { data: u } = await supabase.auth.getUser();
 			if (!u.user) throw new Error('Not signed in');

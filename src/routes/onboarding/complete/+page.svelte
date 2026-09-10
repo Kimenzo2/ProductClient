@@ -48,7 +48,7 @@
 		formError = '';
 		slugNote = '';
 		if (!supabase) {
-			formError = 'Supabase is not configured for this app.';
+			formError = 'Service is temporarily unavailable. Please try again.';
 			return;
 		}
 		// Capture the tab inside the button click — anything opened after
@@ -137,10 +137,9 @@
 	{/if}
 	{#if formError}<p class="form-error" role="alert">{formError}</p>{/if}
 	<Button type="button" size="lg" loading={busy} class="continue-button" onclick={() => void openWorkspace()}>Open workspace <ArrowRight size={16} weight="Outline" /></Button>
-	<p class="complete-note">This saves your profile details to your Supabase account — your subdomain is validated server-side and live instantly.</p>
 </OnboardingFrame>
 
 <style>
-	.summary { display: grid; gap: 0; border-top: 1px solid var(--pc-border-strong); border-bottom: 1px solid var(--pc-border-strong); }.summary-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 11px; min-height: 67px; }.summary-row + .summary-row { border-top: 1px solid rgba(251, 251, 251, .07); }.summary-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.summary-row small { display: block; color: var(--pc-text-faint); font-size: 10px; }.summary-row strong { display: block; margin-top: 2px; overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }.tenant-preview { margin: 12px 0 2px; padding: 8px 10px; border: 1px solid rgba(119,152,18,.22); border-radius: 10px; color: var(--pc-text-muted); background: rgba(119,152,18,.07); font-size: 11px; text-align: center; }.tenant-link { color: var(--pc-text); font-weight: 600; }.tenant-note { margin: 0; color: var(--pc-text-faint); font-size: 11px; text-align: center; }.form-error { margin: 0; padding: 11px 13px; border: 1px solid rgba(224, 122, 122, .32); border-radius: 12px; color: #f09b9b; background: rgba(224, 122, 122, .08); font-size: 12px; line-height: 1.45; }.complete-note { margin: 0; color: var(--pc-text-faint); font-size: 12px; text-align: center; }
+	.summary { display: grid; gap: 0; border-top: 1px solid var(--pc-border-strong); border-bottom: 1px solid var(--pc-border-strong); }.summary-row { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 11px; min-height: 67px; }.summary-row + .summary-row { border-top: 1px solid rgba(251, 251, 251, .07); }.summary-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .13); }.summary-row small { display: block; color: var(--pc-text-faint); font-size: 10px; }.summary-row strong { display: block; margin-top: 2px; overflow: hidden; color: var(--pc-text); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }	.tenant-preview { margin: 12px 0 2px; padding: 8px 10px; border: 1px solid rgba(119,152,18,.22); border-radius: 10px; color: var(--pc-text-muted); background: rgba(119,152,18,.07); font-size: 11px; text-align: center; }.tenant-link { color: var(--pc-text); font-weight: 600; }.tenant-note { margin: 0; color: var(--pc-text-faint); font-size: 11px; text-align: center; }.form-error { margin: 0; padding: 11px 13px; border: 1px solid rgba(224, 122, 122, .32); border-radius: 12px; color: #f09b9b; background: rgba(224, 122, 122, .08); font-size: 12px; line-height: 1.45; }
 	:global(.continue-button) { width: 100%; min-height: 48px; }
 </style>

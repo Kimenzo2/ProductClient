@@ -12,5 +12,5 @@ export const releasesPanel: PanelDef = {
 		{ label: 'By product', href: '/workspace/products' }
 	],
 	recent: releases.slice(0, 3).map((r) => ({ label: r.title, subtitle: `${r.productName} · ${r.type}`, href: r.workspacePath })),
-	action: { label: 'New release', href: '/studio' }
+	action: { label: 'New release', href: '/submit' }
 };

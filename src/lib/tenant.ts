@@ -110,7 +110,7 @@ export async function syncTenantRegistry(tenant: Pick<Tenant, 'id' | 'slug' | 'n
 }
 
 export async function renameMyTenant(newSlug: string): Promise<{ tenant?: Tenant; error?: string }> {
-	if (!supabase) return { error: 'Supabase not configured' };
+	if (!supabase) return { error: 'Service is temporarily unavailable' };
 	const { data, error } = await supabase.rpc('rename_my_tenant', { p_new_slug: newSlug });
 	if (error) return { error: error.message };
 	const tenant = Array.isArray(data) ? (data[0] as Tenant) : (data as Tenant);

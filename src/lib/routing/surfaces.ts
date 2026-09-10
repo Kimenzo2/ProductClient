@@ -1,6 +1,6 @@
 export type AppSurface = 'workspace' | 'auth';
 
-const workspacePrefixes = ['/workspace', '/studio', '/notifications', '/following', '/you'];
+const workspacePrefixes = ['/workspace', '/submit', '/notifications', '/following', '/you'];
 const authPrefixes = [
 	'/auth',
 	'/onboarding',

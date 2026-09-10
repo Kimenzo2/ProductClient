@@ -15,5 +15,5 @@ export const docsPanel: PanelDef = {
 		{ label: 'Open docs', href: hostedDocsPage.href, external: true }
 	],
 	recent: docs.slice(0, 4).map((d) => ({ label: d.title, subtitle: `${d.productName} · ${d.section}`, href: d.publicPath })),
-	action: { label: 'Write help content', href: '/studio' }
+	action: { label: 'Write help content', href: '/submit' }
 };

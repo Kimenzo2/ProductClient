@@ -13,5 +13,5 @@ export const productsPanel: PanelDef = {
 		{ label: 'Roadmap', href: '/workspace/roadmap' }
 	],
 	recent: products.slice(0, 4).map((p) => ({ label: p.name, subtitle: `${p.makerName} · ${p.category ?? 'Product'}`, href: p.workspacePath })),
-	action: { label: 'Add product', href: '/studio' }
+	action: { label: 'Add product', href: '/submit' }
 };
