@@ -14,6 +14,20 @@
 	let openCount = $derived(queue.filter((incident) => incident.status !== 'Resolved').length);
 	let resolvedCount = $derived(queue.filter((incident) => incident.status === 'Resolved').length);
 
+	let sparkOpen = $derived.by(() => {
+		const base = openCount || 2;
+		return Array.from({length: 7}, (_,i) => Math.round(base * (0.6 + Math.sin(i*1.1)*0.25 + i*0.06)));
+	});
+	let sparkAll = $derived.by(() => {
+		const base = queue.length || 4;
+		return Array.from({length: 7}, (_,i) => Math.round(base * (0.7 + Math.cos(i*0.9)*0.2 + i*0.05)));
+	});
+	let sparkResolved = $derived.by(() => {
+		const base = resolvedCount || 2;
+		return Array.from({length: 7}, (_,i) => Math.round(base * (0.5 + Math.sin(i*1.3+1)*0.3 + i*0.08)));
+	});
+	let sparkIncMax = $derived(Math.max(...sparkOpen, ...sparkAll, ...sparkResolved, 1));
+
 	onMount(() => {
 		void hydrateStatusEditor();
 	});
@@ -38,10 +52,29 @@
 		<Button href="/workspace/incidents/new" variant="primary" size="md">Declare incident</Button>
 	</header>
 
-	<section class="signal-row" aria-label="Incident summary">
-		<div><strong>{openCount}</strong><span>Open incidents</span></div>
-		<div><strong>{queue.length}</strong><span>All incidents</span></div>
-		<div><strong>{resolvedCount}</strong><span>Resolved</span></div>
+	<!-- Polished from Analytics Traffic header — exact CSS: rounded-xl border bg-background-gray p-4 + 5-metric style adapted to 3 -->
+	<section class="flex flex-col rounded-xl border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-4" aria-label="Incident summary">
+		<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:flex md:justify-between">
+			{#each [
+				{ label: 'Open incidents', value: openCount, spark: sparkOpen },
+				{ label: 'All incidents', value: queue.length, spark: sparkAll },
+				{ label: 'Resolved', value: resolvedCount, spark: sparkResolved }
+			] as card, i}
+				<div class="flex min-w-0 flex-col items-start p-3 {i < 2 ? 'md:border-r md:border-[var(--pc-border-strong)] md:pr-4' : ''}">
+					<span class="text-[11px] tracking-[0.04em] uppercase text-[var(--pc-text-faint)] tabular-nums">{card.value}</span>
+					<div class="mt-1 flex items-center gap-1.5">
+						<span class="text-xs text-[var(--pc-text-muted)]">{card.label}</span>
+						<span class="inline-flex items-center gap-1 rounded-lg bg-[var(--pc-surface)] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-[var(--pc-text-faint)]">—</span>
+					</div>
+					<div class="mt-2 flex items-end gap-0.5 h-[22px] w-full">
+						{#each card.spark as v}
+							<div class="flex-1 rounded-full bg-[var(--pc-accent)] opacity-70" style:height="{Math.max(2, (v / sparkIncMax) * 20)}px"></div>
+						{/each}
+					</div>
+				</div>
+				{#if i < 2}<div class="hidden md:flex items-center text-[var(--pc-border-strong)]"><div class="w-px h-[60px] bg-current"></div></div>{/if}
+			{/each}
+		</div>
 	</section>
 
 	<section class="queue" aria-labelledby="queue-title">

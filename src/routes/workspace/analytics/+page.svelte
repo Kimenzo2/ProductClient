@@ -46,12 +46,15 @@
 <div class="mx-auto w-full max-w-[1180px] px-6 max-sm:px-4">
 	<WorkspaceHeader title="Analytics" description="See how people find your products, return to them, and respond to updates. Every card uses your selected time range." />
 
-	<!-- Range -->
-	<div class="flex items-center gap-2 py-4">
-		{#each ['7d','30d','90d'] as r}
-			<button onclick={() => range = r as typeof range} class="h-7 rounded-full px-3 text-xs font-medium transition-colors {range===r ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{r === '7d' ? 'Last 7 days' : r === '30d' ? 'Last 30 days' : 'Last 90 days'}</button>
-		{/each}
-		<span class="ml-auto text-xs text-[var(--pc-text-faint)]" use:tooltip={{ text: 'Range filters all cards below', island: true }}>Updated just now</span>
+	<!-- Traffic header — Mintlify polish: Last 30 days + Export to CSV -->
+	<div class="flex items-center justify-between gap-4 py-4">
+		<h2 class="text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">Traffic</h2>
+		<div class="flex items-center gap-2">
+			{#each ['7d','30d','90d'] as r}
+				<button onclick={() => range = r as typeof range} class="inline-flex items-center h-7 rounded-full px-3 text-xs font-medium transition-colors {range===r ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{r === '7d' ? '7d' : r === '30d' ? '30d' : '90d'}</button>
+			{/each}
+			<button class="hidden sm:inline-flex items-center gap-1.5 h-7 rounded-[10px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] px-2.5 text-xs font-medium text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]" use:tooltip={{ text: 'Export to CSV', island: true }}>Export to CSV</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -62,7 +65,7 @@
 	{:else if error}
 		<div class="rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-6"><p class="text-sm text-[var(--pc-status-outage)]">{error}</p><Button size="sm" variant="outline" class="mt-3" onclick={load}>Try again</Button></div>
 	{:else if analytics}
-		<!-- Kayn hero: 4 metric cards with sparkline -->
+		<!-- Restored committed Traffic hero: 4 cards — keep Export + range above, Graph below stays Mintlify -->
 		<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 			{#each [
 				{ label: 'Views', value: analytics.metrics.views, icon: Eye, spark: sparkViews, trend: '+12%', desc: 'Human page views' },
@@ -84,6 +87,58 @@
 					</div>
 				</div>
 			{/each}
+		</div>
+
+		<!-- Views over time + Rankings — Mintlify chart grid -->
+		<div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+			<div class="flex flex-col gap-4 rounded-xl border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] px-4 pt-5 pb-4 md:col-span-2">
+				<div class="flex items-center justify-between gap-4">
+					<h3 class="text-xs font-medium tracking-[-0.01em] text-[var(--pc-text)]">Views over time</h3>
+					<div class="flex items-center gap-4 text-xs">
+						<span class="flex items-center gap-1.5"><span class="h-3 w-[3px] rounded-full bg-[var(--pc-accent)]" aria-hidden="true"></span><span class="tabular-nums">{formatCount(analytics.metrics.views)}</span> <span class="text-[var(--pc-text-faint)]">Humans</span></span>
+						<span class="flex items-center gap-1.5"><span class="h-3 w-[3px] rounded-full bg-[var(--pc-border-strong)]" aria-hidden="true"></span>0 Agents</span>
+					</div>
+				</div>
+				<div class="relative flex-1 min-h-[260px] w-full select-none">
+					<svg viewBox="0 0 360 260" class="h-full w-full" role="img" aria-label="Views over time" preserveAspectRatio="none">
+						<g stroke="var(--pc-border-strong)" opacity="0.5">
+							{#each [0,1,2,3,4,5] as i}
+								<line x1="32" x2="352" y1={16 + i*40} y2={16 + i*40} stroke-width="0.5" />
+							{/each}
+						</g>
+						<line x1="32" x2="352" y1="216" y2="216" stroke="var(--pc-border-strong)" stroke-width="0.7" />
+						<!-- Human line — now fills vertical 16→216 (200px) not 150px -->
+						<polyline fill="none" stroke="var(--pc-accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" points={sparkViews.map((v,i)=> `${32 + (i/(sparkViews.length-1))*320},${206 - (v/(sparkMax||1))*180}`).join(' ')} />
+						<!-- Agent line -->
+						<polyline fill="none" stroke="var(--pc-border-strong)" stroke-width="1.4" stroke-dasharray="3 3" points="32,206 352,206" />
+						<g class="text-[11px] font-mono fill-[var(--pc-text-faint)]">
+							<text x="32" y="242" text-anchor="start">12 Aug</text>
+							<text x="192" y="242" text-anchor="middle">26 Aug</text>
+							<text x="352" y="242" text-anchor="end">10 Sep</text>
+							{#each [0,1,2,3,4,5] as i}
+								<text x="14" y={20 + i*40} text-anchor="middle">{5 - i}</text>
+							{/each}
+						</g>
+					</svg>
+				</div>
+			</div>
+			<div class="flex flex-col overflow-hidden rounded-xl border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] p-1">
+				<div class="flex items-center justify-between px-3 py-2">
+					<h3 class="text-xs font-medium text-[var(--pc-text-faint)]">Rankings</h3>
+					<span class="text-[11px] text-[var(--pc-text-faint)]">Human views</span>
+				</div>
+				<div class="flex-1 overflow-auto rounded-lg bg-[var(--pc-bg)]">
+					{#each analytics.products.slice(0,5) as p, idx}
+						<div class="flex items-center gap-3 px-4 py-3 border-b border-[var(--pc-border-strong)] last:border-0">
+							<span class="w-4 text-right font-mono text-xs text-[var(--pc-text-faint)]">{idx+1}</span>
+							<span class="flex-1 truncate text-xs font-medium text-[var(--pc-text)]">{p.slug}</span>
+							<span class="font-mono text-xs text-[var(--pc-text-muted)] tabular-nums">{p.followers}</span>
+						</div>
+					{:else}
+						<div class="px-4 py-8 text-center text-xs text-[var(--pc-text-faint)]">No pages yet</div>
+					{/each}
+				</div>
+			</div>
 		</div>
 
 		<!-- Second row: engagement + product updates -->
