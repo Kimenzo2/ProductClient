@@ -66,7 +66,7 @@
 	<div class="auth-intro">
 		<div class="auth-icon"><Lock size={18} weight="Outline" /></div>
 		
-		<h1 id="reset-title">Choose a new password</h1>
+		<h1 id="reset-title" class="text-wrap-balance">Choose a new password</h1>
 		<p>Use a password you have not used here before.</p>
 	</div>
 

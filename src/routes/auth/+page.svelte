@@ -96,7 +96,7 @@
 	<div class="auth-intro">
 		<div class="auth-icon"><Lock size={18} weight="Outline" /></div>
 		
-		<h1 id="sign-in-title">Welcome back</h1>
+		<h1 id="sign-in-title" class="text-wrap-balance">Welcome back</h1>
 		<p>Sign in to your product workspace.</p>
 	</div>
 

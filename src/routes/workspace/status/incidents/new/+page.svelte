@@ -143,7 +143,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	<header class="page-header">
 		<div>
-			<h1 class="inline-flex items-center gap-2">Start a public incident <span use:tooltip={{ text: 'Write the first factual update customers will see on the hosted Status Page.', island: true, typeY: 'bottom' }} class="inline-flex"><InfoCircle size={14} weight="Outline" aria-hidden="true" class="opacity-60" /></span></h1>
+			<h1 class="inline-flex items-center gap-2 text-wrap-balance">Start a public incident <span use:tooltip={{ text: 'Write the first factual update customers will see on the hosted Status Page.', island: true, typeY: 'bottom' }} class="inline-flex"><InfoCircle size={14} weight="Outline" aria-hidden="true" class="opacity-60" /></span></h1>
 		</div>
 	</header>
 

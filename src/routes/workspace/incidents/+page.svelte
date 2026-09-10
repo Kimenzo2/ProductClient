@@ -46,7 +46,7 @@
 	<header class="incident-header">
 		<div>
 			
-			<h1>Incidents</h1>
+			<h1 class="text-wrap-balance">Incidents</h1>
 			<p class="lede">Coordinate what the team knows, what customers need to hear, and what happens after the service is stable.</p>
 		</div>
 		<Button href="/workspace/incidents/new" variant="primary" size="md">Declare incident</Button>

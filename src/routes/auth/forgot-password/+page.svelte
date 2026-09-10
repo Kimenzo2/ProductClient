@@ -49,7 +49,7 @@
 	<section class="auth-page confirmation" aria-labelledby="reset-sent-title">
 		<div class="auth-icon"><Mailbox size={19} weight="Outline" /></div>
 		
-		<h1 id="reset-sent-title">Your reset link is on its way</h1>
+		<h1 id="reset-sent-title" class="text-wrap-balance">Your reset link is on its way</h1>
 		<p>If an account uses <strong>{email}</strong>, we sent instructions to reset its password.</p>
 		<Button href={authHref('login')} size="lg" class="auth-primary"><ArrowLeft size={16} weight="Outline" /> Back to sign in</Button>
 		<p class="small-note">The link expires for your security. Check your spam folder if it does not arrive.</p>
@@ -59,7 +59,7 @@
 		<div class="auth-intro">
 			<div class="auth-icon"><Mailbox size={19} weight="Outline" /></div>
 			
-			<h1 id="forgot-title">Reset your password</h1>
+			<h1 id="forgot-title" class="text-wrap-balance">Reset your password</h1>
 			<p>Enter your email and we will send you a reset link.</p>
 		</div>
 

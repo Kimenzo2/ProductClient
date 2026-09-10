@@ -104,7 +104,7 @@
 		<header class="detail-header">
 			<a class="back-link" href="/workspace/incidents"><ArrowLeft size={14} weight="Outline" aria-hidden="true" /> Incidents</a>
 			<div class="detail-meta"><span class="state {statusTone(incident.status)}">{incident.status}</span><span>{incident.severity}</span><span>Started {incident.startedAt}</span></div>
-			<h1>{incident.title}</h1>
+			<h1 class="text-wrap-balance">{incident.title}</h1>
 			<p class="detail-lede">{incident.summary}</p>
 		<p class="detail-context">{incident.productName}</p>
 		</header>

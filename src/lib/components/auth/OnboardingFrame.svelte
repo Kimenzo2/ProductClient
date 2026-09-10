@@ -19,7 +19,7 @@
 	<OnboardingProgress {current} />
 	<div class="onboarding-intro">
 		
-		<h1 id="onboarding-title">{title}</h1>
+		<h1 id="onboarding-title" class="text-wrap-balance">{title}</h1>
 		<p>{description}</p>
 	</div>
 	<div class="onboarding-content">

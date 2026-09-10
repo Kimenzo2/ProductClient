@@ -109,7 +109,7 @@
 	<header class="page-header">
 		<div>
 			
-			<h1>Follow-ups</h1>
+			<h1 class="text-wrap-balance">Follow-ups</h1>
 			<p class="lede">Keep the work after an incident visible, owned, and moving.</p>
 		</div>
 		<span class="open-summary">{openCount} open item{openCount === 1 ? '' : 's'}</span>

@@ -589,7 +589,7 @@
 	<div class="briefing-page" inert={dialog ? true : undefined}>
 	<header class="page-header">
 		<div>
-			<h1>Roadmap editor</h1>
+			<h1 class="text-wrap-balance">Roadmap editor</h1>
 			<p class="lede">Shape what your customers see on your public roadmap. Nothing goes live until you publish.</p>
 		</div>
 		<div class="briefing-summary" aria-label="Editor summary">

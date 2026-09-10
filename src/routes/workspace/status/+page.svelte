@@ -149,7 +149,7 @@
 <div class="status-editor-page">
 	<header class="page-header">
 		<div>
-			<h1>Status editor</h1>
+			<h1 class="text-wrap-balance">Status editor</h1>
 			<p class="lede">Prepare what customers see when a service is healthy, degraded, or unavailable. Nothing goes live until you publish.</p>
 		</div>
 		<div class="header-actions">

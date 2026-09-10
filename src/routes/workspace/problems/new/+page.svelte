@@ -32,7 +32,7 @@
 	<header class="pb-6 pt-8 sm:pt-12">
 		<a href={source ? `/workspace/feedback/${source.id}` : '/workspace/problems'} class="inline-flex items-center gap-1 text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]"><ArrowLeft size={13} weight="Outline" aria-hidden="true" /> {source ? 'Back to feedback' : 'Back to problems'}</a>
 		
-		<h1 class="mt-2 text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">Describe the problem.</h1>
+		<h1 class="mt-2 text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px] text-wrap-balance">Describe the problem.</h1>
 		<p class="mt-2 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">A message may suggest a fix. This short note explains what people need before the team chooses how to help.</p>
 	</header>
 

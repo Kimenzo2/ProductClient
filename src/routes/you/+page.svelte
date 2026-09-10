@@ -276,7 +276,7 @@
 		</div>
 		<div class="min-w-0 flex-1 pb-1">
 			<div class="flex items-center gap-2">
-				<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight">{displayName || fullName || 'Your profile'}</h1>
+				<h1 class="text-[22px] md:text-[26px] font-medium leading-none tracking-tight text-wrap-balance">{displayName || fullName || 'Your profile'}</h1>
 			</div>
 			<p class="mt-1 text-[14px] md:text-[15px] leading-[1.65] tracking-[-0.009em] text-[var(--pc-text-muted)]">@{tenant?.slug ?? 'handle'} · {profile?.email ?? ''}</p>
 		</div>

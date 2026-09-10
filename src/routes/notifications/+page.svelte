@@ -66,7 +66,7 @@
 	<!-- Header — 30px display, 15/16 body, tabular -->
 	<header class="pt-10 pb-8 max-sm:pt-8 max-sm:pb-6">
 		<div class="flex items-baseline justify-between gap-4">
-			<h1 class="text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">Notifications</h1>
+			<h1 class="text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px] text-wrap-balance">Notifications</h1>
 			{#if unreadCount > 0}
 			<Button variant="ghost" size="sm" onclick={markAllRead} class="!text-[var(--pc-accent-strong)]">Mark all read</Button>
 			{/if}

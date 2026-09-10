@@ -11,7 +11,7 @@
 	<div class="mx-auto size-16 rounded-full bg-[var(--pc-surface-2)] border border-[var(--pc-border)] grid place-items-center text-[var(--pc-text-faint)]">
 		<TriangleWarning size={28} weight="Outline" />
 	</div>
-	<h1 class="mt-6 text-3xl font-700 tracking-tighter">{page.status} — {page.error?.message ?? 'Something went wrong'}</h1>
+	<h1 class="mt-6 text-3xl font-700 tracking-tighter text-wrap-balance">{page.status} — {page.error?.message ?? 'Something went wrong'}</h1>
 	<p class="mt-3 text-sm leading-relaxed text-[var(--pc-text-muted)] max-w-[48ch] mx-auto text-pretty">
 		This page didn’t ship. The builder may have moved it, or it’s still in draft. Head back to Discover — the feed is where launches live.
 	</p>

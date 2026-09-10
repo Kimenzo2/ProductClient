@@ -23,7 +23,7 @@
 			<a href="/workspace/decisions" class="inline-flex min-h-8 items-center gap-1 text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]"><ArrowLeft size={13} weight="Outline" aria-hidden="true" /> Product decisions</a>
 			<div class="mt-5 flex flex-wrap items-center gap-2"><Chip size="xs" variant="accent">Product decision</Chip><StatusBadge label={thread.status === 'In decision' ? 'Choosing now' : thread.status} tone={statusTone} /><VisibilityBadge label={thread.visibility} /></div>
 			<div class="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-				<div class="min-w-0"><h1 class="mt-1 max-w-[32ch] text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px]">{thread.title}</h1><p class="mt-2 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">{thread.problem}</p></div>
+				<div class="min-w-0"><h1 class="mt-1 max-w-[32ch] text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-balance md:text-[21px] text-wrap-balance">{thread.title}</h1><p class="mt-2 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">{thread.problem}</p></div>
 				<div class="flex shrink-0 flex-wrap gap-2"><Button href={`/workspace/products/${thread.productSlug}`} variant="outline" size="sm"><Map size={14} weight="Outline" aria-hidden="true" /> Product overview</Button><Button href={`/p/${thread.productSlug}`} variant="primary" size="sm"><Export size={14} weight="Outline" aria-hidden="true" /> Customer preview</Button></div>
 			</div>
 		</header>

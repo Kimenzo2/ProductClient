@@ -107,7 +107,7 @@
 		{/if}
 	</div>
 	{#if status === 'ready'}
-		<h1>You are signed in</h1>
+		<h1 class="text-wrap-balance">You are signed in</h1>
 		<p class="description">Your workspace opens in a new tab — this page takes you to the feed.</p>
 		{#if tenantSlug}
 			<p class="tenant-note">Your live subdomain is ready: <strong>{tenantHost(tenantSlug)}</strong></p>
@@ -116,7 +116,7 @@
 			<Button href={appDestination} target="_blank" rel="noopener" size="lg" onclick={() => { window.setTimeout(() => { window.location.assign(feedHref()); }, 600); }}>Open workspace <ArrowRight size={16} weight="Outline" /></Button>
 		</div>
 	{:else}
-	<h1>{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>
+	<h1 class="text-wrap-balance">{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>
 	<p class="description">{status === 'checking' ? 'We are checking the link and opening your workspace.' : message}</p>
 	{#if status === 'error'}
 		<div class="completion-actions">

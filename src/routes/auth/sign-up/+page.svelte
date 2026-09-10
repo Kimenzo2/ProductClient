@@ -102,7 +102,7 @@
 	<section class="auth-page confirmation" aria-labelledby="confirmation-title">
 		<div class="auth-icon"><Rocket size={18} weight="Outline" /></div>
 		
-		<h1 id="confirmation-title">Confirm your email</h1>
+		<h1 id="confirmation-title" class="text-wrap-balance">Confirm your email</h1>
 		<p>We sent a confirmation link to <strong>{email}</strong>. Open it to continue setting up your workspace.</p>
 		<Button href={authHref('login')} size="lg" class="auth-primary">Back to sign in <ArrowRight size={16} weight="Outline" /></Button>
 		<p class="small-note">The link may take a minute to arrive. Check your spam folder if you do not see it.</p>
@@ -112,7 +112,7 @@
 		<div class="auth-intro">
 			<div class="auth-icon"><Rocket size={18} weight="Outline" /></div>
 			
-			<h1 id="sign-up-title">Create your account</h1>
+			<h1 id="sign-up-title" class="text-wrap-balance">Create your account</h1>
 			<p>Set up one place for your product work.</p>
 		</div>
 

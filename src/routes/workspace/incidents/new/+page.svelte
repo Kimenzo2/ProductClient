@@ -140,7 +140,7 @@
 <div class="declare-page">
 	<header class="declare-header">
 		<a class="back-link" href="/workspace/incidents"><ArrowLeft size={14} weight="Outline" aria-hidden="true" /> Incidents</a>
-		<div class="header-line"><div><h1>Declare an incident</h1><p>Start with the facts. The declaration becomes the response record the team coordinates around and the public update customers can trust.</p></div><Button href={hostedStatusPage.href} target="_blank" variant="outline" size="md"><Export size={14} weight="Outline" aria-hidden="true" /> Open hosted page</Button></div>
+		<div class="header-line"><div><h1 class="text-wrap-balance">Declare an incident</h1><p>Start with the facts. The declaration becomes the response record the team coordinates around and the public update customers can trust.</p></div><Button href={hostedStatusPage.href} target="_blank" variant="outline" size="md"><Export size={14} weight="Outline" aria-hidden="true" /> Open hosted page</Button></div>
 	</header>
 
 	{#if !statusEditorPreview.hydrated}
