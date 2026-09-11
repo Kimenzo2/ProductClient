@@ -29,7 +29,6 @@
 	let displayName = $state('');
 	let fullName = $state('');
 	let avatarUrl = $state('');
-	let bannerUrl = $state('');
 	let bio = $state('');
 	let website = $state('');
 	let twitter = $state('');
@@ -37,7 +36,6 @@
 	let slugDraft = $state('');
 	let slugError = $state('');
 	let avatarUploading = $state(false);
-	let bannerUploading = $state(false);
 	let makerAnalytics = $state<MakerAnalytics | null>(null);
 	let analyticsLoading = $state(true);
 	let analyticsError = $state('');
@@ -87,9 +85,8 @@
 				displayName = (prof as Profile).display_name ?? '';
 				fullName = (prof as Profile).full_name ?? '';
 				avatarUrl = (prof as Profile).avatar_url ?? '';
-				const gd = (prof as { gamification_data?: { bio?: string; banner_url?: string; website?: string; twitter?: string; github?: string } }).gamification_data;
+				const gd = (prof as { gamification_data?: { bio?: string; website?: string; twitter?: string; github?: string } }).gamification_data;
 				bio = gd?.bio ?? '';
-				bannerUrl = gd?.banner_url ?? '';
 				website = gd?.website ?? '';
 				twitter = gd?.twitter ?? '';
 				github = gd?.github ?? '';
@@ -139,26 +136,6 @@
 		} finally { avatarUploading = false; }
 	}
 
-	async function handleBannerUpload(event: Event) {
-		const file = (event.target as HTMLInputElement).files?.[0];
-		if (!file || !supabase) return;
-		bannerUploading = true;
-		try {
-			const ext = file.name.split('.').pop() ?? 'jpg';
-			const uid = profile?.id ?? (await supabase.auth.getUser()).data.user?.id ?? 'anon';
-			const path = `${uid}/banner-${Date.now()}.${ext}`;
-			const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-			if (upErr) throw upErr;
-			const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-			bannerUrl = data.publicUrl;
-			notice = 'Banner uploaded — save to persist';
-			setTimeout(() => (notice = ''), 2000);
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : 'Banner upload failed';
-			error = msg.includes('Bucket not found') ? 'Unable to upload image. Please try again.' : msg;
-		} finally { bannerUploading = false; }
-	}
-
 	async function saveProfile() {
 		if (!supabase || !profile) return;
 		savingProfile = true;
@@ -177,7 +154,6 @@
 					avatar_url: avatarUrl.trim() || null,
 					gamification_data: {
 						bio: bio.trim(),
-						banner_url: bannerUrl.trim(),
 						website: website.trim(),
 						twitter: twitter.trim().replace(/^@/, ''),
 						github: github.trim()
@@ -246,23 +222,8 @@
 <svelte:head><title>You · Product Client</title></svelte:head>
 
 <div class="w-full max-w-[880px] mx-auto px-6 max-sm:px-4">
-	<!-- ── Mirrors P-Landing /m/[handle] — preview of public maker page ── -->
-	<div class="h-[140px] md:h-[180px] -mx-6 max-sm:-mx-4 rounded-b-[20px] overflow-hidden bg-[var(--pc-surface-2)] relative group/banner border-b border-[var(--pc-border-strong)]">
-		{#if bannerUrl}
-			<img src={bannerUrl} alt="Banner" class="h-full w-full object-cover" onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-		{:else}
-			<div class="h-full w-full bg-[linear-gradient(135deg,var(--pc-surface)_0%,var(--pc-surface-2)_100%)] flex items-center justify-center">
-				<span class="text-[11px] font-medium tracking-[0.08em] uppercase text-[var(--pc-text-faint)]">No banner</span>
-			</div>
-		{/if}
-		<label class="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--pc-bg)]/90 px-3.5 py-2 text-[12px] font-medium text-[var(--pc-text)] shadow-[0_2px_12px_rgba(0,0,0,0.15)] backdrop-blur border border-[var(--pc-border-strong)] cursor-pointer hover:bg-[var(--pc-surface)] transition-colors z-20" use:tooltip={{ text: 'Upload banner — 1920×400, shows on your public /m/ page', island: true }}>
-			<Upload size={14} weight="Outline" aria-hidden="true" /> {bannerUploading ? 'Uploading…' : 'Change banner'}
-			<input type="file" accept="image/*" class="sr-only" onchange={handleBannerUpload} disabled={bannerUploading} />
-		</label>
-	</div>
-
-	<header class="flex items-end gap-4 -mt-10 md:-mt-12 relative z-10 pb-5">
-		<div class="relative shrink-0 -mt-10 md:-mt-12">
+	<header class="flex items-end gap-4 pt-10 pb-5">
+		<div class="relative shrink-0">
 			{#if avatarUrl}
 				<img src={avatarUrl} alt={displayName || fullName} width="80" height="80" class="size-[80px] md:size-24 rounded-full object-cover bg-[var(--pc-surface)] ring-4 ring-[var(--pc-bg)] shadow-[0_4px_20px_rgba(0,0,0,0.15)]" onerror={(e) => { const t = e.target as HTMLImageElement; t.style.display='none'; const f=t.nextElementSibling as HTMLElement; if(f) f.style.display='grid'; }} />
 				<div class="hidden size-[80px] md:size-24 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-4 ring-[var(--pc-bg)] text-[28px] font-medium" style="display:none">{(displayName || fullName || 'U').charAt(0).toUpperCase()}</div>
@@ -337,7 +298,7 @@
 		<div class="grid gap-6 pb-12 mt-6">
 			<Card padding="lg">
 				<h2 class="text-[15px] font-medium">Profile — mirrors /m/ page</h2>
-				<p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">Editable: avatar, banner, bio, links. DB-tracked followers, following, products, and views are read-only.</p>
+				<p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">Editable: avatar, bio, links. DB-tracked followers, following, products, and views are read-only.</p>
 				<div class="mt-5 grid gap-5 sm:grid-cols-2">
 					<div class="grid gap-2"><Label for="you-display">Display name</Label><Input id="you-display" bind:value={displayName} placeholder="Amina Yusuf" /></div>
 					<div class="grid gap-2"><Label for="you-full">Full name</Label><Input id="you-full" bind:value={fullName} placeholder="Amina Yusuf" /></div>
@@ -348,14 +309,6 @@
 							<label class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--pc-surface)] px-3 py-2 text-[12px] font-medium hover:bg-[var(--pc-surface-2)] cursor-pointer" use:tooltip={{ text: 'Upload screen — picks from device', island: true }}><Upload size={14} weight="Outline" aria-hidden="true" /> Upload <input type="file" accept="image/*" class="sr-only" onchange={handleAvatarUpload} /></label>
 						</div>
 						<span class="text-[11px] text-[var(--pc-text-faint)]">Upload a square screen — shows on /m/ avatar</span>
-					</div>
-					<div class="grid gap-2">
-						<Label for="you-banner">Banner</Label>
-						<div class="flex gap-2">
-							<Input id="you-banner" bind:value={bannerUrl} placeholder="https://..." class="flex-1" />
-							<label class="inline-flex items-center gap-1.5 rounded-[10px] bg-[var(--pc-surface)] px-3 py-2 text-[12px] font-medium hover:bg-[var(--pc-surface-2)] cursor-pointer" use:tooltip={{ text: 'Upload banner — 1920×400 shows on /m/', island: true }}><Upload size={14} weight="Outline" aria-hidden="true" /> Upload <input type="file" accept="image/*" class="sr-only" onchange={handleBannerUpload} /></label>
-						</div>
-						<span class="text-[11px] text-[var(--pc-text-faint)]">Upload wide screen — banner on /m/</span>
 					</div>
 					<div class="grid gap-2"><Label for="you-website">Website</Label><Input id="you-website" bind:value={website} placeholder="https://bento.dev" /></div>
 					<div class="grid gap-2"><Label for="you-twitter">X (Twitter)</Label><Input id="you-twitter" bind:value={twitter} placeholder="@handle" /></div>

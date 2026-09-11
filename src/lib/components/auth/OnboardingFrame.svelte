@@ -28,5 +28,5 @@
 </section>
 
 <style>
-	.onboarding-page { display: grid; gap: 0; }.onboarding-intro { display: grid; gap: 9px; margin-bottom: 27px; }.onboarding-intro h1 { max-width: 13ch; margin: 0; color: var(--pc-text); font-size: clamp(29px, 4vw, 43px); font-weight: 500; line-height: 1.02; letter-spacing: -.06em; }.onboarding-intro > p:last-child { max-width: 42ch; margin: 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; }.onboarding-content { display: grid; gap: 22px; }
+	.onboarding-page { display: grid; gap: 0; }.onboarding-intro { display: grid; gap: 6px; margin-bottom: 18px; }.onboarding-intro h1 { max-width: 13ch; margin: 0; color: var(--pc-text); font-size: clamp(26px, 4vw, 36px); font-weight: 500; line-height: 1.02; letter-spacing: -.06em; text-wrap: balance; overflow-wrap: break-word; }.onboarding-intro > p:last-child { max-width: 38ch; margin: 0; color: var(--pc-text-muted); font-size: 13px; line-height: 1.5; overflow-wrap: break-word; }.onboarding-content { display: grid; gap: 14px; }
 </style>

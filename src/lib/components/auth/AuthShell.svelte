@@ -15,12 +15,10 @@
 </div>
 
 <style>
-	:global(html:has(.auth-root)), :global(body:has(.auth-root)) { overflow: hidden; height: 100%; }
-	.auth-root { width: 100%; height: 100dvh; overflow: hidden; display: grid; place-items: center; padding: 16px; background: var(--pc-bg); color: var(--pc-text); }
-	.auth-frame { width: 100%; max-width: 400px; display: grid; place-items: center; }
+	.auth-root { width: 100%; min-height: 100dvh; display: grid; place-items: center; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); background: var(--pc-bg); color: var(--pc-text); }
+	.auth-frame { width: 100%; max-width: 400px; display: grid; place-items: center; padding-block: 16px; }
 	.auth-form-pane { display: grid; place-items: center; width: 100%; background: transparent; }
-	.auth-form-content { display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 360px; box-sizing: border-box; padding: 0; border: 0; background: transparent; box-shadow: none; overflow: hidden; }
-	@media (max-width: 480px) { .auth-root { padding: 12px; } }
-	@media (max-height: 720px) { .auth-form-content { transform: scale(0.96); transform-origin: center; } }
-	@media (max-height: 640px) { .auth-form-content { transform: scale(0.92); } }
+	.auth-form-content { display: flex; flex-direction: column; justify-content: center; width: 100%; max-width: 360px; box-sizing: border-box; padding: 0; border: 0; background: transparent; box-shadow: none; }
+	@media (max-width: 480px) { .auth-root { padding: 12px 12px max(12px, env(safe-area-inset-bottom)); } }
+	@media (max-height: 700px) { .auth-root { place-items: start center; padding-block: 12px; } .auth-form-content { justify-content: flex-start; } }
 </style>
