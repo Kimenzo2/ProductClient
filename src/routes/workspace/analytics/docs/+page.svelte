@@ -111,5 +111,30 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="mt-6 grid gap-3 lg:grid-cols-2">
+			<div class="rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-5">
+				<h3 class="text-xs font-medium">Helpfulness by page</h3>
+				<p class="mt-1 text-xs text-[var(--pc-text-muted)]">Yes / No votes per path.</p>
+				<div class="mt-3 space-y-1 max-h-[180px] overflow-auto">
+					{#each data.feedbackPerPage.slice(0,5) as f}
+						<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-3 py-2 text-xs"><span class="truncate font-mono text-[11px]">{f.path}</span><span class="tabular-nums">{f.yes} yes · {f.no} no</span></div>
+					{:else}
+						<div class="rounded-[12px] bg-[var(--pc-surface)] px-3 py-6 text-center text-xs text-[var(--pc-text-faint)]">No votes yet</div>
+					{/each}
+				</div>
+			</div>
+			<div class="rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-5">
+				<h3 class="text-xs font-medium">Ask misses</h3>
+				<p class="mt-1 text-xs text-[var(--pc-text-muted)]">Questions with no citation — low confidence.</p>
+				<div class="mt-3 space-y-1 max-h-[180px] overflow-auto">
+					{#each data.askMisses.slice(0,3) as q}
+						<div class="rounded-[12px] bg-[var(--pc-surface)] px-3 py-2 text-xs"><span class="truncate">{q.question}</span><span class="ml-2 text-[var(--pc-text-faint)]">· {q.count}×</span></div>
+					{:else}
+						<div class="rounded-[12px] bg-[var(--pc-surface)] px-3 py-6 text-center text-xs text-[var(--pc-text-faint)]">No misses</div>
+					{/each}
+				</div>
+			</div>
+		</div>
 	{/if}
 </div>

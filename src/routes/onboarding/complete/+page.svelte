@@ -51,11 +51,9 @@
 			formError = 'Service is temporarily unavailable. Please try again.';
 			return;
 		}
-		// Capture the tab inside the button click — anything opened after
-		// the await below gets eaten by the popup blocker.
 		const appTab = openBlankTab();
 		busy = true;
-		const { data, error } = await supabase.auth.updateUser({ data: { full_name: name, workspace_name: workspaceName, role } });
+		const { data, error } = await supabase.auth.updateUser({ data: { full_name: name, role } });
 		if (error) {
 			appTab?.close();
 			formError = readableAuthError(error);
@@ -63,59 +61,40 @@
 			return;
 		}
 		const currentUserId = data.user?.id;
-		// Ensure tenant + sync display name to the tenant row and the D1 registry.
-		// Best-effort: never block navigation on a sync or rename failure.
 		try {
 			const t = await ensureMyTenant();
 			if (t) {
-				let current = t;
-				// First-time onboarding: promote the provisional signup slug (usually
-				// derived from the email) to a slug derived from the chosen name.
-				// Non-fatal — the RPC owns normalization, reserved words, and
-				// uniqueness. If the name-derived slug is taken, the provisional
-				// slug stays live and Settings offers a manual rename.
-				const desiredName = name.trim();
-				if (desiredName) {
-					const { tenant: renamed } = await renameMyTenant(desiredName);
-					if (renamed) {
-						current = renamed;
-					} else {
-						slugNote = 'We kept your current address — you can change your subdomain in Settings.';
-					}
-				}
-				// The tenant display name doubles as the workspace name shown on
-				// hosted pages; sync whatever the user chose on onboarding.
-				const displayName = workspaceName.trim() || current.name;
-				if (displayName !== current.name) {
-					const { error: updateError } = await supabase.from('tenants').update({ name: displayName }).eq('id', current.id);
-					if (!updateError) current = { ...current, name: displayName };
-				}
-				tenant = current;
-				// Map to the hosted pages registry keyed by the stable tenant id,
-				// so a slug change updates the single shared Cloudflare record.
-				void syncTenantRegistry(current);
+				tenant = t;
+				void syncTenantRegistry(t);
 			}
-		} catch {
-			// non-fatal
-		}
-		// Keep the profiles row in sync with auth user_metadata so server-side
-		// code does not depend on a client-writable metadata claim.
-		if (currentUserId && name.trim()) {
+		} catch {}
+		if (currentUserId) {
 			try {
-				await supabase.from('profiles').update({ full_name: name.trim(), display_name: name.trim() }).eq('id', currentUserId);
-			} catch {
-				// non-fatal
-			}
+				const updates: Record<string, unknown> = {};
+				if (name.trim()) {
+					updates.full_name = name.trim();
+					updates.display_name = name.trim();
+				}
+				if (workspaceName.trim()) {
+					updates.gamification_data = { workspace_name: workspaceName.trim() };
+					const { data: existing } = await supabase.from('profiles').select('gamification_data').eq('id', currentUserId).maybeSingle();
+					const currentData = (existing as { gamification_data?: Record<string, unknown> } | null)?.gamification_data ?? {};
+					updates.gamification_data = { ...currentData, workspace_name: workspaceName.trim() };
+				}
+				if (Object.keys(updates).length) {
+					await supabase.from('profiles').update(updates).eq('id', currentUserId);
+				}
+			} catch {}
 		}
 		clearOnboardingDraft();
-		const destination = appHref('/workspace');
+		const { data: sessionData } = await supabase.auth.getSession();
+		const session = sessionData.session ?? undefined;
+		const destination = appHref('/workspace', session);
 		if (!destination.startsWith('http')) {
 			appTab?.close();
 			await goto(destination, { replaceState: true });
 			return;
 		}
-		// Cross-origin handoff: the app dashboard opens in the tab captured
-		// above, so this page stays open.
 		completeAppHandoff(appTab, destination);
 	}
 </script>

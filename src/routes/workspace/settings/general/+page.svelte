@@ -18,8 +18,21 @@
 		try {
 			tenant = await ensureMyTenant();
 			if (tenant) {
-				nameDraft = tenant.name;
 				slugDraft = tenant.slug;
+				if (supabase) {
+					const { data: userData } = await supabase.auth.getUser();
+					const uid = userData.user?.id;
+					if (uid) {
+						const { data: profile } = await supabase.from('profiles').select('gamification_data').eq('id', uid).maybeSingle();
+						const ws = (profile as { gamification_data?: Record<string, unknown> } | null)?.gamification_data?.['workspace_name'];
+						if (typeof ws === 'string' && ws.trim()) nameDraft = ws;
+						else nameDraft = tenant.name;
+					} else {
+						nameDraft = tenant.name;
+					}
+				} else {
+					nameDraft = tenant.name;
+				}
 			}
 		} finally {
 			loading = false;
@@ -39,16 +52,14 @@
 		try {
 			const trimmedName = nameDraft.trim();
 			const trimmedSlug = slugDraft.trim().toLowerCase();
-			// Name is global nuke — one write defines every new doc/roadmap/status default
-			if (trimmedName && trimmedName !== tenant.name) {
-				await supabase.from('tenants').update({ name: trimmedName }).eq('id', tenant.id);
-				tenant = { ...tenant, name: trimmedName };
-				const { data: sess } = await supabase.auth.getSession();
-				await fetch('/api/tenants/sync', {
-					method: 'POST',
-					headers: { 'content-type': 'application/json', authorization: `Bearer ${sess.session?.access_token ?? ''}` },
-					body: JSON.stringify({ id: tenant.id, slug: tenant.slug, displayName: trimmedName })
-				}).catch(() => {});
+			if (trimmedName) {
+				const { data: userData } = await supabase.auth.getUser();
+				const uid = userData.user?.id;
+				if (uid) {
+					const { data: existing } = await supabase.from('profiles').select('gamification_data').eq('id', uid).maybeSingle();
+					const currentData = (existing as { gamification_data?: Record<string, unknown> } | null)?.gamification_data ?? {};
+					await supabase.from('profiles').update({ gamification_data: { ...currentData, workspace_name: trimmedName } }).eq('id', uid);
+				}
 			}
 			if (trimmedSlug !== tenant.slug) {
 				const { tenant: updated, error } = await renameMyTenant(trimmedSlug);
