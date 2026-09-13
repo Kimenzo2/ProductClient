@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { CheckCircle, Shield, User, UserAdd, Users } from 'reicon-svelte';
-	import { Button, Card, Input, Label } from '$lib/components/ui';
+	import { Shield, User, UserAdd, Users } from 'reicon-svelte';
+	import { Button, Input } from '$lib/components/ui';
 	import { tooltip } from '$lib/components/Tooltip.svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import { ensureMyTenant, type Tenant } from '$lib/tenant';
@@ -42,27 +42,35 @@
 	}
 </script>
 
-<Card padding="lg">
-	<div class="flex items-center gap-2"><Users size={16} weight="Outline" aria-hidden="true" /><h2 class="text-[16px] font-medium">Members</h2><span class="rounded-full bg-[var(--pc-surface)] px-2 py-0.5 text-[12px] text-[var(--pc-text-faint)]" use:tooltip={{ text: 'Owner can invite, change roles, transfer ownership', island: true }}>Owner only</span></div>
-	<p class="mt-1 text-[14px] text-[var(--pc-text-muted)]">Who can access this workspace.</p>
-	<div class="mt-5 flex gap-2">
-		<div class="grid flex-1 gap-1.5"><Label for="invite-email">Email</Label><Input id="invite-email" bind:value={inviteEmail} placeholder="teammate@company.com" /></div>
-		<div class="grid gap-1.5"><Label for="invite-role">Role</Label><select id="invite-role" bind:value={inviteRole} class="h-10 rounded-[12px] border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-3 text-[14px]"><option value="Member">Member</option><option value="Admin">Admin</option></select></div>
-		<Button size="sm" class="self-end" onclick={invite}><UserAdd size={14} weight="Outline" aria-hidden="true" /> Invite</Button>
-	</div>
-	{#if notice}<p class="mt-3 text-[14px] text-[var(--pc-accent-light)]" role="status">{notice}</p>{/if}
-	<div class="mt-6 grid gap-2">
-		{#each members as m}
-			<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
-				<span class="flex items-center gap-3"><span class="grid size-8 place-items-center rounded-full bg-[var(--pc-bg)]"><User size={14} weight="Outline" aria-hidden="true" /></span><span class="grid"><strong class="text-[14px] font-medium">{m.email}{m.you ? ' · You' : ''}</strong><span class="text-[13px] text-[var(--pc-text-muted)]">{m.role}</span></span></span>
-				<span class="inline-flex items-center gap-1 text-[13px] text-[var(--pc-text-faint)]"><Shield size={12} weight="Outline" aria-hidden="true" />{m.role}</span>
-			</div>
-		{/each}
-	</div>
-</Card>
+<header class="mb-5">
+	<h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><Users size={20} weight="Outline" aria-hidden="true" />Members</h2>
+	<p class="mt-1 text-sm text-[var(--pc-text-muted)]">Who can access this workspace.</p>
+</header>
 
-<Card padding="lg">
-	<h3 class="text-[14px] font-medium">Transfer ownership</h3>
-	<p class="mt-1 text-[14px] text-[var(--pc-text-muted)]">Give ownership to another member. You’ll become a member.</p>
-	<Button variant="outline" size="sm" class="mt-3" disabled>Transfer</Button>
-</Card>
+<section class="divide-y divide-[var(--pc-border-strong)] rounded-[12px] border border-[var(--pc-border-strong)]">
+	<div class="p-4">
+		<div class="flex flex-wrap items-end gap-2">
+			<div class="grid min-w-0 flex-1 gap-1.5"><label for="invite-email" class="text-[13px] text-[var(--pc-text-muted)]">Email</label><Input id="invite-email" bind:value={inviteEmail} placeholder="teammate@company.com" class="max-sm:text-base!" /></div>
+			<div class="grid gap-1.5"><label for="invite-role" class="text-[13px] text-[var(--pc-text-muted)]">Role</label><select id="invite-role" bind:value={inviteRole} class="h-10 cursor-default rounded-[12px] border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-3 text-[14px] max-sm:text-base!"><option value="Member">Member</option><option value="Admin">Admin</option></select></div>
+			<Button size="sm" class="h-10" onclick={invite}><UserAdd size={14} weight="Outline" aria-hidden="true" /> Invite</Button>
+		</div>
+		{#if notice}<p class="mt-3 text-[13px] text-[var(--pc-accent-light)]" role="status">{notice}</p>{/if}
+	</div>
+	{#each members as m}
+		<div class="flex items-center gap-3 p-4">
+			<span class="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--pc-bg)]"><User size={14} weight="Outline" aria-hidden="true" /></span>
+			<div class="min-w-0 flex-1">
+				<div class="truncate text-sm font-medium">{m.email}{m.you ? ' · You' : ''}</div>
+				<div class="text-[13px] text-[var(--pc-text-muted)]">{m.role}</div>
+			</div>
+			<span class="inline-flex shrink-0 items-center gap-1 text-[13px] text-[var(--pc-text-faint)]"><Shield size={12} weight="Outline" aria-hidden="true" />{m.role}</span>
+		</div>
+	{/each}
+	<div class="flex items-center gap-3 p-4">
+		<div class="min-w-0 flex-1">
+			<div class="truncate text-sm font-medium">Transfer ownership</div>
+			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Give ownership to another member. You’ll become a member.</p>
+		</div>
+		<span class="shrink-0" use:tooltip={{ text: 'Owner can invite, change roles, transfer ownership', island: true }}><Button variant="outline" size="sm" disabled>Transfer</Button></span>
+	</div>
+</section>

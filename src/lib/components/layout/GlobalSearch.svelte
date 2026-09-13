@@ -119,14 +119,14 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 
 {#if open}
 	<div class="fixed inset-0 z-[80] flex items-start justify-center px-4 pt-[calc(var(--pc-header-h)+18px)] sm:pt-[calc(var(--pc-header-h)+32px)]">
-			<button class="absolute inset-0 bg-black/40 backdrop-blur-[16px] saturate-[140%] supports-[backdrop-filter]:bg-black/30" onclick={close} aria-label="Close search"></button>
+			<button class="absolute inset-0 bg-transparent cursor-default" onclick={close} aria-label="Close search"></button>
 
 		<dialog
 			open
 			bind:this={dialogEl}
 			aria-modal="true"
 			aria-label="Global search"
-			class="relative z-10 w-full max-w-[720px] overflow-hidden rounded-[22px] bg-[var(--pc-bg)]/80 backdrop-blur-[20px] saturate-[180%] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.25)] supports-[backdrop-filter]:bg-[var(--pc-bg)]/70"
+			class="relative z-10 w-full max-w-[720px] overflow-hidden rounded-[22px] bg-[var(--pc-bg)] border border-[var(--pc-border-strong)]"
 		>
 			<div class="flex items-center gap-3 px-4 py-3.5">
 				<Search size={20} weight="Outline" class="shrink-0 opacity-60" />
@@ -139,7 +139,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 					autocorrect="off"
 					spellcheck="false"
 				placeholder="Search your product work..."
-				class="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[var(--pc-text-faint)] sm:text-sm"
+				class="min-w-0 flex-1 bg-transparent text-base outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 shadow-none placeholder:text-[var(--pc-text-faint)] sm:text-sm"
 				aria-label="Search workspace Product Client records"
 				/>
 				{#if query}

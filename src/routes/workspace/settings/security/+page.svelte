@@ -1,30 +1,41 @@
 <script lang="ts">
 	import { Lock, Shield } from 'reicon-svelte';
-	import { Button, Card } from '$lib/components/ui';
+	import { Button } from '$lib/components/ui';
 	import { tooltip } from '$lib/components/Tooltip.svelte';
 </script>
 
-<Card padding="lg">
-	<div class="flex items-center gap-2"><Shield size={16} weight="Outline" aria-hidden="true" /><h2 class="text-[16px] font-medium">Security</h2></div>
-	<p class="mt-1 text-[14px] text-[var(--pc-text-muted)]">Control access to this workspace.</p>
-	<div class="mt-5 grid gap-3">
-		<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
-			<div><p class="text-[14px] font-medium">Single sign-on</p><p class="text-[13px] text-[var(--pc-text-muted)]">SAML / OIDC via Okta, Entra. Enforce for all members.</p></div>
-			<span use:tooltip={{ text: 'Enterprise only', island: true }}><Button size="sm" variant="outline" disabled>Enable</Button></span>
-		</div>
-		<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
-			<div><p class="text-[14px] font-medium">Require 2FA</p><p class="text-[13px] text-[var(--pc-text-muted)]">Every member must have two-factor auth.</p></div>
-			<Button size="sm" variant="outline" disabled>Require</Button>
-		</div>
-		<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
-			<div><p class="text-[14px] font-medium">Domain verification</p><p class="text-[13px] text-[var(--pc-text-muted)]">Prove you own productclient.com to auto-provision members.</p></div>
-			<Button size="sm" variant="outline">Verify</Button>
-		</div>
-	</div>
-</Card>
+<header class="mb-5">
+	<h2 class="text-xl font-semibold tracking-tight">Security</h2>
+	<p class="mt-1 text-sm text-[var(--pc-text-muted)]">Control access to this workspace.</p>
+</header>
 
-<Card padding="lg">
-	<div class="flex items-center gap-2"><Lock size={14} weight="Outline" aria-hidden="true" /><h3 class="text-[14px] font-medium">Sessions</h3></div>
-	<p class="mt-1 text-[14px] text-[var(--pc-text-muted)]">Revoke all other sessions if you lost a device.</p>
-	<Button size="sm" variant="outline" class="mt-3">Sign out other sessions</Button>
-</Card>
+<section class="divide-y divide-[var(--pc-border-strong)] rounded-[12px] border border-[var(--pc-border-strong)]">
+	<div class="flex items-center gap-3 p-4">
+		<div class="min-w-0 flex-1">
+			<div class="truncate text-sm font-medium">Single sign-on</div>
+			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">SAML / OIDC via Okta, Entra. Enforce for all members.</p>
+		</div>
+		<span class="shrink-0" use:tooltip={{ text: 'Enterprise only', island: true }}><Button size="sm" variant="outline" disabled>Enable</Button></span>
+	</div>
+	<div class="flex items-center gap-3 p-4">
+		<div class="min-w-0 flex-1">
+			<div class="truncate text-sm font-medium">Require 2FA</div>
+			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Every member must have two-factor auth.</p>
+		</div>
+		<span class="shrink-0"><Button size="sm" variant="outline" disabled>Require</Button></span>
+	</div>
+	<div class="flex items-center gap-3 p-4">
+		<div class="min-w-0 flex-1">
+			<div class="truncate text-sm font-medium">Domain verification</div>
+			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Prove you own productclient.com to auto-provision members.</p>
+		</div>
+		<span class="shrink-0"><Button size="sm" variant="outline">Verify</Button></span>
+	</div>
+	<div class="flex items-center gap-3 p-4">
+		<div class="min-w-0 flex-1">
+			<div class="flex items-center gap-2 truncate text-sm font-medium"><Lock size={14} weight="Outline" aria-hidden="true" />Sessions</div>
+			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Revoke all other sessions if you lost a device.</p>
+		</div>
+		<span class="shrink-0"><Button size="sm" variant="outline">Sign out other sessions</Button></span>
+	</div>
+</section>

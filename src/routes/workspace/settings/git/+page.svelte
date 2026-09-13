@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 import { Check, Plug, Search, Settings } from 'reicon-svelte';
-import { Button, Card, Input, Label, Select } from '$lib/components/ui';
+import { Button, Input, Label, Select } from '$lib/components/ui';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 import { supabase } from '$lib/supabaseClient';
 
@@ -190,67 +190,77 @@ import { supabase } from '$lib/supabaseClient';
 
 <svelte:head><title>Git · Settings</title></svelte:head>
 
-<div class="mx-auto w-full max-w-[880px] space-y-6">
-	<Card padding="lg">
-		<div class="flex items-center gap-2"><Plug size={16} weight="Outline" aria-hidden="true" /><h2 class="text-[16px] font-medium">GitHub</h2><span use:tooltip={{ text: 'One repo per product. Pushes to the chosen branch update this product only.', island: true }} class="text-[var(--pc-text-faint)] cursor-help"><Settings size={12} weight="Outline" aria-hidden="true" /></span></div>
+<div class="mx-auto w-full max-w-[880px]">
+	<header class="mb-5">
+		<h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><Plug size={20} weight="Outline" aria-hidden="true" />GitHub<span use:tooltip={{ text: 'One repo per product. Pushes to the chosen branch update this product only.', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Settings size={14} weight="Outline" aria-hidden="true" /></span></h2>
+		<p class="mt-1 text-sm text-[var(--pc-text-muted)]">Connect a repo. Pushes to the chosen branch sync docs for this product.</p>
+	</header>
 
-		{#if loading}
-			<div class="mt-6 h-24 animate-pulse rounded-[12px] bg-[var(--pc-surface-2)]"></div>
-		{:else}
-			{#if !products.length}
-				<div class="mt-6 rounded-[12px] bg-[var(--pc-surface)] p-4">
-					<p class="text-[14px] font-medium text-[var(--pc-text)]">No products yet</p>
-					<p class="mt-1 text-[14px] text-[var(--pc-text-muted)]">Create a product to connect docs.</p>
+	{#if loading}
+		<div class="h-40 animate-pulse rounded-[12px] bg-[var(--pc-surface-2)]"></div>
+	{:else}
+		{#if error}<p class="mb-4 rounded-[12px] bg-[rgba(248,113,113,0.12)] px-3 py-2 text-[13px] text-[#fca5a5]" role="alert">{error}</p>{/if}
+		{#if notice}<p class="mb-4 rounded-[12px] bg-[rgba(119,152,18,0.12)] px-3 py-2 text-[13px] text-[var(--pc-accent-light)]" role="status">{notice}</p>{/if}
+
+		{#if !products.length}
+			<section class="divide-y divide-[var(--pc-border-strong)] rounded-[12px] border border-[var(--pc-border-strong)]">
+				<div class="p-4">
+					<div class="truncate text-sm font-medium">No products yet</div>
+					<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Create a product to connect docs.</p>
 					<Button size="sm" class="mt-3" href="/workspace/products">Create a product</Button>
 				</div>
-			{:else}
-				<div class="mt-5 grid gap-4">
+			</section>
+		{:else}
+			<section class="divide-y divide-[var(--pc-border-strong)] rounded-[12px] border border-[var(--pc-border-strong)]">
+				<div class="p-4">
 					<div class="grid gap-1.5">
 						<Label>Active product</Label>
 						<Select value={activeProductId ?? ''} options={products.map((p) => ({ value: p.id, label: `${p.name} · ${p.slug}` }))} onValueChange={(v) => { activeProductId = v; void loadLink(); }} />
 					</div>
-
-					{#if error}<p class="rounded-[10px] bg-[rgba(248,113,113,0.12)] px-3 py-2 text-[13px] text-[#fca5a5]" role="alert">{error}</p>{/if}
-					{#if notice}<p class="rounded-[10px] bg-[rgba(119,152,18,0.12)] px-3 py-2 text-[13px] text-[var(--pc-accent-light)]" role="status">{notice}</p>{/if}
-
-					{#if link}
-						<div class="rounded-[14px] border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] p-4">
-							<div class="flex items-center gap-2 text-[13px] font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> {link.repo_full_name} · {link.branch}<span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="text-[var(--pc-text-faint)] cursor-help"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
-							{#if link.last_error}<p class="mt-2 text-[12px] text-[#fca5a5]" use:tooltip={{ text: link.last_error, island: true }}>Sync failed — check connection</p>{/if}
-							<div class="mt-3 flex flex-wrap gap-2">
-								<Button size="sm" variant="outline" loading={syncBusy} onclick={syncNow}>Sync now</Button>
-								<Button size="sm" variant="outline" onclick={disconnect}>Disconnect</Button>
-							</div>
-							{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
-						</div>
-					{:else}
-						{#if !installationId}
-							<Button size="sm" loading={busy} onclick={connect}><Plug size={14} weight="Outline" aria-hidden="true" /> Connect GitHub</Button>
-						{:else}
-							<div class="grid gap-3">
-								<div class="grid gap-1.5"><Label>Repository</Label>
-									{#if repos.length}
-										<Select bind:value={selectedRepo} options={repos.map((r) => ({ value: r.full_name, label: r.full_name + (r.private ? ' · private' : '') }))} />
-									{:else}
-										<div class="flex gap-2"><Input value={selectedRepo} placeholder="org/repo" oninput={(e: Event) => (selectedRepo = (e.target as HTMLInputElement).value)} class="flex-1 font-mono" /><Button size="sm" variant="outline" onclick={loadRepos}><Search size={14} weight="Outline" aria-hidden="true" /></Button></div>
-									{/if}
-								</div>
-								<div class="grid grid-cols-2 gap-3">
-									<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono" /></div>
-									<div class="grid gap-1.5"><Label for="gh-path">Folder</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono" /></div>
-								</div>
-								<div class="flex gap-2">
-									<Button size="sm" loading={busy} onclick={saveLink}>Save</Button>
-									<Button size="sm" variant="outline" onclick={connect}>Change install</Button>
-								</div>
-							</div>
-						{/if}
-					{/if}
 				</div>
-			{/if}
-		{/if}
-	</Card>
 
+				{#if link}
+					<div class="p-4">
+						<div class="flex flex-wrap items-center gap-2 text-sm font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> {link.repo_full_name} · {link.branch}<span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
+						{#if link.last_error}<p class="mt-2 text-[12px] text-[#fca5a5]" use:tooltip={{ text: link.last_error, island: true }}>Sync failed — check connection</p>{/if}
+						<div class="mt-3 flex flex-wrap gap-2">
+							<Button size="sm" variant="outline" loading={syncBusy} onclick={syncNow}>Sync now</Button>
+							<Button size="sm" variant="outline" onclick={disconnect}>Disconnect</Button>
+						</div>
+						{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
+					</div>
+				{:else if !installationId}
+					<div class="flex items-center gap-3 p-4">
+						<div class="min-w-0 flex-1">
+							<div class="truncate text-sm font-medium">Connect GitHub</div>
+							<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Install the app to pick a repo.</p>
+						</div>
+						<span class="shrink-0"><Button size="sm" loading={busy} onclick={connect}><Plug size={14} weight="Outline" aria-hidden="true" /> Connect</Button></span>
+					</div>
+				{:else}
+					<div class="p-4">
+						<div class="grid gap-3">
+							<div class="grid gap-1.5"><Label>Repository</Label>
+								{#if repos.length}
+									<Select bind:value={selectedRepo} options={repos.map((r) => ({ value: r.full_name, label: r.full_name + (r.private ? ' · private' : '') }))} />
+								{:else}
+									<div class="flex gap-2"><Input value={selectedRepo} placeholder="org/repo" oninput={(e: Event) => (selectedRepo = (e.target as HTMLInputElement).value)} class="flex-1 font-mono" /><Button size="sm" variant="outline" onclick={loadRepos}><Search size={14} weight="Outline" aria-hidden="true" /></Button></div>
+								{/if}
+							</div>
+							<div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+								<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
+								<div class="grid gap-1.5"><Label for="gh-path">Folder</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+							</div>
+							<div class="flex gap-2">
+								<Button size="sm" loading={busy} onclick={saveLink}>Save</Button>
+								<Button size="sm" variant="outline" onclick={connect}>Change install</Button>
+							</div>
+						</div>
+					</div>
+				{/if}
+			</section>
+		{/if}
+	{/if}
 </div>
 
 <style>

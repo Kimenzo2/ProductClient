@@ -77,7 +77,7 @@
 		line-height: 1;
 		text-align: start;
 		outline: none;
-		cursor: pointer;
+		cursor: default;
 		transition: background-color 100ms ease, border-color 100ms ease;
 	}
 	:global(.pc-select-trigger:hover) { background: var(--pc-surface); }
@@ -109,7 +109,7 @@
 		padding: 0;
 		border-radius: 10px;
 		outline: none;
-		cursor: pointer;
+		cursor: default;
 	}
 	:global(.pc-select-item-inner) {
 		display: flex;
