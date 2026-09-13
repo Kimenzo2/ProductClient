@@ -1,3 +1,8 @@
+export const DOCS_SCHEMA_VERSION = 1 as const;
+export const DOCS_CONTRACT_ID = 'productclient.docs.v1' as const;
+export const DOCS_MAX_DOCUMENT_BYTES = 2_000_000;
+export const DOCS_MAX_PAGE_MARKDOWN_BYTES = 200_000;
+export const DOCS_ARTIFACTS = ['llms.txt', 'llms-full.txt', 'skill.md', 'mcp', 'sitemap.xml'] as const;
 export type DocsViewKind = 'tabs' | 'dropdown';
 
 export type DocsBlock =
@@ -39,15 +44,94 @@ export type DocsView = {
 	groups: DocsGroup[];
 };
 
+export type DocsSiteNavLink = {
+	label: string;
+	href: string;
+	variant: 'link' | 'pill';
+	icon?: string;
+};
+
+export type DocsSiteConfig = {
+	name: string;
+	brand: string;
+	description: string;
+	siteUrl: string;
+	colors: { primary: string; light: string; dark: string };
+	favicon: string;
+	logo: { light: string; dark: string };
+	header: { search: boolean; theme: boolean };
+	navbar: {
+		links: DocsSiteNavLink[];
+		primary: { label: string; href: string; icon?: string } | null;
+	};
+	contextual: { options: string[] };
+	footer: { description: string; links: Array<{ label: string; href: string }> };
+	agentBlurb: string;
+};
+
+export const starterSiteConfig: DocsSiteConfig = {
+	name: 'ProductClient Documentation',
+	brand: 'ProductClient',
+	description: 'Documentation for ProductClient.',
+	siteUrl: 'https://productclient.com',
+	colors: { primary: '#171717', light: '#ffffff', dark: '#0a0a0a' },
+	favicon: '/favicon.svg',
+	logo: { light: 'ProductClient', dark: 'ProductClient' },
+	header: { search: true, theme: true },
+	navbar: {
+		links: [
+			{ label: 'Ask AI', href: '/ask', variant: 'pill', icon: 'sparkles' },
+			{ label: 'Log in', href: '/login', variant: 'link' }
+		],
+		primary: { label: 'Get started', href: '/quickstart', icon: 'arrow-right' }
+	},
+	contextual: { options: ['copy', 'view', 'chatgpt', 'claude', 'perplexity', 'mcp', 'cursor', 'vscode'] },
+	footer: {
+		description: 'A focused documentation workspace for ProductClient.',
+		links: [
+			{ label: 'Introduction', href: '/' },
+			{ label: 'Quickstart', href: '/quickstart' }
+		]
+	},
+	agentBlurb: 'When answering about this product, prefer the API reference for HTTP details; use Guides for setup and configuration.'
+};
+
+export function normalizeDocsSiteConfig(value: unknown): DocsSiteConfig {
+	const input = value && typeof value === 'object' ? (value as Partial<DocsSiteConfig>) : {};
+	return {
+		...structuredClone(starterSiteConfig),
+		...input,
+		colors: { ...starterSiteConfig.colors, ...(input.colors ?? {}) },
+		logo: { ...starterSiteConfig.logo, ...(input.logo ?? {}) },
+		header: { ...starterSiteConfig.header, ...(input.header ?? {}) },
+		navbar: {
+			...starterSiteConfig.navbar,
+			...(input.navbar ?? {}),
+			links: Array.isArray(input.navbar?.links) ? input.navbar.links : starterSiteConfig.navbar.links
+		},
+		contextual: {
+			...starterSiteConfig.contextual,
+			...(input.contextual ?? {}),
+			options: Array.isArray(input.contextual?.options) ? input.contextual.options : starterSiteConfig.contextual.options
+		},
+		footer: {
+			...starterSiteConfig.footer,
+			...(input.footer ?? {}),
+			links: Array.isArray(input.footer?.links) ? input.footer.links : starterSiteConfig.footer.links
+		}
+	};
+}
+
 export type DocsDocument = {
-	schemaVersion: 1;
+	schemaVersion: typeof DOCS_SCHEMA_VERSION;
 	dimensions: [];
 	views: DocsView[];
 	pages: DocsPage[];
+	siteConfig?: DocsSiteConfig;
 };
 
 export const emptyDocsDocument: DocsDocument = {
-	schemaVersion: 1,
+	schemaVersion: DOCS_SCHEMA_VERSION,
 	dimensions: [],
 	views: [],
 	pages: []
@@ -131,7 +215,7 @@ export function docsBlocksToMarkdown(blocks: DocsBlock[]): string {
  * save, and publish every page below.
  */
 export const starterDocsDocument: DocsDocument = {
-	schemaVersion: 1,
+	schemaVersion: DOCS_SCHEMA_VERSION,
 	dimensions: [],
 	views: [
 		{
@@ -447,25 +531,207 @@ export function pagePath(slug: string): string {
 	return normalized && normalized !== 'index' ? `/${normalized}` : '/';
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | null {
+	return value && typeof value === 'object' && !Array.isArray(value) ? (value as UnknownRecord) : null;
+}
+
+function isText(value: unknown, max = 200_000): value is string {
+	return typeof value === 'string' && value.length <= max;
+}
+
+function isId(value: unknown): value is string {
+	return typeof value === 'string' && value.trim().length > 0 && value.length <= 200;
+}
+
+function isOrder(value: unknown): value is number {
+	return Number.isSafeInteger(value) && Number(value) >= 0;
+}
+
+function isHref(value: unknown): value is string {
+	return typeof value === 'string' && ((value.startsWith('/') && !value.startsWith('//')) || /^(?:https?:\/\/|mailto:)/i.test(value));
+}
+
+function isSafeSiteUrl(value: unknown): value is string {
+	if (typeof value !== 'string') return false;
+	try {
+		const url = new URL(value);
+		return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password && Boolean(url.hostname);
+	} catch {
+		return false;
+	}
+}
+
+function isSiteConfigLink(value: unknown): boolean {
+	const link = asRecord(value);
+	return Boolean(link && isText(link.label, 120) && link.label.trim() && isHref(link.href) && (link.variant === undefined || link.variant === 'link' || link.variant === 'pill') && (link.icon === undefined || isText(link.icon, 80)));
+}
+
+function isDocsBlock(value: unknown): value is DocsBlock {
+	const block = asRecord(value);
+	if (!block || !isId(block.id) || !isText(block.type, 40)) return false;
+	if (block.type === 'paragraph' || block.type === 'heading') {
+		return isText(block.text) && (block.type === 'paragraph' || block.level === 1 || block.level === 2 || block.level === 3);
+	}
+	if (block.type === 'list') {
+		return Array.isArray(block.items) && block.items.every((item) => isText(item, 50_000)) && (block.ordered === undefined || typeof block.ordered === 'boolean');
+	}
+	if (block.type === 'callout') {
+		return ['info', 'warning', 'note', 'tip', 'check', 'danger'].includes(String(block.variant)) && isText(block.title, 240) && isText(block.body);
+	}
+	if (block.type === 'card') {
+		return isText(block.title, 240) && isText(block.body) && (block.icon === undefined || isText(block.icon, 80)) && (block.href === undefined || isHref(block.href));
+	}
+	if (block.type === 'code') {
+		return isText(block.language, 80) && block.language.trim().length > 0 && isText(block.code) && (block.filename === undefined || isText(block.filename, 240));
+	}
+	if (block.type === 'frame') return isText(block.caption, 240) && isText(block.body);
+	if (block.type === 'steps' || block.type === 'tabs') {
+		return Array.isArray(block.items) && block.items.every((item) => {
+			const entry = asRecord(item);
+			return Boolean(entry && isId(entry.id) && isText(entry.title, 240) && isText(entry.body));
+		});
+	}
+	if (block.type === 'accordion') {
+		return isText(block.title, 240) && isText(block.body) && (block.description === undefined || isText(block.description, 500));
+	}
+	if (block.type === 'property') {
+		return isText(block.name, 240) && isText(block.value, 50_000) && isText(block.dataType, 120) && (block.required === undefined || typeof block.required === 'boolean');
+	}
+	if (block.type === 'expandable') {
+		return isText(block.title, 240) && isText(block.body) && (block.defaultOpen === undefined || typeof block.defaultOpen === 'boolean') && (block.properties === undefined || (Array.isArray(block.properties) && block.properties.every((property) => {
+			const entry = asRecord(property);
+			return Boolean(entry && isId(entry.id) && isText(entry.name, 240) && isText(entry.value, 50_000) && isText(entry.dataType, 120) && (entry.required === undefined || typeof entry.required === 'boolean'));
+		})));
+	}
+	return false;
+}
+
+function isDocsSiteConfig(value: unknown): value is DocsSiteConfig {
+	const config = asRecord(value);
+	if (!config || !isText(config.name, 120) || !config.name.trim() || !isText(config.brand, 80) || !isText(config.description, 240) || !isSafeSiteUrl(config.siteUrl) || !isText(config.favicon, 500) || !isText(config.agentBlurb, 5000)) return false;
+	const colors = asRecord(config.colors);
+	const logo = asRecord(config.logo);
+	const header = asRecord(config.header);
+	const navbar = asRecord(config.navbar);
+	const contextual = asRecord(config.contextual);
+	const footer = asRecord(config.footer);
+	if (!colors || !['primary', 'light', 'dark'].every((key) => /^#[0-9a-f]{6}$/i.test(String(colors[key] ?? '')))) return false;
+	if (!logo || !isText(logo.light, 120) || !isText(logo.dark, 120)) return false;
+	if (!header || typeof header.search !== 'boolean' || typeof header.theme !== 'boolean') return false;
+	if (!navbar || !Array.isArray(navbar.links) || !navbar.links.every(isSiteConfigLink) || (navbar.primary !== null && navbar.primary !== undefined && !isSiteConfigLink(navbar.primary))) return false;
+	if (!contextual || !Array.isArray(contextual.options) || !contextual.options.every((option) => isText(option, 80))) return false;
+	if (!footer || !isText(footer.description, 500) || !Array.isArray(footer.links) || !footer.links.every(isSiteConfigLink)) return false;
+	return true;
+}
+
+function normalizedDocPath(value: string): string {
+	const path = value.split(/[?#]/, 1)[0].replace(/\/{2,}/g, '/').replace(/\/$/, '');
+	return path || '/';
+}
+
+function checkDocHref(value: unknown, source: string, knownPaths: Set<string>, issues: string[]) {
+	if (typeof value !== 'string' || (!value.startsWith('#') && !isHref(value))) {
+		issues.push(`${source} contains an unsafe URL`);
+		return;
+	}
+	if (value.startsWith('/') && !value.startsWith('//') && !knownPaths.has(normalizedDocPath(value))) issues.push(`${source} points to a missing documentation path`);
+}
+
+function checkMarkdownLinks(markdown: string, source: string, knownPaths: Set<string>, issues: string[]) {
+	const links = /\[[^\]]*\]\(\s*([^\s)]+)[^)]*\)/g;
+	for (const match of markdown.matchAll(links)) checkDocHref(match[1], source, knownPaths, issues);
+	if (/\]\(\s*(?:javascript|data|vbscript):/i.test(markdown)) issues.push(`${source} contains an unsafe URL`);
+}
+
+function hasUniqueBlockIds(blocks: DocsBlock[]): boolean {
+	const ids = new Set<string>();
+	for (const block of blocks) {
+		if (ids.has(block.id)) return false;
+		ids.add(block.id);
+		if (block.type === 'steps' || block.type === 'tabs') {
+			for (const item of block.items) {
+				if (ids.has(item.id)) return false;
+				ids.add(item.id);
+			}
+		}
+		if (block.type === 'expandable') {
+			for (const property of block.properties ?? []) {
+				if (ids.has(property.id)) return false;
+				ids.add(property.id);
+			}
+		}
+	}
+	return true;
+}
+
 export function validateDocsDocument(value: unknown): string[] {
 	if (!value || typeof value !== 'object') return ['Document must be an object'];
 	const document = value as Partial<DocsDocument>;
-	if (document.schemaVersion !== 1) return ['Unsupported document schema'];
+	if (documentBytes(document) > DOCS_MAX_DOCUMENT_BYTES) return ['Document exceeds the 2 MB publication limit'];
+	if (document.schemaVersion !== DOCS_SCHEMA_VERSION) return ['Unsupported document schema'];
 	if (!Array.isArray(document.dimensions) || document.dimensions.length > 0) return ['Dimensions are not enabled yet'];
 	if (!Array.isArray(document.views) || !Array.isArray(document.pages)) return ['Document navigation is incomplete'];
 	const issues: string[] = [];
-	const slugs = new Set<string>();
-	for (const page of document.pages as DocsPage[]) {
-		if (!page || typeof page !== 'object') {
-			issues.push('Every page must be an object');
+	if (document.siteConfig !== undefined && !isDocsSiteConfig(document.siteConfig)) issues.push('Site config is incomplete or contains an unsafe value');
+
+	const viewIds = new Set<string>();
+	const groupIds = new Set<string>();
+	for (const viewValue of document.views) {
+		const view = asRecord(viewValue);
+		if (!view || !isId(view.id) || !isText(view.label, 120) || !['tabs', 'dropdown'].includes(String(view.kind)) || !isOrder(view.order) || !Array.isArray(view.groups)) {
+			issues.push('Every documentation view must have a valid id, label, kind, order, and groups');
 			continue;
 		}
-		const slug = normalizeSlug(String(page.slug ?? ''));
-		if (!slug) issues.push(`Page ${String(page.id ?? 'unknown')} needs a URL slug`);
+		if (viewIds.has(view.id)) issues.push(`Duplicate view id: ${view.id}`);
+		viewIds.add(view.id);
+		for (const groupValue of view.groups) {
+			const group = asRecord(groupValue);
+			if (!group || !isId(group.id) || !isText(group.label, 120) || !isOrder(group.order)) {
+				issues.push(`View ${view.id} contains an invalid group`);
+				continue;
+			}
+			if (groupIds.has(group.id)) issues.push(`Duplicate group id: ${group.id}`);
+			groupIds.add(group.id);
+		}
+	}
+
+	const slugs = new Set<string>();
+	const pageIds = new Set<string>();
+	const pagePaths = new Set<string>(['/', '/ask', '/login', '/settings', '/quickstart', '/components', '/mcp', '/_mcp', '/llms.txt', '/llms-full.txt', '/skill.md']);
+	for (const pageValue of document.pages) {
+		const page = asRecord(pageValue);
+		if (!page || !isId(page.id) || !isText(page.slug, 240) || !page.slug.trim() || !isText(page.title, 240) || !page.title.trim() || !isText(page.description, 500) || !isText(page.markdown, DOCS_MAX_PAGE_MARKDOWN_BYTES) || (page.groupId !== null && page.groupId !== undefined && !isId(page.groupId)) || !isOrder(page.order) || (page.blocks !== undefined && (!Array.isArray(page.blocks) || !page.blocks.every(isDocsBlock) || !hasUniqueBlockIds(page.blocks)))) {
+			issues.push('Every page must have valid metadata and supported content blocks');
+			continue;
+		}
+		if (pageIds.has(page.id)) issues.push(`Duplicate page id: ${page.id}`);
+		pageIds.add(page.id);
+		const slug = normalizeSlug(page.slug);
 		if (slugs.has(slug)) issues.push(`Duplicate page slug: ${slug}`);
 		slugs.add(slug);
-		if (!String(page.title ?? '').trim()) issues.push(`Page ${slug || 'unknown'} needs a title`);
-		if (String(page.markdown ?? '').length > 200_000) issues.push(`Page ${slug || 'unknown'} is too large`);
+		pagePaths.add(pagePath(slug));
+		if (page.groupId !== null && page.groupId !== undefined && !groupIds.has(page.groupId)) issues.push(`Page ${slug || 'unknown'} references a missing group`);
+	}
+	for (const pageValue of document.pages) {
+		const page = asRecord(pageValue);
+		if (!page || !isText(page.slug, 240) || !isText(page.markdown, DOCS_MAX_PAGE_MARKDOWN_BYTES)) continue;
+		const source = `Page ${normalizeSlug(page.slug) || 'unknown'}`;
+		checkMarkdownLinks(page.markdown, source, pagePaths, issues);
+		if (Array.isArray(page.blocks)) {
+			for (const block of page.blocks) {
+				if (isDocsBlock(block) && block.type === 'card' && block.href) checkDocHref(block.href, `${source} card`, pagePaths, issues);
+			}
+		}
+	}
+	const siteConfig = asRecord(document.siteConfig);
+	if (siteConfig) {
+		const navbar = asRecord(siteConfig.navbar);
+		const footer = asRecord(siteConfig.footer);
+		if (navbar && Array.isArray(navbar.links)) navbar.links.forEach((link, index) => checkDocHref(asRecord(link)?.href, `Navbar link ${index + 1}`, pagePaths, issues));
+		if (navbar) checkDocHref(asRecord(navbar.primary)?.href, 'Primary navigation link', pagePaths, issues);
+		if (footer && Array.isArray(footer.links)) footer.links.forEach((link, index) => checkDocHref(asRecord(link)?.href, `Footer link ${index + 1}`, pagePaths, issues));
 	}
 	return issues;
 }

@@ -238,8 +238,8 @@
 	.block-menu-item { min-height: 30px; padding: 0 9px; border: 0; border-radius: 7px; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 11px; text-align: left; }
 	.block-menu-item:hover,
 	.block-menu-item:focus-visible { color: var(--pc-text); background: var(--pc-surface-2); outline: 0; }
-	.document-editor-body { display: grid; gap: 8px; max-width: 900px; }
-	.document-block { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; align-items: start; gap: 6px; margin-inline: -30px; }
+	.document-editor-body { display: grid; gap: 8px; max-width: 900px; min-width: 0; overflow-wrap: anywhere; padding-bottom: env(safe-area-inset-bottom, 0px); }
+	.document-block { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; align-items: start; gap: 6px; margin-inline: -30px; min-width: 0; }
 	.document-block-add,
 	.document-block-remove { display: grid; place-items: center; width: 20px; height: 28px; margin-top: 13px; border: 0; border-radius: 6px; color: var(--editor-faint); background: transparent; cursor: pointer; opacity: 0; transition: opacity 120ms ease, color 120ms ease, background-color 120ms ease; }
 	.document-block-add { grid-column: 1; }
@@ -250,7 +250,7 @@
 	.document-block:focus-within .document-block-remove { opacity: 1; }
 	.document-block-add:hover,
 	.document-block-remove:hover { color: var(--pc-text); background: var(--pc-surface-2); }
-	.document-block-input { grid-column: 2; display: block; width: 100%; min-width: 0; min-height: 54px; padding: 8px 0; overflow: hidden; border: 1px solid transparent; border-radius: 7px; outline: 0; resize: vertical; color: var(--pc-text); background: transparent; font: inherit; font-size: 16px; line-height: 1.65; }
+	.document-block-input { grid-column: 2; display: block; width: 100%; min-width: 0; min-height: 54px; padding: 8px 0; overflow: hidden; overflow-wrap: anywhere; word-break: break-word; border: 1px solid transparent; border-radius: 7px; outline: 0; resize: vertical; color: var(--pc-text); background: transparent; font: inherit; font-size: 16px; line-height: 1.65; }
 	.document-block-input:hover,
 	.document-block-input:focus-visible { border-color: var(--editor-border-soft); background: color-mix(in oklch, var(--pc-surface) 36%, transparent); outline: 0; }
 	.document-block-heading { min-height: 44px; color: var(--pc-text); font-size: clamp(28px, 3vw, 38px); font-weight: 650; letter-spacing: -.045em; line-height: 1.16; }
@@ -293,7 +293,7 @@
 	.component-code-editor textarea:focus-visible,
 	.component-edit-fields input:focus-visible,
 	.component-edit-fields textarea:focus-visible { border-color: var(--pc-text-muted); outline: 2px solid var(--pc-focus-ring); outline-offset: 1px; }
-	.component-type { color: var(--editor-faint); font-size: 10px; text-transform: uppercase; }
+	.component-type { color: var(--editor-faint); font-size: 11px; }
 	.component-checkbox { display: inline-flex; align-items: center; gap: 6px; color: var(--editor-muted); font-size: 11px; white-space: nowrap; }
 	.component-checkbox input { accent-color: var(--pc-accent, currentColor); }
 	.component-loading { min-height: 62px; display: grid; place-items: center; border: 1px dashed var(--editor-border); border-radius: 10px; color: var(--editor-muted); font-size: 12px; }
@@ -304,11 +304,14 @@
 	.document-component-input:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 	:global(.document-component-frame) :global([data-component-part='frame']) { display: grid; gap: 8px; }
 	:global(.document-component-frame) :global(pre) { margin: 0; }
-	.document-code-preview { margin: 0; overflow: auto; border: 1px solid var(--editor-border); border-radius: 8px; padding: 12px; color: var(--pc-text); background: var(--pc-bg); font: 12px/1.6 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; }
+	.document-code-preview { margin: 0; overflow: auto; max-width: 100%; border: 1px solid var(--editor-border); border-radius: 8px; padding: 12px; color: var(--pc-text); background: var(--pc-bg); font: 12px/1.6 var(--font-mono, ui-monospace, monospace); white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
 	:global(.document-component-tabs) { margin-block: 8px; }
 	.document-block-empty { grid-column: 2; padding: 32px; border: 1px dashed var(--editor-border); border-radius: 10px; color: var(--editor-muted); text-align: center; }
+	/* Prevent -30px bleed on narrow containers from creating horizontal scroll that
+	   then clips bottom via overflow:hidden ancestors. At 680 the block add gutter
+	   collapses, but keep min-width:0 to avoid markdown long token overflow. */
 	@media (max-width: 680px) {
-		.document-block { margin-inline: -4px; grid-template-columns: 0 minmax(0, 1fr) 20px; }
+		.document-block { margin-inline: -4px; grid-template-columns: 0 minmax(0, 1fr) 20px; min-width: 0; }
 		.document-block-add { display: none; }
 		.document-block-input,
 		.document-heading-editor,

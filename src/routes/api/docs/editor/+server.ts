@@ -39,11 +39,11 @@ export const GET: RequestHandler = async ({ request }) => {
 
 	const { data, error } = await context.admin
 		.from('docs_documents')
-		.select('draft, draft_version, published, published_version, published_at')
+		.select('draft, draft_version, published, published_version, published_at, publication_state, publication_error, published_hash, published_release_id')
 		.eq('tenant_id', context.tenant.id)
 		.maybeSingle();
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
-	const row = data as { draft?: DocsDocument; draft_version?: number; published?: DocsDocument | null; published_version?: number; published_at?: string | null } | null;
+	const row = data as { draft?: DocsDocument; draft_version?: number; published?: DocsDocument | null; published_version?: number; published_at?: string | null; publication_state?: string; publication_error?: string | null; published_hash?: string | null; published_release_id?: string | null } | null;
 	const storedDraft = row?.draft;
 	const isLegacyMock = storedDraft?.pages?.some((page) => page.title === 'Config Marketplace' || page.title === 'Market');
 	const starterSlugs = new Set(starterDocsDocument.pages.map((page) => page.slug));
@@ -62,7 +62,11 @@ export const GET: RequestHandler = async ({ request }) => {
 			version: row?.draft_version ?? 0,
 			published: row?.published ?? null,
 			publishedVersion: row?.published_version ?? 0,
-			publishedAt: row?.published_at ?? null
+			publishedAt: row?.published_at ?? null,
+			publicationState: row?.publication_state ?? 'unpublished',
+			publicationError: row?.publication_error ?? null,
+			publishedHash: row?.published_hash ?? null,
+			publishedReleaseId: row?.published_release_id ?? null
 		},
 		{ headers: { 'cache-control': 'no-store', etag: `W/\"${row?.draft_version ?? 0}\"` } }
 	);

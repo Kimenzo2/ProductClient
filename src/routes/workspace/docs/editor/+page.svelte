@@ -3,8 +3,9 @@
 	import { browser } from '$app/environment';
 	import { Add, ArrowLeft, ChevronDown, Code, Eye, FileText, Save, Search, Settings, Trash } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
+	import { Tree, TreeFolder, TreeFile } from 'components-svelte';
 	import EditorBlockSurface from '$lib/components/docs/EditorBlockSurface.svelte';
-	import { docsBlocksToMarkdown, markdownToDocsBlocks, starterDocsDocument, type DocsBlock, type DocsDocument, type DocsPage } from '$lib/data/docsEditor';
+	import { docsBlocksToMarkdown, markdownToDocsBlocks, normalizeDocsSiteConfig, starterDocsDocument, starterSiteConfig, type DocsBlock, type DocsDocument, type DocsPage, type DocsSiteConfig } from '$lib/data/docsEditor';
 	import { supabase } from '$lib/supabaseClient';
 
 	type EditorResponse = {
@@ -15,58 +16,83 @@
 		version?: number;
 		publishedVersion?: number;
 		publishedAt?: string | null;
+		publicationState?: 'unpublished' | 'syncing' | 'published' | 'failed';
+		publicationError?: string | null;
+		publishedHash?: string | null;
+		publishedReleaseId?: string | null;
 		warning?: string;
 		migrated?: boolean;
 	};
 
 	let doc = $state<DocsDocument>(structuredClone(starterDocsDocument));
-	let savedSignature = $state(JSON.stringify(starterDocsDocument));
+	let siteConfig = $state<DocsSiteConfig>(structuredClone(starterSiteConfig));
+	let savedSignature = $state(JSON.stringify({ doc: starterDocsDocument, siteConfig: starterSiteConfig }));
 	let version = $state(0);
 	let publishedVersion = $state(0);
+	let publicationState = $state<'unpublished' | 'syncing' | 'published' | 'failed'>('unpublished');
+	let publicationError = $state<string | null>(null);
 	let selectedPageId = $state<string | null>(null);
 	let mode = $state<'visual' | 'markdown'>('visual');
 	let loading = $state(true);
 	let saving = $state(false);
 	let publishing = $state(false);
 	let errorMessage = $state('');
-	let expandedViews = $state<Record<string, boolean>>({});
-	let expandedGroups = $state<Record<string, boolean>>({});
+	// Loop 2: removed expandedViews/expandedGroups — mature TreeFolder owns open state internally
+	// via defaultOpen (uncontrolled). Keeping duplicate mirrors caused drift + dead writes.
 	let branchMenuOpen = $state(false);
 	let publishMenuOpen = $state(false);
+	let treeAddMenuOpen = $state(false);
 	let searchOpen = $state(false);
 	let searchQuery = $state('');
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let editorSurface = $state<'navigation' | 'site-config'>('navigation');
 	let siteConfigSection = $state('general');
-	let siteTitle = $state('ProductClient Documentation');
-	let siteDescription = $state('Documentation for ProductClient.');
 	let editorBlocks = $state<DocsBlock[]>([]);
 	let editorBlockPageId = '';
 
 	function cloneSnapshot<T>(value: T): T {
-		return structuredClone($state.snapshot(value));
+		return structuredClone($state.snapshot(value)) as T;
+	}
+
+	function draftSnapshot(): DocsDocument {
+		return { ...$state.snapshot(doc), siteConfig: $state.snapshot(siteConfig) };
+	}
+
+	function currentSignature(): string {
+		return JSON.stringify({ doc: $state.snapshot(doc), siteConfig: $state.snapshot(siteConfig) });
 	}
 
 	const siteConfigSections = [
 		{ id: 'general', label: 'General', icon: Settings },
 		{ id: 'brand', label: 'Brand & Theme', icon: Eye },
-		{ id: 'routing', label: 'Header & Routing', icon: ArrowLeft },
-		{ id: 'seo', label: 'SEO', icon: Search },
-		{ id: 'cookies', label: 'Cookies', icon: FileText },
-		{ id: 'integrations', label: 'Integrations', icon: Code },
-		{ id: 'css', label: 'Custom CSS', icon: Code },
-		{ id: 'scripts', label: 'Custom Scripts', icon: Code },
-		{ id: 'actions', label: 'Page Actions', icon: Add },
-		{ id: 'agent', label: 'AI Agent', icon: Search },
-		{ id: 'feedback', label: 'Feedback', icon: FileText },
-		{ id: 'redirects', label: 'Redirects', icon: ArrowLeft }
+		{ id: 'header', label: 'Header & Navigation', icon: ArrowLeft },
+		{ id: 'seo', label: 'SEO & Agents', icon: Search },
+		{ id: 'contextual', label: 'Contextual actions', icon: Add },
+		{ id: 'footer', label: 'Footer', icon: FileText }
 	] as const;
 
 
 	let currentPage = $derived(doc.pages.find((page) => page.id === selectedPageId) ?? null);
 	let currentSiteSection = $derived(siteConfigSections.find((section) => section.id === siteConfigSection) ?? siteConfigSections[0]);
-	let dirty = $derived(JSON.stringify($state.snapshot(doc)) !== savedSignature);
+	let dirty = $derived(JSON.stringify({ doc: $state.snapshot(doc), siteConfig: $state.snapshot(siteConfig) }) !== savedSignature);
 	let orderedViews = $derived([...doc.views].sort((a, b) => a.order - b.order));
+	// Loop 1: memoize grouping/sorting — was O(n*m) filter+sort inline per group per render.
+	// Keys are view/group ids; values are pre-sorted page arrays. Single source for Tree rendering.
+	let pagesByGroup = $derived.by(() => {
+		const map = new Map<string | null, DocsPage[]>();
+		for (const p of doc.pages) {
+			const key = p.groupId ?? null;
+			if (!map.has(key)) map.set(key, []);
+			map.get(key)!.push(p);
+		}
+		for (const list of map.values()) list.sort((a, b) => a.order - b.order);
+		return map;
+	});
+	let sortedGroupsByView = $derived.by(() => {
+		const map = new Map<string, { id: string; label: string; order: number }[]>();
+		for (const v of orderedViews) map.set(v.id, [...v.groups].sort((a, b) => a.order - b.order));
+		return map;
+	});
 	let searchResults = $derived(
 		doc.pages.filter((page) => {
 			const query = searchQuery.trim().toLowerCase();
@@ -85,10 +111,20 @@
 		return markdownToDocsBlocks(page.markdown);
 	}
 
-	function selectPage(id: string) {
+	function selectPage(id: string, opts: { focusTreeItem?: boolean } = {}) {
 		selectedPageId = id;
 		editorSurface = 'navigation';
 		errorMessage = '';
+		// Loop 3: keep keyboard focus in Tree (single-tab-stop delight) + ensure visible.
+		// Without this, mouse users are fine but keyboard/AT users lose place after search/create/delete.
+		if (opts.focusTreeItem && browser) {
+			queueMicrotask(() => {
+				const wrap = document.querySelector(`.editor-tree .tree-page-wrapper[data-page-id="${CSS.escape(id)}"]`);
+				const item = wrap?.querySelector<HTMLElement>('[role="treeitem"]');
+				item?.focus({ preventScroll: true });
+				item?.scrollIntoView({ block: 'nearest' });
+			});
+		}
 	}
 
 	function setMode(nextMode: 'visual' | 'markdown') {
@@ -109,6 +145,25 @@
 		}
 	}
 
+	function updateNavLink(index: number, field: 'label' | 'href', value: string) {
+		const link = siteConfig.navbar.links[index];
+		if (link) link[field] = value;
+	}
+
+	function addNavLink() {
+		siteConfig.navbar.links.push({ label: 'New link', href: '/', variant: 'link' });
+	}
+
+	function removeNavLink(index: number) {
+		siteConfig.navbar.links.splice(index, 1);
+	}
+
+	function toggleContextualOption(option: string, enabled: boolean) {
+		const options = siteConfig.contextual.options;
+		if (enabled && !options.includes(option)) options.push(option);
+		if (!enabled) siteConfig.contextual.options = options.filter((item) => item !== option);
+	}
+
 	function openSearch() {
 		searchOpen = true;
 		searchQuery = '';
@@ -120,7 +175,7 @@
 	}
 
 	function chooseSearchResult(id: string) {
-		selectPage(id);
+		selectPage(id, { focusTreeItem: true });
 		closeSearch();
 	}
 
@@ -128,6 +183,7 @@
 		if (event.key === 'Escape') {
 			branchMenuOpen = false;
 			publishMenuOpen = false;
+			treeAddMenuOpen = false;
 			closeSearch();
 			return;
 		}
@@ -142,15 +198,8 @@
 		if (!target?.closest('.menu-anchor')) {
 			branchMenuOpen = false;
 			publishMenuOpen = false;
+			treeAddMenuOpen = false;
 		}
-	}
-
-	function toggleView(id: string) {
-		expandedViews[id] = expandedViews[id] === false;
-	}
-
-	function toggleGroup(id: string) {
-		expandedGroups[id] = expandedGroups[id] === false;
 	}
 
 	function pageForEdit(): DocsPage | null {
@@ -176,8 +225,6 @@
 		if (doc.views.length === 0) doc.views.push({ id: crypto.randomUUID(), label: 'Documentation', kind: 'tabs', order: 0, groups: [] });
 		const view = doc.views[0];
 		if (view.groups.length === 0) view.groups.push({ id: crypto.randomUUID(), label: 'Getting started', order: 0 });
-		expandedViews[view.id] = true;
-		expandedGroups[view.groups[0].id] = true;
 		return { view, group: view.groups[0] };
 	}
 
@@ -197,14 +244,20 @@
 		doc.pages.push(page);
 		selectedPageId = page.id;
 		mode = 'visual';
+		// Loop 3: new page must land focus in Tree so keyboard users aren't stranded in Add menu.
+		if (browser) {
+			queueMicrotask(() => {
+				const wrap = document.querySelector(`.editor-tree .tree-page-wrapper[data-page-id="${CSS.escape(page.id)}"]`);
+				wrap?.querySelector<HTMLElement>('[role="treeitem"]')?.focus({ preventScroll: true });
+				wrap?.scrollIntoView({ block: 'nearest' });
+			});
+		}
 	}
 
 	function createGroup(viewId?: string) {
 		const target = doc.views.find((candidate) => candidate.id === viewId) ?? doc.views[0] ?? ensureViewAndGroup().view;
 		const group = { id: crypto.randomUUID(), label: 'New section', order: target.groups.length };
 		target.groups.push(group);
-		expandedViews[target.id] = true;
-		expandedGroups[group.id] = true;
 	}
 
 	function createView() {
@@ -213,8 +266,19 @@
 
 	function deleteSelectedPage() {
 		if (!selectedPageId) return;
-		doc.pages = doc.pages.filter((page) => page.id !== selectedPageId);
-		selectedPageId = doc.pages[0]?.id ?? null;
+		const deletedId = selectedPageId;
+		const remaining = doc.pages.filter((page) => page.id !== deletedId);
+		doc.pages = remaining;
+		// Loop 3: collapse-then-focus-parent (APG 2.4.3) — never strand focus on a removed node.
+		selectedPageId = remaining[0]?.id ?? null;
+		if (browser) {
+			queueMicrotask(() => {
+				const next = selectedPageId
+					? document.querySelector(`.editor-tree .tree-page-wrapper[data-page-id="${CSS.escape(selectedPageId)}"] [role="treeitem"]`)
+					: document.querySelector<HTMLElement>('.editor-tree .tree-heading .icon-action');
+				(next as HTMLElement | null)?.focus?.({ preventScroll: true });
+			});
+		}
 	}
 
 	async function sessionToken(): Promise<string | null> {
@@ -235,12 +299,15 @@
 		const result = (await response.json().catch(() => null)) as EditorResponse | null;
 		if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not load the documentation draft.');
 		doc = structuredClone(result.draft ?? starterDocsDocument);
+		siteConfig = normalizeDocsSiteConfig(result.draft?.siteConfig);
 		version = result.version ?? 0;
 		publishedVersion = result.publishedVersion ?? 0;
-		savedSignature = result.migrated ? '' : JSON.stringify($state.snapshot(doc));
+		publicationState = result.publicationState ?? 'unpublished';
+		publicationError = result.publicationError ?? null;
+		if (publicationState === 'failed' && publicationError) errorMessage = publicationError;
+		savedSignature = result.migrated || !result.draft?.siteConfig ? '' : currentSignature();
 		selectedPageId = doc.pages[0]?.id ?? null;
-		expandedViews = Object.fromEntries(doc.views.map((view) => [view.id, true]));
-		expandedGroups = Object.fromEntries(doc.views.flatMap((view) => view.groups).map((group) => [group.id, true]));
+		// TreeFolder defaultOpen handles initial expansion; no mirror state needed.
 	}
 
 	async function saveDraft(): Promise<boolean> {
@@ -255,12 +322,12 @@
 			const response = await fetch('/api/docs/editor', {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'if-match': `W/"${version}"` },
-				body: JSON.stringify({ draft: $state.snapshot(doc), version })
+				body: JSON.stringify({ draft: draftSnapshot(), version })
 			});
 			const result = (await response.json().catch(() => null)) as EditorResponse | null;
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save the draft.');
 			version = result.version ?? version + 1;
-			savedSignature = JSON.stringify($state.snapshot(doc));
+			savedSignature = currentSignature();
 			return true;
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : 'Could not save the draft.';
@@ -285,7 +352,10 @@
 			const result = (await response.json().catch(() => null)) as EditorResponse | null;
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not publish the documentation.');
 			publishedVersion = result.version ?? publishedVersion + 1;
+			publicationState = 'published';
+			publicationError = null;
 		} catch (error) {
+			publicationState = 'failed';
 			errorMessage = error instanceof Error ? error.message : 'Could not publish the documentation.';
 		} finally {
 			publishing = false;
@@ -298,6 +368,29 @@
 			editorBlockPageId = currentPage.id;
 		}
 		if (searchOpen && searchInput) searchInput.focus();
+	});
+
+	// Loop 1: components-svelte TreeFile hardcodes aria-selected=false with no selected prop.
+	// Mirror selection onto the inner role=treeitem so SR users hear the current page.
+	// Runs on selectedPageId change; scoped to .tree-list to avoid touching other trees.
+	$effect(() => {
+		if (!browser) return;
+		const selected = selectedPageId;
+		// depend on selected + pages so it re-runs after Tree re-renders
+		void (doc.pages.length, orderedViews.length);
+		queueMicrotask(() => {
+			const root = document.querySelector('.editor-tree .tree-list');
+			if (!root) return;
+			root.querySelectorAll<HTMLElement>('.tree-page-wrapper').forEach((wrap) => {
+				const isActive = wrap.dataset.pageId === selected;
+				const item = wrap.querySelector<HTMLElement>('[role="treeitem"]');
+				if (item) {
+					item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+					if (isActive) item.setAttribute('aria-current', 'page');
+					else item.removeAttribute('aria-current');
+				}
+			});
+		});
 	});
 
 	onMount(async () => {
@@ -331,7 +424,6 @@
 				<button class="branch-switch" type="button" aria-label="Current branch" aria-expanded={branchMenuOpen} onclick={() => (branchMenuOpen = !branchMenuOpen)}><span class="branch-mark" aria-hidden="true"></span><span>main</span><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
 				{#if branchMenuOpen}
 					<div class="editor-menu branch-menu" role="menu">
-						<div class="menu-label">Branches</div>
 						<button class="menu-item selected" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}><span class="branch-mark" aria-hidden="true"></span><span>main</span><span class="menu-check">Current</span></button>
 						<button class="menu-item" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}>+ Create branch</button>
 					</div>
@@ -343,7 +435,11 @@
 			</div>
 		</div>
 		<div class="command-actions">
-			<span class="save-state" role="status">{#if saving}Saving…{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
+			{#if editorSurface === 'navigation'}
+				<div class="mode-switch command-mode-switch" role="tablist" aria-label="Editor mode"><button class:active={mode === 'visual'} type="button" role="tab" aria-selected={mode === 'visual'} aria-label="Visual mode" title="Visual" onclick={() => setMode('visual')}><Eye size={14} weight="Outline" aria-hidden="true" /></button><button class:active={mode === 'markdown'} type="button" role="tab" aria-selected={mode === 'markdown'} aria-label="Markdown mode" title="Markdown" onclick={() => setMode('markdown')}><Code size={14} weight="Outline" aria-hidden="true" /></button></div>
+				{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" title="Remove page" onclick={deleteSelectedPage}><Trash size={14} weight="Outline" /></button>{/if}
+			{/if}
+			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
 			<Button class="toolbar-button" variant="outline" size="sm" disabled={!dirty || saving} loading={saving} onclick={() => void saveDraft()}><Save size={13} weight="Outline" /> Save</Button>
 			<div class="publish-control menu-anchor">
 				<Button class="toolbar-button toolbar-button-primary" size="sm" disabled={publishing || loading || doc.pages.length === 0} loading={publishing} onclick={() => void publish()}>Publish</Button>
@@ -361,7 +457,7 @@
 	{#if searchOpen}
 		<div class="search-backdrop" role="presentation" tabindex="-1" onclick={closeSearch} onkeydown={(event) => { if (event.key === 'Escape') closeSearch(); }}>
 			<div class="search-dialog" role="dialog" aria-modal="true" aria-labelledby="docs-search-title" tabindex="-1" onclick={(event) => event.stopPropagation()} onkeydown={(event) => event.stopPropagation()}>
-				<div class="search-dialog-heading"><div><span class="eyebrow">Workspace search</span><h2 id="docs-search-title">Find a page</h2></div><button class="icon-action" type="button" aria-label="Close search" onclick={closeSearch}>×</button></div>
+				<div class="search-dialog-heading"><h2 id="docs-search-title">Find a page</h2><button class="icon-action" type="button" aria-label="Close search" onclick={closeSearch}>×</button></div>
 				<div class="search-input-wrap"><Search size={15} weight="Outline" aria-hidden="true" /><input bind:this={searchInput} bind:value={searchQuery} aria-label="Search documentation pages" placeholder="Search pages…" /></div>
 				<div class="search-results" role="listbox" aria-label="Documentation pages">
 					{#each searchResults.slice(0, 8) as result}
@@ -393,21 +489,79 @@
 				</aside>
 				<main class="site-config-main">
 					<div class="site-config-heading">
-						<div><h1>{currentSiteSection.label}</h1></div>
+						<h1>{currentSiteSection.label}</h1>
+						<p>These values are part of the next published documentation release.</p>
 					</div>
 					{#if siteConfigSection === 'general'}
 						<section class="site-config-row">
 							<div class="site-config-copy"><h2>Site Title</h2><p>Displayed in the browser tab and used by search engines.</p></div>
-							<input class="site-config-input" aria-label="Site title" bind:value={siteTitle} />
+							<input class="site-config-input" aria-label="Site title" bind:value={siteConfig.name} maxlength="120" />
 						</section>
 						<section class="site-config-row">
 							<div class="site-config-copy"><h2>Site Description</h2><p>Appears in search results and social media link previews.</p></div>
-							<textarea class="site-config-input site-config-textarea" aria-label="Site description" bind:value={siteDescription}></textarea>
+							<textarea class="site-config-input site-config-textarea" aria-label="Site description" bind:value={siteConfig.description} maxlength="240"></textarea>
 						</section>
-					{:else}
-						<section class="site-config-intro">
-							<h2>{currentSiteSection.label}</h2>
-							<p>This section is ready for the tenant-level documentation settings that will shape the hosted Starter Kit.</p>
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Canonical site URL</h2><p>The public origin used for canonical links and share previews.</p></div>
+							<input class="site-config-input" type="url" aria-label="Canonical site URL" bind:value={siteConfig.siteUrl} placeholder="https://example.com" />
+						</section>
+				{:else if siteConfigSection === 'brand'}
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Brand name</h2><p>Used in the hosted header, navigation, and footer.</p></div>
+							<input class="site-config-input" aria-label="Brand name" bind:value={siteConfig.brand} maxlength="80" />
+						</section>
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Logo text</h2><p>Keep the light and dark variants aligned unless the mark changes between themes.</p></div>
+							<div class="site-config-field-stack"><input class="site-config-input" aria-label="Light logo" bind:value={siteConfig.logo.light} placeholder="Light logo" /><input class="site-config-input" aria-label="Dark logo" bind:value={siteConfig.logo.dark} placeholder="Dark logo" /></div>
+						</section>
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Color system</h2><p>Primary is the accent. Light and dark define the hosted page surfaces.</p></div>
+							<div class="site-config-color-grid"><label>Primary<input class="site-config-input" type="color" aria-label="Primary color" bind:value={siteConfig.colors.primary} /></label><label>Light<input class="site-config-input" type="color" aria-label="Light color" bind:value={siteConfig.colors.light} /></label><label>Dark<input class="site-config-input" type="color" aria-label="Dark color" bind:value={siteConfig.colors.dark} /></label></div>
+						</section>
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Favicon</h2><p>Public asset path used by the hosted browser tab.</p></div>
+							<input class="site-config-input" aria-label="Favicon path" bind:value={siteConfig.favicon} placeholder="/favicon.svg" />
+						</section>
+				{:else if siteConfigSection === 'header'}
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Header controls</h2><p>Choose which utility controls appear in the hosted documentation header.</p></div>
+							<div class="site-config-toggle-stack"><label class="site-config-toggle"><input type="checkbox" bind:checked={siteConfig.header.search} /><span>Search documentation</span></label><label class="site-config-toggle"><input type="checkbox" bind:checked={siteConfig.header.theme} /><span>Theme switcher</span></label></div>
+						</section>
+						<section class="site-config-row site-config-row-start">
+							<div class="site-config-copy"><h2>Header links</h2><p>These links are rendered in the top-right hosted header.</p></div>
+							<div class="site-config-list">
+								{#each siteConfig.navbar.links as link, index}
+									<div class="site-config-list-row"><input class="site-config-input" aria-label={`Header link ${index + 1} label`} value={link.label} oninput={(event) => updateNavLink(index, 'label', (event.currentTarget as HTMLInputElement).value)} /><input class="site-config-input" aria-label={`Header link ${index + 1} URL`} value={link.href} oninput={(event) => updateNavLink(index, 'href', (event.currentTarget as HTMLInputElement).value)} /><button class="site-config-remove" type="button" aria-label={`Remove ${link.label}`} onclick={() => removeNavLink(index)}>Remove</button></div>
+								{/each}
+								<button class="site-config-add" type="button" onclick={addNavLink}>+ Add header link</button>
+							</div>
+						</section>
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Primary action</h2><p>The emphasized action shown beside the header links.</p></div>
+							{#if siteConfig.navbar.primary}<div class="site-config-field-stack"><input class="site-config-input" aria-label="Primary action label" bind:value={siteConfig.navbar.primary.label} /><input class="site-config-input" aria-label="Primary action URL" bind:value={siteConfig.navbar.primary.href} /></div>{/if}
+						</section>
+				{:else if siteConfigSection === 'seo'}
+						<section class="site-config-row">
+							<div class="site-config-copy"><h2>Search preview</h2><p>Review the same title and description that will be used by search engines.</p></div>
+							<div class="site-config-preview"><strong>{siteConfig.name || 'Untitled documentation'}</strong><span>{siteConfig.siteUrl || 'https://example.com'}</span><p>{siteConfig.description || 'Add a description for your documentation site.'}</p></div>
+						</section>
+						<section class="site-config-row site-config-row-start">
+							<div class="site-config-copy"><h2>AI agent guidance</h2><p>Included in the hosted agent context so answers prefer the right product sources.</p></div>
+							<textarea class="site-config-input site-config-textarea" aria-label="AI agent guidance" bind:value={siteConfig.agentBlurb} maxlength="500"></textarea>
+						</section>
+				{:else if siteConfigSection === 'contextual'}
+						<section class="site-config-row site-config-row-start">
+							<div class="site-config-copy"><h2>Reader actions</h2><p>Choose which contextual actions are available on published pages.</p></div>
+							<div class="site-config-toggle-stack">{#each ['copy', 'view', 'chatgpt', 'claude', 'perplexity', 'mcp', 'cursor', 'vscode'] as option}<label class="site-config-toggle"><input type="checkbox" checked={siteConfig.contextual.options.includes(option)} onchange={(event) => toggleContextualOption(option, (event.currentTarget as HTMLInputElement).checked)} /><span>{option}</span></label>{/each}</div>
+						</section>
+				{:else}
+						<section class="site-config-row site-config-row-start">
+							<div class="site-config-copy"><h2>Footer description</h2><p>Short supporting copy shown beneath the hosted brand.</p></div>
+							<textarea class="site-config-input site-config-textarea" aria-label="Footer description" bind:value={siteConfig.footer.description} maxlength="180"></textarea>
+						</section>
+						<section class="site-config-row site-config-row-start">
+							<div class="site-config-copy"><h2>Footer links</h2><p>Keep these focused on the pages readers need after finishing an article.</p></div>
+							<div class="site-config-list">{#each siteConfig.footer.links as link}<div class="site-config-list-row"><span class="site-config-static-label">{link.label}</span><span class="site-config-static-label">{link.href}</span></div>{/each}</div>
 						</section>
 					{/if}
 				</main>
@@ -415,56 +569,73 @@
 		{:else}
 		<div class="editor-workspace">
 			<aside class="editor-tree" aria-label="Documentation structure">
+				<p class="tree-a11y-hint">Use arrow keys to move, Enter to open a page.</p>
 				<div class="tree-heading">
 					<div><h2>Your documentation</h2></div>
-					<button class="icon-action" type="button" aria-label="Add view" title="Add view" onclick={createView}><Add size={15} weight="Outline" /></button>
+					<div class="menu-anchor">
+						<button class="icon-action" type="button" aria-label="Add content" title="Add page or section" aria-haspopup="menu" aria-expanded={treeAddMenuOpen} onclick={() => (treeAddMenuOpen = !treeAddMenuOpen)}><Add size={15} weight="Outline" /></button>
+						{#if treeAddMenuOpen}
+							<div class="editor-menu" style="left:auto; right:0; top: calc(100% + 6px);" role="menu">
+								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createPage(); }}><Add size={13} weight="Outline" /> New page</button>
+								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createGroup(); }}>New section</button>
+								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createView(); }}>New view</button>
+							</div>
+						{/if}
+					</div>
 				</div>
 				{#if orderedViews.length === 0}
 					<div class="tree-empty"><p>Start with a view, section, and page.</p><button class="text-button" type="button" onclick={() => createPage()}>Create first page</button></div>
 				{:else}
 					<div class="tree-list">
-						{#each orderedViews as view}
-							<section class="tree-view">
-								<div class="tree-view-row">
-									<span class="tree-view-type">Tab</span>
-									<button class="tree-node-toggle" type="button" aria-expanded={expandedViews[view.id] !== false} onclick={() => toggleView(view.id)}><FileText size={14} weight="Outline" aria-hidden="true" /><span>{view.label}</span><ChevronDown size={13} weight="Outline" class={expandedViews[view.id] === false ? 'tree-chevron-collapsed' : ''} aria-hidden="true" /></button>
-									<button class="tree-more tree-more-visible" type="button" aria-label={`More actions for ${view.label}`} title="More actions">⋮</button>
-								</div>
-								{#if expandedViews[view.id] !== false}
-									<div class="tree-groups-heading"><span>Groups</span><span class="tree-groups-actions"><button class="tree-more tree-more-visible" type="button" aria-label={`Add section to ${view.label}`} title="Add section" onclick={() => createGroup(view.id)}><Add size={14} weight="Outline" /></button><button class="tree-more tree-more-visible" type="button" aria-label={`More group actions for ${view.label}`} title="More actions">⋮</button></span></div>
-									<div class="tree-branch">
-										{#each [...view.groups].sort((a, b) => a.order - b.order) as group}
-											<div class="tree-group">
-												<div class="tree-group-row">
-															<button class="tree-group-toggle" type="button" aria-expanded={expandedGroups[group.id] !== false} onclick={() => toggleGroup(group.id)}><ChevronDown size={12} weight="Outline" class={expandedGroups[group.id] === false ? 'tree-chevron-collapsed' : ''} aria-hidden="true" /><span>{group.label}</span><span class="tree-count">{doc.pages.filter((page) => page.groupId === group.id).length}</span></button>
-															<button class="tree-more" type="button" aria-label={`Add page to ${group.label}`} title="Add page" onclick={() => createPage(group.id)}><Add size={13} weight="Outline" /></button>
+						<!-- Loop 1: mature Tree owns keyboard (arrows/Home/End/type-ahead), roving tabindex, expand/collapse.
+						     No extra tab stops inside role=tree: group add-buttons moved to top Add menu.
+						     Pages use keyed each + wrapper delegates mouse AND keyboard (Enter/Space on inner treeitem bubbles). -->
+						<Tree>
+							{#each orderedViews as view, viewIndex (view.id)}
+								{@const viewGroupPages = (sortedGroupsByView.get(view.id) ?? []).reduce((n, g) => n + (pagesByGroup.get(g.id)?.length ?? 0), 0)}
+								{@const isFirstView = viewIndex === 0}
+								{@const ungroupedCount = isFirstView ? (pagesByGroup.get(null)?.length ?? 0) : 0}
+								{@const viewCount = viewGroupPages + ungroupedCount}
+								<TreeFolder name={viewCount ? `${view.label} · ${viewCount}` : view.label} defaultOpen>
+									{#each sortedGroupsByView.get(view.id) ?? [] as group (group.id)}
+										{@const groupCount = pagesByGroup.get(group.id)?.length ?? 0}
+										<TreeFolder name={groupCount ? `${group.label} · ${groupCount}` : group.label} defaultOpen>
+											{#each pagesByGroup.get(group.id) ?? [] as page (page.id)}
+												<div
+													role="presentation"
+													data-page-id={page.id}
+													data-selected={selectedPageId === page.id}
+													onclick={() => selectPage(page.id)}
+													onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPage(page.id); } }}
+													class="tree-page-wrapper {selectedPageId === page.id ? 'active' : ''}"
+												>
+													<TreeFile name={page.title || 'Untitled page'} />
 												</div>
-												{#if expandedGroups[group.id] !== false}
-													{#each doc.pages.filter((page) => page.groupId === group.id).sort((a, b) => a.order - b.order) as page}
-														<button class:active={selectedPageId === page.id} class="tree-page" type="button" aria-pressed={selectedPageId === page.id} onclick={() => selectPage(page.id)}><FileText size={13} weight="Outline" aria-hidden="true" /><span>{page.title || 'Untitled page'}</span></button>
-													{/each}
-												{/if}
+											{/each}
+										</TreeFolder>
+									{/each}
+									{#if isFirstView}
+										{#each pagesByGroup.get(null) ?? [] as page (page.id)}
+											<div
+												role="presentation"
+												data-page-id={page.id}
+												data-selected={selectedPageId === page.id}
+												onclick={() => selectPage(page.id)}
+												onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPage(page.id); } }}
+												class="tree-page-wrapper {selectedPageId === page.id ? 'active' : ''}"
+											>
+												<TreeFile name={page.title || 'Untitled page'} />
 											</div>
 										{/each}
-										{#each doc.pages.filter((page) => !page.groupId) as page}
-											<button class:active={selectedPageId === page.id} class="tree-page tree-page-ungrouped" type="button" aria-pressed={selectedPageId === page.id} onclick={() => selectPage(page.id)}><FileText size={13} weight="Outline" aria-hidden="true" /><span>{page.title || 'Untitled page'}</span></button>
-										{/each}
-									</div>
-								{/if}
-							</section>
-						{/each}
+									{/if}
+								</TreeFolder>
+							{/each}
+						</Tree>
 					</div>
 				{/if}
-				<div class="tree-footer"><button class="text-button" type="button" onclick={() => createPage()}><Add size={14} weight="Outline" /> New page</button><button class="text-button muted" type="button" onclick={() => createGroup()}>New section</button></div>
 			</aside>
 
 			<main class="editor-canvas" aria-label="Page editor">
-				<div class="canvas-toolbar">
-					<div class="canvas-toolbar-actions">
-						<div class="mode-switch" role="tablist" aria-label="Editor mode"><button class:active={mode === 'visual'} type="button" role="tab" aria-selected={mode === 'visual'} onclick={() => setMode('visual')}><Eye size={13} weight="Outline" aria-hidden="true" /> Visual</button><button class:active={mode === 'markdown'} type="button" role="tab" aria-selected={mode === 'markdown'} onclick={() => setMode('markdown')}><Code size={13} weight="Outline" aria-hidden="true" /> Markdown</button></div>
-						{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" title="Remove page" onclick={deleteSelectedPage}><Trash size={14} weight="Outline" /></button>{/if}
-					</div>
-				</div>
 				{#if currentPage}
 					<div class="canvas-scroll">
 						<div class="canvas-sheet">
@@ -527,11 +698,7 @@
 	.command-leading,
 	.command-actions,
 	.branch-switch,
-	.canvas-toolbar-actions,
-	.mode-switch,
-	.tree-node-toggle,
-	.tree-group-toggle,
-	.tree-footer {
+	.mode-switch {
 		display: flex;
 		align-items: center;
 	}
@@ -547,7 +714,6 @@
 	.command-back,
 	.branch-switch,
 	.icon-action,
-	.tree-more,
 	.canvas-icon-action {
 		border: 1px solid transparent;
 		color: var(--editor-muted);
@@ -569,7 +735,6 @@
 	.command-back:active,
 	.branch-switch:active,
 	.icon-action:active,
-	.tree-more:active,
 	.canvas-icon-action:active { transform: scale(.97); }
 	.branch-switch { gap: 7px; min-height: 34px; padding: 0 10px; border-color: var(--editor-border); border-radius: 9px; color: var(--pc-text); background: var(--pc-surface); }
 	.branch-mark { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
@@ -581,10 +746,9 @@
 	.publish-control :global(.toolbar-button-primary) { border-radius: 9px 0 0 9px; }
 	.publish-menu-trigger { display: grid; place-items: center; min-width: 28px; border: 1px solid var(--pc-text); border-left-color: color-mix(in oklch, var(--pc-bg) 24%, transparent); border-radius: 0 9px 9px 0; color: var(--pc-bg); background: var(--pc-text); cursor: pointer; }
 	.publish-menu-trigger:hover { background: var(--pc-text-muted); }
-	.editor-menu { position: absolute; z-index: 20; top: calc(100% + 7px); min-width: 210px; padding: 5px; border: 1px solid var(--editor-border); border-radius: 10px; background: var(--pc-surface); box-shadow: 0 16px 34px rgba(0, 0, 0, .24); }
+	.editor-menu { position: absolute; z-index: 20; top: calc(100% + 7px); min-width: 210px; padding: 5px; border: 1px solid var(--editor-border); border-radius: 10px; background: var(--pc-bg); opacity: 1; backdrop-filter: none; box-shadow: inset 0 1px 0 color-mix(in oklch, var(--pc-text) 6%, transparent); }
 	.branch-menu { left: 0; }
 	.publish-menu { right: 0; }
-	.menu-label { padding: 7px 9px 5px; color: var(--editor-faint); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 	.menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0 9px; border: 0; border-radius: 7px; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 12px; text-align: left; text-decoration: none; }
 	.menu-item:hover,
 	.menu-item.selected { color: var(--pc-text); background: var(--pc-surface-2); }
@@ -608,80 +772,63 @@
 	.search-result small { overflow: hidden; color: var(--editor-faint); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 	.search-empty { padding: 15px 9px; color: var(--editor-muted); font-size: 12px; }
 
-		.editor-workspace { display: grid; grid-template-columns: var(--editor-sidebar-width) minmax(0, 1fr); height: calc(100dvh - var(--pc-header-h) - 56px); min-height: 0; border-bottom: 1px solid var(--editor-border); overflow: hidden; background: var(--pc-bg); }
-	.editor-tree { min-width: 0; min-height: 0; background: var(--pc-bg); }
-	.editor-tree { display: flex; flex-direction: column; padding: 18px 14px 14px; border-right: 1px solid var(--editor-border); overflow: hidden; }
-	.tree-heading,
-	.tree-view-row,
-	.tree-group-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-	.tree-heading { padding: 0 7px 16px 9px; }
-	.eyebrow { color: var(--editor-faint); font-size: 10px; font-weight: 600; letter-spacing: .105em; line-height: 1.2; text-transform: uppercase; }
+		.editor-workspace { display: grid; grid-template-columns: var(--editor-sidebar-width) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; flex: 1; min-height: 0; border-bottom: 0; overflow: hidden; background: var(--pc-bg); }
+	.editor-tree { min-width: 0; min-height: 0; height: 100%; background: var(--pc-bg); }
+	.editor-tree { display: flex; flex-direction: column; padding: 18px 14px 14px; border-right: 1px solid var(--editor-border); overflow: hidden; min-height: 0; }
+	.tree-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 7px 16px 9px; }
 	.tree-heading h2 { margin-top: 4px; color: var(--pc-text); font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
 	.tree-heading h2 { margin-top: 0; }
 	.icon-action { display: grid; place-items: center; width: 28px; height: 28px; border-color: var(--editor-border); border-radius: 9px; }
 	.icon-action:hover,
-	.tree-more:hover,
 	.canvas-icon-action:hover { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2); }
 	.tree-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding: 2px 2px 8px; }
-	.tree-view + .tree-view { margin-top: 18px; }
-	.tree-view-row,
-	.tree-group-row { min-height: 36px; }
-	.tree-view-type { flex: 0 0 auto; color: var(--editor-faint); font-size: 11px; }
-	.tree-groups-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 8px 7px 2px 17px; color: var(--editor-faint); font-size: 11px; }
-	.tree-groups-actions { display: inline-flex; align-items: center; gap: 3px; }
-	.tree-node-toggle,
-	.tree-group-toggle { min-width: 0; flex: 1; gap: 8px; height: 36px; padding: 0 9px; border: 1px solid transparent; border-radius: 9px; color: var(--pc-text); background: transparent !important; cursor: pointer; font: inherit; text-align: left; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease; }
-	.tree-node-toggle:hover,
-	.tree-group-toggle:hover,
-	.tree-node-toggle:focus-visible,
-	.tree-group-toggle:focus-visible { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2) !important; box-shadow: inset 0 1px 0 color-mix(in oklch, var(--pc-text) 7%, transparent); outline: 0; }
-	.tree-node-toggle > span,
-	.tree-group-toggle > span:first-of-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.tree-node-toggle :global(svg:first-child) { color: var(--editor-faint); }
-	.tree-node-toggle > :global(svg:last-child),
-	.tree-group-toggle > :global(svg:first-child) { flex: 0 0 auto; color: var(--editor-faint); transition: transform 100ms ease; }
-	:global(.tree-chevron-collapsed) { transform: rotate(-90deg); }
-	.tree-more { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; opacity: 0; }
-	.tree-more-visible { opacity: 1; color: var(--editor-faint); font-size: 16px; line-height: 1; }
-	.tree-view-row:hover .tree-more,
-	.tree-group-row:hover .tree-more,
-	.tree-more:focus-visible { opacity: 1; }
-	.tree-branch { margin: 3px 0 0 17px; padding: 4px 0 5px 12px; border-left: 1px solid var(--editor-border-soft); }
-	.tree-group + .tree-group { margin-top: 6px; }
-	.tree-group-toggle { height: 32px; padding-inline: 7px; color: var(--pc-text-muted); font-size: 11px; }
-	.tree-count { margin-inline-start: auto; color: var(--editor-faint); font-size: 10px; font-variant-numeric: tabular-nums; }
-	.tree-page { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 9px; color: var(--editor-muted); background: transparent; cursor: pointer; font-size: 12px; line-height: 1.4; text-align: left; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
-	.tree-page:hover,
-	.tree-page:focus-visible { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface); }
-	.tree-page.active { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2); }
-	.tree-page :global(svg) { flex: 0 0 auto; color: var(--editor-faint); }
-	.tree-page.active :global(svg) { color: var(--pc-text-muted); }
-	.tree-page-ungrouped { margin-top: 3px; }
-	.tree-footer { flex: 0 0 auto; position: relative; z-index: 2; flex-wrap: wrap; gap: 16px; padding: 16px 9px 0; border-top: 1px solid var(--editor-border); background: var(--pc-bg); }
+	/* Loop 2: deleted dead custom-tree CSS (tree-node-toggle/group-toggle/view-row/branch/page/more/count).
+	   Mature Tree owns those states now; keeping them hid real warnings + shipped dead bytes. */
 	.text-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; color: var(--editor-muted); background: none; cursor: pointer; font-size: 12px; font-weight: 500; }
 	.text-button:hover { color: var(--pc-text); }
-	.text-button.muted { color: var(--editor-faint); }
+	/* Loop 4: AT hint — sighted users get arrows for free; SR/keyboard users get the contract. */
+	.tree-a11y-hint { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 	.tree-empty { margin: 18px 8px; color: var(--editor-muted); font-size: 12px; line-height: 1.5; }
 	.tree-empty p { margin-bottom: 10px; }
 
-	.editor-canvas { display: flex; min-width: 0; min-height: 0; flex-direction: column; background: var(--pc-bg); }
-	.canvas-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 18px; min-height: 48px; padding: 7px 28px; border-bottom: 1px solid var(--editor-border); }
-	.canvas-toolbar-actions { gap: 8px; min-width: 0; }
+	/* Loop 1+3: mature Tree theming — components-svelte ships stone-*/ /* light-first classes.
+	   Map to pc- tokens so dark #0d0d0d keeps contrast; keep library keyboard/ARIA intact.
+	   Icon exception: TreeFolder/File own their lucide folder/file glyphs (aria-hidden, decorative).
+	   Project reicon-only rule stays for our UI; forking the package to swap its internal icons
+	   would break mature keyboard/selection updates. Name text carries meaning. */
+	.tree-list :global([role="tree"]):focus-visible { outline: 1px solid var(--pc-focus-ring); outline-offset: 2px; }
+	.tree-list :global([role="treeitem"]):focus-visible { outline: 1px solid var(--pc-focus-ring); outline-offset: -1px; }
+	.tree-list :global([data-component-part="tree-folder"] [role="treeitem"]),
+	.tree-list :global([data-component-part="tree-file"]) { color: var(--pc-text-muted); }
+	.tree-list :global([data-component-part="tree-folder"] [role="treeitem"]:hover),
+	.tree-list :global([data-component-part="tree-file"]:hover) { color: var(--pc-text); background: var(--pc-surface); }
+	/* Selected page: wrapper carries state (TreeFile has no selected prop). */
+	.tree-page-wrapper { border-radius: 9px; }
+	.tree-page-wrapper.active :global([data-component-part="tree-file"]) { color: var(--pc-text); background: var(--pc-surface-2); border: 1px solid var(--editor-border); }
+	.tree-page-wrapper.active :global([data-component-part="tree-file"]:hover) { background: var(--pc-surface-2); }
+
+	.editor-canvas { display: flex; min-width: 0; min-height: 0; height: 100%; flex-direction: column; background: var(--pc-bg); overflow: hidden; }
 	.mode-switch { gap: 2px; padding: 2px; border: 1px solid var(--editor-border); border-radius: 8px; }
+	.command-mode-switch button { min-width: 28px; padding: 0; justify-content: center; }
 	.mode-switch button { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; color: var(--editor-faint); background: transparent; cursor: pointer; font-size: 11px; }
 	.mode-switch button:hover { color: var(--editor-muted); }
 	.mode-switch button.active { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface); }
 	.canvas-icon-action { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 8px; }
 	.canvas-icon-action.danger { color: color-mix(in oklch, var(--red-6) 75%, var(--editor-muted)); }
 	.canvas-icon-action.danger:hover { border-color: color-mix(in oklch, var(--red-6) 40%, var(--editor-border)); color: var(--red-6); background: color-mix(in oklch, var(--red-6) 10%, transparent); }
-	.canvas-scroll { flex: 1; min-height: 0; padding-inline: 48px; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: auto; }
-	.canvas-sheet { width: min(100%, var(--editor-content-max)); min-height: 100%; margin: 0 auto; padding: 22px 0 92px; }
+	.canvas-scroll { flex: 1; min-height: 0; padding-inline: 48px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+	/* Bottom breathing room: fixed-overlay desktop owns its scroll, so it needs
+	   its own bottom inset above the viewport edge (+ safe-area). The workspace
+	   main's pb-20 lg:pb-0 already clears the mobile nav (lg:hidden) when the
+	   editor flows at <=1024, so inner pad stays modest there. 72px mirrors the
+	   original 92px intent without double-padding the workspace main. */
+	.canvas-sheet { width: min(100%, var(--editor-content-max)); margin: 0 auto; padding: 22px 0 calc(72px + env(safe-area-inset-bottom, 0px)); }
 	.writing-surface { display: block; width: 100%; min-height: 480px; border: 0; outline: 0; resize: vertical; color: var(--pc-text); background: transparent; font: inherit; font-size: 15px; line-height: 1.6; }
 	.writing-surface::placeholder { color: var(--editor-faint); }
 	.markdown-mode { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; letter-spacing: -.005em; line-height: 1.55; }
 
-	.site-config-shell { display: grid; grid-template-columns: 258px minmax(0, 1fr); height: calc(100dvh - var(--pc-header-h) - 56px); min-height: 0; overflow: hidden; border-bottom: 1px solid var(--editor-border); background: var(--pc-bg); }
-	.site-config-sidebar { min-width: 0; overflow-y: auto; padding: 22px 12px 26px; border-right: 1px solid var(--editor-border); }
+	.site-config-shell { display: grid; grid-template-columns: 258px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; flex: 1; min-height: 0; overflow: hidden; border-bottom: 0; background: var(--pc-bg); }
+	.site-config-sidebar { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding: 22px 12px 26px; border-right: 1px solid var(--editor-border); }
 	.site-config-sidebar-title { padding: 0 10px 18px; color: var(--pc-text); font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
 	.site-config-nav { display: grid; gap: 3px; }
 	.site-config-nav-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 38px; padding: 0 11px; border: 1px solid transparent; border-radius: 9px; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 13px; text-align: left; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
@@ -690,22 +837,40 @@
 	.site-config-nav-item.active { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2); font-weight: 600; }
 	.site-config-nav-item :global(svg) { flex: 0 0 auto; color: var(--editor-faint); }
 	.site-config-nav-item.active :global(svg) { color: var(--pc-text); }
-	.site-config-main { min-width: 0; overflow-y: auto; padding: 38px clamp(30px, 6vw, 96px) 100px; }
+	.site-config-main { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; padding: 38px clamp(30px, 6vw, 96px) calc(100px + env(safe-area-inset-bottom, 0px)); scrollbar-gutter: stable; }
 	.site-config-heading { width: min(100%, 1080px); margin: 0 auto; padding-bottom: 22px; border-bottom: 1px solid var(--editor-border); }
 	.site-config-heading h1 { margin-top: 7px; color: var(--pc-text); font-size: clamp(24px, 2.2vw, 32px); font-weight: 650; letter-spacing: -.045em; line-height: 1.1; }
+	.site-config-heading p { max-width: 620px; margin-top: 9px; color: var(--editor-muted); font-size: 13px; line-height: 1.5; }
 	.site-config-row { display: grid; grid-template-columns: minmax(220px, .68fr) minmax(280px, 1fr); align-items: center; gap: clamp(30px, 5vw, 80px); width: min(100%, 1080px); margin: 0 auto; padding: 34px 0; border-bottom: 1px solid var(--editor-border); }
+	.site-config-row-start { align-items: start; }
 	.site-config-copy { max-width: 320px; }
-	.site-config-copy h2,
-	.site-config-intro h2 { color: var(--pc-text); font-size: 16px; font-weight: 600; letter-spacing: -.02em; }
-	.site-config-copy p,
-	.site-config-intro p { margin-top: 8px; color: var(--editor-muted); font-size: 14px; line-height: 1.55; }
+	.site-config-copy h2 { color: var(--pc-text); font-size: 16px; font-weight: 600; letter-spacing: -.02em; }
+	.site-config-copy p { margin-top: 8px; color: var(--editor-muted); font-size: 14px; line-height: 1.55; }
 	.site-config-input { width: 100%; min-height: 46px; padding: 0 14px; border: 1px solid var(--editor-border); border-radius: 9px; outline: 0; color: var(--pc-text); background: var(--pc-bg); font: inherit; font-size: 14px; transition: border-color 120ms ease, background-color 120ms ease; }
 	.site-config-input:hover,
 	.site-config-input:focus-visible { border-color: color-mix(in oklch, var(--pc-text) 38%, var(--editor-border)); background: var(--pc-surface); outline: 0; }
 	.site-config-textarea { min-height: 96px; padding-block: 12px; resize: vertical; line-height: 1.5; }
-	.site-config-intro { width: min(100%, 1080px); margin: 0 auto; padding: 34px 0; }
+	.site-config-field-stack { display: grid; gap: 10px; }
+	.site-config-color-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+	.site-config-color-grid label { display: grid; gap: 7px; color: var(--editor-muted); font-size: 12px; }
+	.site-config-color-grid .site-config-input { min-height: 46px; padding: 5px; }
+	.site-config-toggle-stack { display: grid; gap: 11px; }
+	.site-config-toggle { display: flex; align-items: center; gap: 10px; min-height: 28px; color: var(--pc-text); font-size: 13px; }
+	.site-config-toggle input { width: 16px; height: 16px; accent-color: var(--pc-text); }
+	.site-config-list { display: grid; gap: 10px; }
+	.site-config-list-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+	.site-config-list-row .site-config-input { min-width: 0; }
+	.site-config-static-label { min-height: 46px; padding: 13px 14px; overflow: hidden; border: 1px solid var(--editor-border); border-radius: 9px; color: var(--editor-muted); background: var(--pc-bg); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+	.site-config-remove,
+	.site-config-add { border: 0; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 12px; text-align: left; }
+	.site-config-remove:hover,
+	.site-config-add:hover { color: var(--pc-text); }
+	.site-config-preview { display: grid; gap: 5px; padding: 16px; border: 1px solid var(--editor-border); border-radius: 10px; background: var(--pc-surface); }
+	.site-config-preview strong { color: var(--pc-text); font-size: 15px; }
+	.site-config-preview span { overflow: hidden; color: var(--editor-faint); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+	.site-config-preview p { color: var(--editor-muted); font-size: 13px; line-height: 1.45; }
 
-	.document-editor-surface { box-sizing: border-box; width: 100%; max-width: 1040px; min-height: 680px; margin: 0 auto; padding: 28px clamp(22px, 5vw, 72px) 100px; background: var(--pc-bg); }
+	.document-editor-surface { box-sizing: border-box; width: 100%; max-width: 1040px; margin: 0 auto; padding: 28px clamp(22px, 5vw, 72px) calc(72px + env(safe-area-inset-bottom, 0px)); background: var(--pc-bg); min-width: 0; overflow-wrap: anywhere; }
 	.document-editor-header { max-width: 900px; }
 	.document-page-title { display: block; width: 100%; border: 0; outline: 0; color: var(--pc-text); background: transparent; font-size: clamp(38px, 4.3vw, 60px); font-weight: 680; letter-spacing: -.065em; line-height: 1.03; }
 	.document-page-description { display: block; width: min(100%, 800px); min-height: 32px; margin-top: 16px; padding: 0; overflow: hidden; border: 0; outline: 0; resize: none; color: var(--editor-muted); background: transparent; font: inherit; font-size: 18px; line-height: 1.55; }
@@ -718,8 +883,6 @@
 	.command-back:focus-visible,
 	.branch-switch:focus-visible,
 	.icon-action:focus-visible,
-	.tree-more:focus-visible,
-	.tree-page:focus-visible,
 	.mode-switch button:focus-visible,
 	.canvas-icon-action:focus-visible,
 	.text-button:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
@@ -731,27 +894,49 @@
 		.editor-workspace { grid-template-columns: 220px minmax(0, 1fr); }
 		.site-config-shell { grid-template-columns: 220px minmax(0, 1fr); }
 	}
-	@media (max-width: 680px) {
+	/* Phone: stack editor + site-config; tablet (681-1024) keeps grid but
+	   flows inside workspace scroller (see +layout 1024 switch). Both ranges
+	   must delegate scroll to the workspace's flex-1 overflow-y-auto, so inner
+	   scrollers become overflow:visible (no nested clip) and bottom pad adds
+	   safe-area + modest inset — workspace main's pb-20 already clears mobile nav. */
+	@media (max-width: 1024px) {
 		.docs-editor-shell { height: auto; min-height: calc(100dvh - var(--pc-header-h)); overflow: visible; }
+		.editor-workspace,
+		.site-config-shell,
+		.editor-tree,
+		.site-config-sidebar,
+		.editor-canvas,
+		.site-config-main,
+		.canvas-scroll,
+		.tree-list { overflow: visible; }
+		.site-config-main,
+		.canvas-scroll,
+		.tree-list { max-height: none; }
+	}
+	@media (max-width: 680px) {
 		.editor-commandbar { align-items: flex-start; flex-direction: column; gap: 7px; padding: 8px; }
 		.command-leading,
 		.command-actions { width: 100%; }
 		.command-actions { justify-content: flex-end; }
-		.editor-workspace { display: block; height: auto; min-height: 0; overflow: visible; }
-		.site-config-shell { display: block; height: auto; min-height: 0; overflow: visible; }
+		.editor-workspace { display: block; height: auto; min-height: 0; }
+		.site-config-shell { display: block; height: auto; min-height: 0; }
 		.site-config-sidebar { border-right: 0; border-bottom: 1px solid var(--editor-border); }
 		.site-config-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-		.site-config-main { padding: 28px 20px 72px; }
+		.site-config-main { padding: 28px 20px calc(72px + env(safe-area-inset-bottom, 0px)); }
 		.site-config-row { display: block; padding: 24px 0; }
 		.site-config-input { margin-top: 16px; }
+		.site-config-field-stack,
+		.site-config-toggle-stack,
+		.site-config-list,
+		.site-config-preview { margin-top: 16px; }
+		.site-config-list-row { grid-template-columns: 1fr; }
+		.site-config-list-row .site-config-remove { margin-top: -4px; }
+		.site-config-color-grid { margin-top: 16px; }
 		.editor-tree { min-height: 0; border-right: 0; border-bottom: 1px solid var(--editor-border); }
-		.tree-list { max-height: none; }
-		.tree-footer { padding-bottom: 3px; }
-		.editor-canvas { min-height: 680px; }
-		.canvas-toolbar { padding-inline: 10px; }
+				.editor-canvas { min-height: 0; }
 		.canvas-scroll { padding-inline: 20px; }
-		.canvas-sheet { padding: 36px 0 76px; }
-		.document-editor-surface { min-height: 0; padding: 20px 0 72px; }
+		.canvas-sheet { padding: 36px 0 calc(36px + env(safe-area-inset-bottom, 0px)); }
+		.document-editor-surface { min-height: 0; padding: 20px 0 calc(36px + env(safe-area-inset-bottom, 0px)); }
 		.document-page-title { font-size: 36px; }
 		.document-page-description { font-size: 16px; }
 	}
@@ -759,10 +944,6 @@
 		.command-back,
 		.branch-switch,
 		.icon-action,
-		.tree-more,
-		.canvas-icon-action,
-		.tree-node-toggle,
-		.tree-group-toggle,
-		.tree-page { transition: none; }
+		.canvas-icon-action { transition: none; }
 	}
 </style>

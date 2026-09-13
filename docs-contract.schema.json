@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://productclient.com/contracts/docs-document.schema.json",
+  "title": "ProductClient Documentation Document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "dimensions", "views", "pages"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "dimensions": { "type": "array", "maxItems": 0 },
+    "views": { "type": "array", "items": { "$ref": "#/$defs/view" } },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } },
+    "siteConfig": { "$ref": "#/$defs/siteConfig" }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "href": { "type": "string", "pattern": "^(?:/(?!/)|https?://|mailto:)" },
+    "order": { "type": "integer", "minimum": 0 },
+    "text": { "type": "string", "maxLength": 200000 },
+    "group": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "order"],
+      "properties": { "id": { "$ref": "#/$defs/id" }, "label": { "type": "string", "maxLength": 120 }, "order": { "$ref": "#/$defs/order" } }
+    },
+    "view": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "kind", "order", "groups"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "label": { "type": "string", "maxLength": 120 },
+        "kind": { "enum": ["tabs", "dropdown"] }, "order": { "$ref": "#/$defs/order" },
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" } }
+      }
+    },
+    "page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "slug", "title", "description", "markdown", "groupId", "order"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" }, "slug": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 }, "description": { "type": "string", "maxLength": 500 },
+        "markdown": { "$ref": "#/$defs/text" }, "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+        "groupId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "order": { "$ref": "#/$defs/order" }
+      }
+    },
+    "blockText": { "type": "object", "additionalProperties": false, "required": ["id", "type", "text"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "enum": ["paragraph"] }, "text": { "$ref": "#/$defs/text" } } },
+    "heading": { "type": "object", "additionalProperties": false, "required": ["id", "type", "level", "text"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "heading" }, "level": { "enum": [1, 2, 3] }, "text": { "$ref": "#/$defs/text" } } },
+    "list": { "type": "object", "additionalProperties": false, "required": ["id", "type", "items"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "list" }, "ordered": { "type": "boolean" }, "items": { "type": "array", "items": { "type": "string", "maxLength": 50000 } } } },
+    "callout": { "type": "object", "additionalProperties": false, "required": ["id", "type", "variant", "title", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "callout" }, "variant": { "enum": ["info", "warning", "note", "tip", "check", "danger"] }, "title": { "type": "string", "maxLength": 240 }, "body": { "$ref": "#/$defs/text" } } },
+    "card": { "type": "object", "additionalProperties": false, "required": ["id", "type", "title", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "card" }, "title": { "type": "string", "maxLength": 240 }, "body": { "$ref": "#/$defs/text" }, "icon": { "type": "string", "maxLength": 80 }, "href": { "$ref": "#/$defs/href" } } },
+    "code": { "type": "object", "additionalProperties": false, "required": ["id", "type", "language", "code"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "code" }, "language": { "type": "string", "minLength": 1, "maxLength": 80 }, "filename": { "type": "string", "maxLength": 240 }, "code": { "$ref": "#/$defs/text" } } },
+    "frame": { "type": "object", "additionalProperties": false, "required": ["id", "type", "caption", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "frame" }, "caption": { "type": "string", "maxLength": 240 }, "body": { "$ref": "#/$defs/text" } } },
+    "item": { "type": "object", "additionalProperties": false, "required": ["id", "title", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "title": { "type": "string", "maxLength": 240 }, "body": { "$ref": "#/$defs/text" } } },
+    "steps": { "type": "object", "additionalProperties": false, "required": ["id", "type", "items"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "steps" }, "items": { "type": "array", "items": { "$ref": "#/$defs/item" } } } },
+    "tabs": { "type": "object", "additionalProperties": false, "required": ["id", "type", "items"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "tabs" }, "items": { "type": "array", "items": { "$ref": "#/$defs/item" } } } },
+    "accordion": { "type": "object", "additionalProperties": false, "required": ["id", "type", "title", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "accordion" }, "title": { "type": "string", "maxLength": 240 }, "description": { "type": "string", "maxLength": 500 }, "body": { "$ref": "#/$defs/text" } } },
+    "property": { "type": "object", "additionalProperties": false, "required": ["id", "type", "name", "value", "dataType"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "property" }, "name": { "type": "string", "maxLength": 240 }, "value": { "$ref": "#/$defs/text" }, "dataType": { "type": "string", "maxLength": 120 }, "required": { "type": "boolean" } } },
+    "expandable": { "type": "object", "additionalProperties": false, "required": ["id", "type", "title", "body"], "properties": { "id": { "$ref": "#/$defs/id" }, "type": { "const": "expandable" }, "title": { "type": "string", "maxLength": 240 }, "body": { "$ref": "#/$defs/text" }, "defaultOpen": { "type": "boolean" }, "properties": { "type": "array", "items": { "$ref": "#/$defs/property" } } } },
+    "block": { "oneOf": [{ "$ref": "#/$defs/blockText" }, { "$ref": "#/$defs/heading" }, { "$ref": "#/$defs/list" }, { "$ref": "#/$defs/callout" }, { "$ref": "#/$defs/card" }, { "$ref": "#/$defs/code" }, { "$ref": "#/$defs/frame" }, { "$ref": "#/$defs/steps" }, { "$ref": "#/$defs/tabs" }, { "$ref": "#/$defs/accordion" }, { "$ref": "#/$defs/property" }, { "$ref": "#/$defs/expandable" }] },
+    "link": { "type": "object", "additionalProperties": false, "required": ["label", "href", "variant"], "properties": { "label": { "type": "string", "maxLength": 120 }, "href": { "$ref": "#/$defs/href" }, "variant": { "enum": ["link", "pill"] }, "icon": { "type": "string", "maxLength": 80 } } },
+    "siteConfig": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "brand", "description", "siteUrl", "colors", "favicon", "logo", "header", "navbar", "contextual", "footer", "agentBlurb"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 }, "brand": { "type": "string", "maxLength": 80 }, "description": { "type": "string", "maxLength": 240 },
+        "siteUrl": { "type": "string", "pattern": "^https?://" }, "colors": { "type": "object", "additionalProperties": false, "required": ["primary", "light", "dark"], "properties": { "primary": { "pattern": "^#[0-9a-fA-F]{6}$" }, "light": { "pattern": "^#[0-9a-fA-F]{6}$" }, "dark": { "pattern": "^#[0-9a-fA-F]{6}$" } } },
+        "favicon": { "type": "string", "maxLength": 500 }, "logo": { "type": "object", "additionalProperties": false, "required": ["light", "dark"], "properties": { "light": { "type": "string", "maxLength": 120 }, "dark": { "type": "string", "maxLength": 120 } } },
+        "header": { "type": "object", "additionalProperties": false, "required": ["search", "theme"], "properties": { "search": { "type": "boolean" }, "theme": { "type": "boolean" } } },
+        "navbar": { "type": "object", "additionalProperties": false, "required": ["links", "primary"], "properties": { "links": { "type": "array", "items": { "$ref": "#/$defs/link" } }, "primary": { "anyOf": [{ "$ref": "#/$defs/link" }, { "type": "null" }] } } },
+        "contextual": { "type": "object", "additionalProperties": false, "required": ["options"], "properties": { "options": { "type": "array", "items": { "type": "string", "maxLength": 80 } } } },
+        "footer": { "type": "object", "additionalProperties": false, "required": ["description", "links"], "properties": { "description": { "type": "string", "maxLength": 500 }, "links": { "type": "array", "items": { "$ref": "#/$defs/link" } } } },
+        "agentBlurb": { "type": "string", "maxLength": 5000 }
+      }
+    }
+  }
+}
