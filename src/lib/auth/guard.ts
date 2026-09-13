@@ -18,10 +18,16 @@ async function importSessionHandoff(): Promise<boolean> {
 	const refreshToken = params.get('pc_refresh_token');
 	if (params.get('pc_session_handoff') !== '1' || !accessToken || !refreshToken) return false;
 
-	history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
 	sessionHandoff = supabase.auth
 		.setSession({ access_token: accessToken, refresh_token: refreshToken })
-		.then(({ error }) => !error)
+		.then(({ error }) => {
+			if (error) return false;
+			// Do not discard the handoff tokens until Supabase has accepted them.
+			// Clearing the hash first made a transient setSession failure
+			// irreversible and sent the user back to auth with no session.
+			history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
+			return true;
+		})
 		.catch(() => false);
 
 	const ok = await sessionHandoff;

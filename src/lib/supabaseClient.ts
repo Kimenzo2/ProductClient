@@ -29,6 +29,23 @@ if (!supabaseUrl || !supabaseKey) {
 // load-bearing for SSO — never override storageKey on one side only.
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
+// The session cookie is intentionally shared across hosts, but refresh-token
+// rotation must have one owner. The auth/marketing hosts can read the session
+// for SSO; only the app host is allowed to exchange refresh tokens. Without
+// this boundary, the auth tab and workspace tab can refresh the same token at
+// nearly the same time and one tab invalidates the other.
+function ownsSessionRefresh(): boolean {
+	if (typeof window === 'undefined') return false;
+	const hostname = window.location.hostname.toLowerCase();
+	return (
+		hostname === 'app.productclient.com' ||
+		hostname === 'app' ||
+		((hostname === 'localhost' || hostname === '127.0.0.1') && window.location.port === '3000')
+	);
+}
+
+const shouldAutoRefreshToken = ownsSessionRefresh();
+
 function sessionCookieDomain(): string | undefined {
 	if (!import.meta.env.PROD) return undefined;
 	return '.productclient.com';
@@ -73,7 +90,7 @@ export const supabase: SupabaseClient | null =
 	supabaseUrl && supabaseKey
 		? createClient(supabaseUrl, supabaseKey, {
 				auth: {
-					autoRefreshToken: true,
+					autoRefreshToken: shouldAutoRefreshToken,
 					persistSession: true,
 					storage: {
 						getItem: (key: string) => readSessionCookie(key),
@@ -81,7 +98,7 @@ export const supabase: SupabaseClient | null =
 						removeItem: (key: string) => deleteSessionCookie(key)
 					},
 					// Auth callbacks and the cross-host session handoff are processed
-					// explicitly so two clients cannot consume the same refresh token.
+					// explicitly. Only the app host refreshes the shared session.
 					detectSessionInUrl: false,
 					flowType: 'pkce'
 				}
