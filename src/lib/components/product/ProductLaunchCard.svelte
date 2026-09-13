@@ -2,6 +2,7 @@
 	import type { MockState } from '$lib/data/mockStates';
 	import { ArrowUp, Verified } from 'reicon-svelte';
 	import { Avatar, Badge, Button, Card, Chip } from '$lib/components/ui';
+import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let {
 		item,
@@ -45,7 +46,7 @@
 	<!-- Rank — 13px semibold tabular, 11px label 0.08em (not 10px whisper) -->
 	<div class="hidden sm:flex flex-col items-center justify-center min-w-[40px] text-center shrink-0">
 		{#if rank <= 3}
-			<span class="grid size-7 place-items-center rounded-[9px] bg-[var(--pc-surface)] text-[13px] font-semibold tracking-[-0.02em] leading-none tabular-nums" title="{podiumLabel[rank]} product">{rank}</span>
+			<span class="grid size-7 place-items-center rounded-[9px] bg-[var(--pc-surface)] text-[13px] font-semibold tracking-[-0.02em] leading-none tabular-nums" use:tooltip={{ text: `${podiumLabel[rank]} product`, island: true }}>{rank}</span>
 			<span class="mt-1 text-xs font-semibold tracking-[0.08em] uppercase leading-[1.1] text-[var(--pc-text-faint)]">{podiumLabel[rank]}</span>
 		{:else}
 			<Badge size="md" class="tabular-nums">{rank}</Badge>

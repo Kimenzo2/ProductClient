@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Lock, Shield } from 'reicon-svelte';
 	import { Button, Card } from '$lib/components/ui';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
 </script>
 
 <Card padding="lg">
@@ -9,7 +10,7 @@
 	<div class="mt-5 grid gap-3">
 		<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
 			<div><p class="text-[14px] font-medium">Single sign-on</p><p class="text-[13px] text-[var(--pc-text-muted)]">SAML / OIDC via Okta, Entra. Enforce for all members.</p></div>
-			<span title="Enterprise only"><Button size="sm" variant="outline" disabled>Enable</Button></span>
+			<span use:tooltip={{ text: 'Enterprise only', island: true }}><Button size="sm" variant="outline" disabled>Enable</Button></span>
 		</div>
 		<div class="flex items-center justify-between rounded-[12px] bg-[var(--pc-surface)] px-4 py-3">
 			<div><p class="text-[14px] font-medium">Require 2FA</p><p class="text-[13px] text-[var(--pc-text-muted)]">Every member must have two-factor auth.</p></div>

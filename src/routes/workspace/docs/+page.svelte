@@ -9,9 +9,14 @@
 	import { onMount } from 'svelte';
 	import { trackAnalyticsEvent } from '$lib/data/analytics';
 	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let query = $state('');
-	let filtered = $derived(docs.filter((doc) => `${doc.title} ${doc.description} ${doc.productName} ${doc.section}`.toLowerCase().includes(query.toLowerCase())));
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Help docs` : 'Help docs');
+	let filtered = $derived(
+		(docs.filter((doc) => !activeSlug || doc.productSlug === activeSlug) as typeof docs).filter((doc) => `${doc.title} ${doc.description} ${doc.productName} ${doc.section}`.toLowerCase().includes(query.toLowerCase()))
+	);
 	let accessMode = $state<'public' | 'password' | 'private'>('public');
 	let password = $state('');
 	let agentBlurb = $state('');
@@ -19,7 +24,8 @@
 	let visibilityNote = $state('');
 
 	onMount(() => {
-		void trackAnalyticsEvent('docs.view', { path: '/workspace/docs' });
+		void hydrateActiveProduct();
+		void trackAnalyticsEvent('docs.view', { path: '/workspace/docs', productId: activeProductStore.activeProduct?.id });
 		void loadVisibility();
 	});
 	async function loadVisibility() {
@@ -72,7 +78,7 @@
 <svelte:head><title>Help docs | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader title="Help docs" description="Give customers and developers one clear place to learn how the product works." actionLabel="Open editor" actionHref="/workspace/docs/editor" secondaryActionLabel="Open docs" secondaryActionHref={hostedDocsPage.href} secondaryActionExternal />
+	<WorkspaceHeader title={headerTitle} description="Give customers and developers one clear place to learn how the product works." actionLabel="Open editor" actionHref="/workspace/docs/editor" secondaryActionLabel="Open docs" secondaryActionHref={hostedDocsPage.href} secondaryActionExternal />
 	<div class="relative max-w-[620px] py-5"><Search size={16} weight="Outline" class="pointer-events-none absolute left-3 top-8 opacity-55" /><Input bind:value={query} placeholder="Find a help page or product..." aria-label="Search help docs" class="pl-9 text-base sm:text-sm" /></div>
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Documentation pages">

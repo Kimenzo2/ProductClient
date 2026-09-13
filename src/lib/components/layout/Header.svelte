@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { toggleTheme, getTheme } from '$lib/theme';
 	import { Bell, Menu, Moon, Search, SidebarLeft, SidebarRight, Sun } from 'reicon-svelte';
-	import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
-	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
-	import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
+import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
+import ProductSwitcher from '$lib/components/layout/ProductSwitcher.svelte';
+import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
+import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let {
 		onToggleSidebar,
@@ -39,20 +40,16 @@
 				<Menu size={20} weight="Outline" aria-hidden="true" />
 			</button>
 
-			<a href="/" class="shrink-0" aria-label="Product Client home">
-				<ProductClientLogo size={32} />
-			</a>
+			<!-- Product switcher replaces the app name + logo in this header slot — collapse icon stays -->
+			<ProductSwitcher />
 
-			<div class="hidden items-center gap-2 lg:flex">
-				<span class="text-sm font-medium tracking-[-0.01em] leading-[1.3] antialiased">Product Client</span>
-			</div>
 			<button
 				type="button"
 				onclick={onToggleSidebar}
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 				aria-expanded={!collapsed}
 				title={collapsed ? 'Expand sidebar ( [ )' : 'Collapse sidebar ( [ )'}
-				class="hidden lg:grid size-8 place-items-center rounded-lg bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] active:scale-[0.96] transition-[background-color,color,transform] duration-150 focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]"
+				class="grid size-8 place-items-center rounded-lg bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] active:scale-[0.96] transition-[background-color,color,transform] duration-150 focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]"
 			>
 				{#if collapsed}
 					<SidebarRight size={16} weight="Outline" aria-hidden="true" />
@@ -80,7 +77,7 @@
 				type="button"
 				onclick={() => { toggleTheme(); isDark = getTheme() === 'dark'; }}
 				aria-label="Toggle theme"
-				title="Toggle theme"
+				use:tooltip={{ text: 'Toggle theme', island: true }}
 				class="grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]"
 			>
 				{#if isDark}

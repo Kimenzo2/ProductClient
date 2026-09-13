@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, Book, Export, Inbox, Map, Rocket } from 'reicon-svelte';
 	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
 	import RelationList from '$lib/components/workspace/RelationList.svelte';
 	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
 	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
 	import { releases, productBySlug, feedbackForProduct, docs, roadmapItems, incidents, type ThreadRelation } from '$lib/data/workspace';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let id = $derived(page.params.id);
 	let release = $derived(releases.find((record) => record.id === id));
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	onMount(() => { void hydrateActiveProduct(); });
+	$effect(() => {
+		if (release && activeSlug && release.productSlug !== activeSlug) void goto('/workspace/releases', { replaceState: true });
+	});
 	let product = $derived(release ? productBySlug(release.productSlug) : undefined);
 	let relatedFeedback = $derived(release ? feedbackForProduct(release.productSlug).slice(0, 2) : []);
 	let relatedDocs = $derived(release ? docs.filter((doc) => doc.productSlug === release.productSlug).slice(0, 2) : []);

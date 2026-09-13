@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Warning } from 'reicon-svelte';
 	import { Button, Card, Input, Label } from '$lib/components/ui';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let confirm = $state('');
 	let deleting = $state(false);
@@ -20,7 +21,7 @@
 			<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">Deletes docs, roadmap and status history. Type the subdomain to confirm.</p>
 			<div class="mt-3 flex gap-2">
 				<Input bind:value={confirm} placeholder="type subdomain" class="flex-1" />
-				<span title="This cannot be undone. 30-day grace via support."><Button size="sm" variant="outline" loading={deleting} disabled={confirm.trim().length < 3}>Delete</Button></span>
+				<span use:tooltip={{ text: 'This cannot be undone. 30-day grace via support.', island: true }}><Button size="sm" variant="outline" loading={deleting} disabled={confirm.trim().length < 3}>Delete</Button></span>
 			</div>
 		</div>
 	</div>

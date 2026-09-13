@@ -17,7 +17,7 @@
 -->
 <script lang="ts" module>
   // ── Constants (mirrors Anytype's preview.ts) ─────────────────────
-  const DELAY_TOOLTIP = 650;   // Anytype default
+  const DELAY_TOOLTIP = 120;   // snappy — users hover to read, not to wait
   const BORDER        = 12;    // min px from window edge
 
   // Timeout state (module-scoped so it survives component re-renders)
@@ -123,11 +123,6 @@
       // Trigger animation on next frame (matches Anytype's show class timing)
       // Respect prefers-reduced-motion: CSS handles it, just add show
       requestAnimationFrame(() => node.classList.add('show'));
-
-      // After first show, make subsequent hovers on the same element faster
-      _delayTooltip = 100;
-      if (_timeout) clearTimeout(_timeout);
-      _timeout = setTimeout(() => { _delayTooltip = DELAY_TOOLTIP; }, 500);
     }, _delayTooltip);
   }
 
@@ -167,7 +162,14 @@
     let { text, title, description, html, island, typeX = 'center', typeY = 'auto', offsetX = 0, offsetY = 0, delay } = opts;
     if (delay != null) _delayTooltip = delay;
 
-    const enter = () => tooltipShow(node, text, typeX, typeY, offsetX, offsetY, { title, description, html, island });
+    const enter = () => {
+      // Per-call delay wins; otherwise the snappy default. Set per-hover so
+      // tooltipHide's reset can't clobber a caller's custom delay.
+      const prev = _delayTooltip;
+      _delayTooltip = delay ?? DELAY_TOOLTIP;
+      tooltipShow(node, text, typeX, typeY, offsetX, offsetY, { title, description, html, island });
+      _delayTooltip = prev;
+    };
     const leave = () => tooltipHide(false, node);
     const click = () => tooltipHide(true, node);
     const onFocus = () => {

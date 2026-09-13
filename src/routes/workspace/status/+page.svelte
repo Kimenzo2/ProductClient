@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { CheckCircle, Edit, Export, History, X } from 'reicon-svelte';
 	import { tenantStatusUrl } from '$lib/tenant';
+import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
 	import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
 	import {
 			hydrateStatusEditor,
@@ -29,6 +30,7 @@
 	let pageTitleDraft = $state('');
 	let pageDescriptionDraft = $state('');
 	let incidentHistoryOpen = $state(false);
+	let composerOpen = $state(false);
 	let selectedIncidentId = $state('');
 	let pageData = $derived(statusEditorPreview.page);
 	let hostedStatusHref = $derived(tenantStatusUrl(pageData.productSlug));
@@ -154,9 +156,8 @@
 		</div>
 		<div class="header-actions">
 			<Button variant="primary" size="lg" disabled={!dirty || publishing} loading={publishing} onclick={publish}><CheckCircle size={15} weight="Outline" aria-hidden="true" />{publishing ? 'Publishing…' : 'Publish'}</Button>
-			<Button href="/workspace/status/incidents/new" variant="primary" size="lg"><Edit size={15} weight="Outline" aria-hidden="true" />Start an incident</Button>
-			<button type="button" class="history-trigger" onclick={openIncidentHistory} aria-haspopup="dialog"><History size={15} weight="Outline" aria-hidden="true" /><span>Incident history</span><span class="history-count">{incidentCount}</span></button>
-			<Button href={hostedStatusHref} target="_blank" aria-label="Open hosted Status Page in a new tab" variant="outline" size="lg"><Export size={15} weight="Outline" aria-hidden="true" />Open hosted page</Button>
+			<button type="button" class="history-trigger" onclick={() => (composerOpen = true)} aria-haspopup="dialog"><Edit size={15} weight="Outline" aria-hidden="true" /><span>Start an incident</span></button>
+			<button type="button" class="history-trigger" onclick={openIncidentHistory} aria-haspopup="dialog"><History size={15} weight="Outline" aria-hidden="true" /><span>Incident history</span><span class="history-count">{incidentCount}</span></button>			<Button href={hostedStatusHref} target="_blank" aria-label="Open hosted Status Page in a new tab" variant="outline" size="lg"><Export size={15} weight="Outline" aria-hidden="true" />Open hosted page</Button>
 		</div>
 	</header>
 
@@ -216,6 +217,8 @@
 
 </div>
 
+	{#if composerOpen}<IncidentComposer onclose={() => (composerOpen = false)} />{/if}
+
 {#if incidentHistoryOpen}
 	<button type="button" class="history-backdrop" aria-label="Close incident history" onclick={closeIncidentHistory}></button>
 	<div class="history-modal" role="dialog" aria-modal="true" aria-labelledby="incident-history-title" aria-describedby="incident-history-help">
@@ -256,7 +259,7 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="history-empty"><History size={24} weight="Outline" aria-hidden="true" /><h3>No public incidents yet</h3><p>Start a public incident when customers need a clear explanation.</p><a href="/workspace/status/incidents/new" onclick={closeIncidentHistory}>Start an incident</a></div>
+			<div class="history-empty"><History size={24} weight="Outline" aria-hidden="true" /><h3>No public incidents yet</h3><p>Start a public incident when customers need a clear explanation.</p><a href="/workspace/status/incidents/new" onclick={() => { closeIncidentHistory(); composerOpen = true; }}>Start an incident</a></div>
 		{/if}
 	</div>
 {/if}
@@ -307,7 +310,7 @@
 	.incident-state { flex: 0 0 auto; color: var(--pc-status-degraded); font-size: 11px; }
 	.incident-state.resolved { color: var(--pc-status-operational); }
 	.incident-state.investigating, .incident-state.identified { color: var(--pc-status-outage); }
-	.history-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(7 7 7 / .56); cursor: default; }
+	.history-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: default; }
 	.history-modal { position: fixed; z-index: 61; inset: 50% auto auto 50%; display: flex; flex-direction: column; width: min(calc(100% - 32px), 900px); max-height: min(760px, calc(100dvh - 32px)); transform: translate(-50%, -50%); overflow: hidden; border: 1px solid var(--pc-border-strong); border-radius: 18px; color: var(--pc-text); background: var(--pc-bg); }
 	.history-modal-header { display: flex; align-items: start; justify-content: space-between; gap: 24px; padding: 28px 30px 24px; border-bottom: 1px solid var(--pc-border-strong); }
 	.eyebrow { margin: 0 0 8px; color: var(--pc-accent-light); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }

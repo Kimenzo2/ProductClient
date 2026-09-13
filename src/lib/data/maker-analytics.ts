@@ -300,16 +300,19 @@ function countBetween(rows: InteractionRow[], kind: string, start: string, end: 
 	return rows.filter((row) => row.kind === kind && Date.parse(row.created_at) >= startMs && Date.parse(row.created_at) <= endMs).length;
 }
 
-export async function fetchMakerAnalytics(userId: string): Promise<MakerAnalytics> {
+export async function fetchMakerAnalytics(userId: string, activeProductId?: string | null): Promise<MakerAnalytics> {
 	if (!supabase) throw new Error('Service is temporarily unavailable');
 
 	try {
-		const { data: productRows, error: productsError } = await supabase
+		let query = supabase
 			.from('products')
 			.select('id, tenant_id, name, slug, category, live_url, follow_count, created_at, launched_at, last_shipped_at, docs_nonempty, roadmap_or_feedback_nonempty, status_page_nonempty')
 			.eq('maker_id', userId)
 			.is('deleted_at', null)
 			.order('created_at', { ascending: true });
+		// Product switcher: analytics query includes product_id = active when a product is selected
+		if (activeProductId) query = query.eq('id', activeProductId);
+		const { data: productRows, error: productsError } = await query;
 		if (productsError) throw productsError;
 
 	const products = (productRows ?? []) as ProductRow[];

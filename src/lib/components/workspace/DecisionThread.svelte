@@ -4,6 +4,7 @@
 	import type { DecisionThread } from '$lib/data/workspace';
 	import RelationList from '$lib/components/workspace/RelationList.svelte';
 	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
+import { tooltip } from '$lib/components/Tooltip.svelte';
 	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
 
 	let {
@@ -31,7 +32,7 @@
 				
 				<h2 class="mt-1 max-w-[32ch] text-[20px] font-medium leading-tight tracking-tight sm:text-[23px]">{thread.title}</h2>
 			</div>
-			<div class="flex shrink-0 items-center gap-2 rounded-full bg-[var(--pc-surface)] px-2.5 py-1.5 text-[10px] text-[var(--pc-text-muted)]" title="This is how sure we are, based on the feedback attached to this decision.">
+			<div class="flex shrink-0 items-center gap-2 rounded-full bg-[var(--pc-surface)] px-2.5 py-1.5 text-[10px] text-[var(--pc-text-muted)]" use:tooltip={{ text: 'This is how sure we are, based on the feedback attached to this decision.', island: true }}>
 				<CheckCircle size={12} weight="Outline" class="text-[var(--pc-accent-light)]" aria-hidden="true" />
 				How sure we are: {thread.confidence}
 			</div>

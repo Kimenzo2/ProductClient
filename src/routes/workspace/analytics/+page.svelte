@@ -3,10 +3,11 @@
 	import { ArrowRight, ChartBarTrendUp, CheckCircle, Clock, Eye, Heart, Link2, MessageDots, TrendUp, Users } from 'reicon-svelte';
 	import { Button, Card } from '$lib/components/ui';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { fetchMakerAnalytics, type BoostPerformance, type MakerAnalytics } from '$lib/data/maker-analytics';
-	import { requireSession } from '$lib/auth/guard';
-	import { supabase } from '$lib/supabaseClient';
-	import { analyticsRange } from '$lib/data/analytics-range.svelte';
+import { fetchMakerAnalytics, type BoostPerformance, type MakerAnalytics } from '$lib/data/maker-analytics';
+import { requireSession } from '$lib/auth/guard';
+import { supabase } from '$lib/supabaseClient';
+import { analyticsRange } from '$lib/data/analytics-range.svelte';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let analytics = $state<MakerAnalytics | null>(null);
 	let loading = $state(true);
@@ -87,6 +88,9 @@
 	let sparkAgents = $derived.by(() => analytics?.ranges[range].buckets.map((bucket) => bucket.agentViews) ?? []);
 	let sparkMax = $derived(Math.max(...sparkViews, ...sparkAgents, 1));
 
+	let activeId = $derived(activeProductStore.activeProductId);
+	let headerTitle = $derived(activeId && activeProductStore.activeProduct ? `${activeProductStore.activeProduct.name} · Analytics` : 'Analytics');
+
 	async function load() {
 		loading = true; error = '';
 		boostPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'boost';
@@ -100,16 +104,25 @@
 		try {
 			const { data } = await supabase.auth.getUser();
 			if (!data.user) throw new Error('Not signed in');
-			analytics = await fetchMakerAnalytics(data.user.id);
+			await hydrateActiveProduct();
+			analytics = await fetchMakerAnalytics(data.user.id, activeProductStore.activeProductId);
+			// Track with product_id = active for test 5
+			const { trackAnalyticsEvent } = await import('$lib/data/analytics');
+			void trackAnalyticsEvent('status.view' as any, { path: '/workspace/analytics', productId: activeProductStore.activeProductId ?? undefined });
 		} catch (e) { error = e instanceof Error ? e.message : 'Could not load analytics'; } finally { loading = false; }
 	}
 	onMount(load);
+	// Reload when active product changes without leaving the page (switcher stays on /analytics)
+	$effect(() => {
+		void activeId;
+		if (analytics) void load();
+	});
 </script>
 
 <svelte:head><title>Analytics · Product Client</title></svelte:head>
 
 <div class="py-4">
-	<WorkspaceHeader title="Analytics" description="See how people find your products, return to them, and respond to updates. Every card uses your selected time range." />
+	<WorkspaceHeader title={headerTitle} description="See how people find your products, return to them, and respond to updates. Every card uses your selected time range." />
 	{#if boostPreview}<div class="border-b border-[var(--pc-border-strong)] py-2 text-[11px] text-[var(--pc-text-faint)]" role="status">Development preview · sample Boost data only</div>{/if}
 
 	{#if loading}

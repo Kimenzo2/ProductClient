@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Building, CreditCard, Plug, Shield, Users, Warning } from 'reicon-svelte';
+	import { BranchDown, Building, CreditCard, Plug, Shield, Users, Warning } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 
 	let { children } = $props();
 
 	const sections = [
 		{ href: '/workspace/settings/general', label: 'General', icon: Building },
+		{ href: '/workspace/settings/git', label: 'Git', icon: BranchDown },
 		{ href: '/workspace/settings/members', label: 'Members', icon: Users },
 		{ href: '/workspace/settings/billing', label: 'Billing', icon: CreditCard },
 		{ href: '/workspace/settings/integrations', label: 'Integrations', icon: Plug },

@@ -12,4 +12,5 @@ export type SearchRecord = {
 	status?: string;
 	keywords: string[];
 	relationPreview?: string;
+	productSlug?: string;
 };

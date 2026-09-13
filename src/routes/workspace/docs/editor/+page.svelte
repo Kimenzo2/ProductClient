@@ -7,6 +7,7 @@
 	import EditorBlockSurface from '$lib/components/docs/EditorBlockSurface.svelte';
 	import { docsBlocksToMarkdown, markdownToDocsBlocks, normalizeDocsSiteConfig, starterDocsDocument, starterSiteConfig, type DocsBlock, type DocsDocument, type DocsPage, type DocsSiteConfig } from '$lib/data/docsEditor';
 	import { supabase } from '$lib/supabaseClient';
+import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	type EditorResponse = {
 		ok?: boolean;
@@ -430,14 +431,14 @@
 				{/if}
 			</div>
 			<div class="command-context-actions" aria-label="Documentation workspace sections">
-				<button class:active={editorSurface === 'navigation'} class="command-context-action" type="button" aria-label="Navigation" title="Navigation" aria-pressed={editorSurface === 'navigation'} onclick={() => setEditorSurface('navigation')}><FileText size={15} weight="Outline" aria-hidden="true" /></button>
-				<button class:active={editorSurface === 'site-config'} class="command-context-action" type="button" aria-label="Site config" title="Site config" aria-pressed={editorSurface === 'site-config'} onclick={() => setEditorSurface('site-config')}><Settings size={15} weight="Outline" aria-hidden="true" /></button>
+				<button class:active={editorSurface === 'navigation'} class="command-context-action" type="button" aria-label="Navigation" aria-pressed={editorSurface === 'navigation'} onclick={() => setEditorSurface('navigation')}><span use:tooltip={{ text: 'Navigation', island: true }}><FileText size={15} weight="Outline" aria-hidden="true" /></span></button>
+				<button class:active={editorSurface === 'site-config'} class="command-context-action" type="button" aria-label="Site config" aria-pressed={editorSurface === 'site-config'} onclick={() => setEditorSurface('site-config')}><span use:tooltip={{ text: 'Site config', island: true }}><Settings size={15} weight="Outline" aria-hidden="true" /></span></button>
 			</div>
 		</div>
 		<div class="command-actions">
 			{#if editorSurface === 'navigation'}
-				<div class="mode-switch command-mode-switch" role="tablist" aria-label="Editor mode"><button class:active={mode === 'visual'} type="button" role="tab" aria-selected={mode === 'visual'} aria-label="Visual mode" title="Visual" onclick={() => setMode('visual')}><Eye size={14} weight="Outline" aria-hidden="true" /></button><button class:active={mode === 'markdown'} type="button" role="tab" aria-selected={mode === 'markdown'} aria-label="Markdown mode" title="Markdown" onclick={() => setMode('markdown')}><Code size={14} weight="Outline" aria-hidden="true" /></button></div>
-				{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" title="Remove page" onclick={deleteSelectedPage}><Trash size={14} weight="Outline" /></button>{/if}
+				<div class="mode-switch command-mode-switch" role="tablist" aria-label="Editor mode"><button class:active={mode === 'visual'} type="button" role="tab" aria-selected={mode === 'visual'} aria-label="Visual mode" onclick={() => setMode('visual')}><span use:tooltip={{ text: 'Visual mode', island: true }}><Eye size={14} weight="Outline" aria-hidden="true" /></span></button><button class:active={mode === 'markdown'} type="button" role="tab" aria-selected={mode === 'markdown'} aria-label="Markdown mode" onclick={() => setMode('markdown')}><span use:tooltip={{ text: 'Markdown mode', island: true }}><Code size={14} weight="Outline" aria-hidden="true" /></span></button></div>
+				{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" onclick={deleteSelectedPage}><span use:tooltip={{ text: 'Remove page', island: true }}><Trash size={14} weight="Outline" aria-hidden="true" /></span></button>{/if}
 			{/if}
 			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
 			<Button class="toolbar-button" variant="outline" size="sm" disabled={!dirty || saving} loading={saving} onclick={() => void saveDraft()}><Save size={13} weight="Outline" /> Save</Button>
@@ -573,7 +574,7 @@
 				<div class="tree-heading">
 					<div><h2>Your documentation</h2></div>
 					<div class="menu-anchor">
-						<button class="icon-action" type="button" aria-label="Add content" title="Add page or section" aria-haspopup="menu" aria-expanded={treeAddMenuOpen} onclick={() => (treeAddMenuOpen = !treeAddMenuOpen)}><Add size={15} weight="Outline" /></button>
+						<button class="icon-action" type="button" aria-label="Add content" aria-haspopup="menu" aria-expanded={treeAddMenuOpen} onclick={() => (treeAddMenuOpen = !treeAddMenuOpen)}><span use:tooltip={{ text: 'Add page or section', island: true }}><Add size={15} weight="Outline" aria-hidden="true" /></span></button>
 						{#if treeAddMenuOpen}
 							<div class="editor-menu" style="left:auto; right:0; top: calc(100% + 6px);" role="menu">
 								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createPage(); }}><Add size={13} weight="Outline" /> New page</button>

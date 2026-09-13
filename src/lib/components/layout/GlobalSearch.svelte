@@ -4,6 +4,7 @@
 import { AlertTriangle, Box, Compass, FileText, Heart, History, Inbox, Search, UserSquare } from 'reicon-svelte';
 import { workspaceSearchKinds } from '$lib/search/search';
 import type { SearchKind, SearchRecord } from '$lib/search/types';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let {
 		open = false,
@@ -38,8 +39,11 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 	};
 
 	let availableSearchKinds = $derived(workspaceSearchKinds);
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
 	let results = $derived(workspaceSearchRecords ? workspaceSearchRecords(query, kind) : []);
-	let visibleResults = $derived(results.slice(0, 12));
+	// Product switcher: when a product is selected, scope results to that product (except Product/Maker which are global)
+	let scopedResults = $derived(activeSlug ? results.filter((r) => !r.productSlug || r.productSlug === activeSlug) : results);
+	let visibleResults = $derived(scopedResults.slice(0, 12));
 
 	async function loadWorkspaceSearch() {
 		if (workspaceSearchRecords || workspaceSearchLoading) return;
@@ -57,6 +61,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 			query = initialQuery;
 			kind = 'All';
 			selectedIndex = 0;
+			void hydrateActiveProduct();
 			void loadWorkspaceSearch();
 			tick().then(() => inputEl?.focus());
 		}
@@ -206,7 +211,7 @@ import type { SearchKind, SearchRecord } from '$lib/search/types';
 			</div>
 
 			<div class="flex items-center justify-between bg-[var(--pc-surface)] px-4 py-2 text-xs text-[var(--pc-text-faint)]">
-				<span role="status" aria-live="polite">{query.trim() ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'Workspace search'}</span>
+				<span role="status" aria-live="polite">{query.trim() ? `${scopedResults.length} result${scopedResults.length === 1 ? '' : 's'}${activeSlug ? ` in ${activeProductStore.activeProduct?.name}` : ''}` : activeSlug ? `Scoped to ${activeProductStore.activeProduct?.name} · ${results.length} available` : 'Workspace search'}</span>
 				<span class="hidden gap-3 sm:inline-flex"><span>↑↓ Navigate</span><span>↵ Open</span><span>Esc Close</span></span>
 			</div>
 		</dialog>

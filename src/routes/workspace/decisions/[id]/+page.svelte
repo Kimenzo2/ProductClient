@@ -1,15 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, Clock, Export, Map } from 'reicon-svelte';
 	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
 	import RelationList from '$lib/components/workspace/RelationList.svelte';
 	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
 	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
 	import { decisionThreadById } from '$lib/data/workspace';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let id = $derived(page.params.id ?? '');
 	let thread = $derived(decisionThreadById(id));
 	let tab = $state<'Overview' | 'Evidence' | 'Activity'>('Overview');
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	onMount(() => { void hydrateActiveProduct(); });
+	$effect(() => {
+		if (thread && activeSlug && thread.productSlug !== activeSlug) void goto('/workspace/decisions', { replaceState: true });
+	});
 
 	const statusTone = $derived(thread?.status === 'Shipped' ? 'success' : thread?.status === 'In decision' ? 'accent' : 'warning');
 	const nextStep = $derived(thread?.status === 'In decision' ? 'Review choices' : thread?.status === 'Planned' ? 'Prepare update' : 'Check results');

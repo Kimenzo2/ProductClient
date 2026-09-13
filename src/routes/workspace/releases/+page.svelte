@@ -3,8 +3,10 @@
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
 	import { Button, Card, Chip, Select } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { releases, products } from '$lib/data/workspace';
+import { onMount } from 'svelte';
+import { tooltip } from '$lib/components/Tooltip.svelte';
+import { releases, products } from '$lib/data/workspace';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	type InternalStatus = 'Draft' | 'In review' | 'Ready' | 'Published';
 	type Visibility = 'Internal' | 'Preview' | 'Public';
@@ -20,11 +22,20 @@
 	}
 
 	// Workspace scope: this workspace owns all 12 products (Lorenze). In production this is workspace_id via RLS.
+	// Product switcher: when a product is selected, default filter to that product; still allow “All” for overview.
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Releases` : 'Internal releases');
 	let productFilter = $state('all');
+	// Keep filter in sync with active product when it changes (unless user explicitly chose another product)
+	$effect(() => {
+		if (activeSlug) productFilter = activeSlug;
+	});
 	let productOptions = $derived([
 		{ value: 'all', label: 'All workspace products' },
 		...products.map((p) => ({ value: p.slug, label: p.name }))
 	]);
+
+	onMount(() => { void hydrateActiveProduct(); });
 
 	let filter = $state<'All' | InternalStatus>('All');
 	let internalReleases = $derived(
@@ -45,7 +56,7 @@
 <svelte:head><title>Internal releases | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader title="Internal releases" description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
+	<WorkspaceHeader title={headerTitle} description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
 	<div class="flex flex-wrap items-center gap-3 py-5" role="group" aria-label="Internal release filters">
 		<div class="flex items-center gap-2">
 			<span class="text-xs font-medium text-[var(--pc-text-muted)]">Product:</span>

@@ -1,14 +1,31 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { ArrowRight, Box, Export } from 'reicon-svelte';
 	import { Button, Chip, StatePanel } from '$lib/components/ui';
 	import DecisionThread from '$lib/components/workspace/DecisionThread.svelte';
 	import { decisionThreads, productBySlug, releasesForProduct } from '$lib/data/workspace';
+	import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let slug = $derived(page.params.slug ?? '');
 	let product = $derived(productBySlug(slug));
 	let releases = $derived(releasesForProduct(slug));
 	let threads = $derived(decisionThreads.filter((thread) => thread.productSlug === slug));
+
+	onMount(() => { void hydrateActiveProduct(); });
+	// Keep switcher in sync when visiting a product's page directly — URL slug drives active product
+	$effect(() => {
+		const p = product;
+		const active = activeProductStore.activeProduct;
+		if (p && active && active.slug !== p.slug) {
+			// Find the product row by slug (active store may have different id space for mock)
+			const match = activeProductStore.products.find((row) => row.slug === p.slug);
+			if (match) void setActiveProduct(match.id);
+		} else if (p && !active) {
+			const match = activeProductStore.products.find((row) => row.slug === p.slug);
+			if (match) void setActiveProduct(match.id);
+		}
+	});
 </script>
 
 <svelte:head><title>{product?.name ?? slug} overview | Product Client</title></svelte:head>

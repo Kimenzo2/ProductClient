@@ -6,23 +6,30 @@
 	import { feedback } from '$lib/data/workspace';
 	import { onMount } from 'svelte';
 	import { trackAnalyticsEvent } from '$lib/data/analytics';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let query = $state('');
 	let filter = $state<'All' | 'New' | 'Reviewed' | 'Planned' | 'Resolved'>('All');
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Feedback` : 'Feedback');
 	let filtered = $derived(
 		feedback.filter((item) => {
 			const haystack = `${item.title} ${item.body} ${item.productName} ${item.from}`.toLowerCase();
-			return (filter === 'All' || item.status === filter) && haystack.includes(query.trim().toLowerCase());
+			const matchesProduct = !activeSlug || item.productSlug === activeSlug;
+			return matchesProduct && (filter === 'All' || item.status === filter) && haystack.includes(query.trim().toLowerCase());
 		})
 	);
-	onMount(() => { void trackAnalyticsEvent('feedback.new', { path: '/workspace/feedback' }); });
+	onMount(() => {
+		void hydrateActiveProduct();
+		void trackAnalyticsEvent('feedback.new', { path: '/workspace/feedback', productId: activeProductStore.activeProduct?.id });
+	});
 	$effect(() => { void filter; void trackAnalyticsEvent('feedback.shipped', { value: filter }); });
 </script>
 
 <svelte:head><title>Feedback | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader title="Feedback" description="Keep the customer's own words while you turn them into a clear problem, a choice, and a follow-up." actionLabel="Add feedback" actionHref="/feedback/new" />
+	<WorkspaceHeader title={headerTitle} description="Keep the customer's own words while you turn them into a clear problem, a choice, and a follow-up." actionLabel="Add feedback" actionHref="/feedback/new" />
 
 	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
 		<div class="relative w-full sm:max-w-[380px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="feedback-filter" class="sr-only">Filter feedback</label><Input id="feedback-filter" bind:value={query} placeholder="Find a request, person, or product" class="pl-9 text-base sm:text-sm" /></div>

@@ -583,7 +583,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			publicHref: product.publicPath,
 			workspaceHref: product.workspacePath,
 			status: product.status,
-			keywords: [product.name, product.slug, product.category ?? '', ...(product.tags ?? []), product.makerName]
+			keywords: [product.name, product.slug, product.category ?? '', ...(product.tags ?? []), product.makerName],
+			productSlug: product.slug
 		})),
 		...releases.map((release) => ({
 			id: release.id,
@@ -595,7 +596,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			publicHref: release.publicPath,
 			workspaceHref: release.workspacePath,
 			status: release.status,
-			keywords: [release.title, release.description, release.productName, release.type, release.makerName]
+			keywords: [release.title, release.description, release.productName, release.type, release.makerName],
+			productSlug: release.productSlug
 		})),
 		...feedback.map((item) => ({
 			id: item.id,
@@ -608,7 +610,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			workspaceHref: item.workspacePath,
 			status: item.status,
 			keywords: [item.title, item.body, item.productName, item.type, item.status, item.from],
-			relationPreview: problemsForFeedback(item.id)[0]?.title
+			relationPreview: problemsForFeedback(item.id)[0]?.title,
+			productSlug: item.productSlug
 		})),
 		...problems.map((problem) => ({
 			id: problem.id,
@@ -620,7 +623,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			workspaceHref: problem.workspacePath,
 			status: problem.status,
 			keywords: [problem.title, problem.statement, problem.affectedAudience, problem.productArea, problem.workaround, problem.costOfInaction, problem.owner],
-			relationPreview: problem.decisionId ? decisionThreadById(problem.decisionId)?.title : undefined
+			relationPreview: problem.decisionId ? decisionThreadById(problem.decisionId)?.title : undefined,
+			productSlug: problem.productSlug
 		})),
 		...roadmapItems.map((item) => ({
 			id: item.id,
@@ -632,7 +636,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			workspaceHref: `/workspace/roadmap#${item.id}`,
 			status: item.status,
 			keywords: [item.title, item.description, item.productName, item.status, item.owner, item.area ?? ''],
-			relationPreview: decisionThreads.find((thread) => thread.relations.some((relation) => relation.kind === 'Roadmap' && relation.title === item.title))?.title
+			relationPreview: decisionThreads.find((thread) => thread.relations.some((relation) => relation.kind === 'Roadmap' && relation.title === item.title))?.title,
+			productSlug: item.productSlug
 		})),
 		...decisionThreads.map((thread) => ({
 			id: thread.id,
@@ -643,7 +648,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			href: `/workspace/decisions/${thread.id}`,
 			workspaceHref: `/workspace/decisions/${thread.id}`,
 			status: thread.status,
-			keywords: [thread.title, thread.problem, thread.outcome, thread.productName, thread.status, thread.owner, ...thread.relations.map((relation) => relation.title)]
+			keywords: [thread.title, thread.problem, thread.outcome, thread.productName, thread.status, thread.owner, ...thread.relations.map((relation) => relation.title)],
+			productSlug: thread.productSlug
 		})),
 		...docs.map((doc) => ({
 			id: `${doc.productSlug}-${doc.slug}`,
@@ -655,7 +661,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			publicHref: doc.publicPath,
 			workspaceHref: doc.workspacePath,
 			status: 'Published',
-			keywords: [doc.title, doc.description, doc.productName, doc.section]
+			keywords: [doc.title, doc.description, doc.productName, doc.section],
+			productSlug: doc.productSlug
 		})),
 		...incidents.map((incident) => ({
 			id: incident.id,
@@ -667,7 +674,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			publicHref: incident.publicPath,
 			workspaceHref: incident.workspacePath,
 			status: incident.status,
-			keywords: [incident.title, incident.summary, incident.productName, incident.severity, incident.status, incident.owner]
+			keywords: [incident.title, incident.summary, incident.productName, incident.severity, incident.status, incident.owner],
+			productSlug: incident.productSlug
 		})),
 		...proofs.map((proof) => ({
 			id: proof.id,
@@ -679,7 +687,8 @@ export function buildSearchRecords(): SearchRecord[] {
 			publicHref: proof.status === 'Approved' ? `/wall/${proof.productSlug}` : undefined,
 			workspaceHref: `/workspace/proof#${proof.id}`,
 			status: proof.status,
-			keywords: [proof.quote, proof.name, proof.role, proof.productName, ...proof.tags]
+			keywords: [proof.quote, proof.name, proof.role, proof.productName, ...proof.tags],
+			productSlug: proof.productSlug
 		})),
 		...makers.map((maker) => ({
 			id: maker.handle,

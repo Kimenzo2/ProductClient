@@ -216,8 +216,8 @@
 	.update-heading strong { font-size: 14px; font-weight: 600; }
 	.update-heading time { color: var(--pc-text-faint); font-size: 11px; }
 	.timeline-content p { max-width: 68ch; margin: 8px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.65; }
-	.update-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(7 7 7 / .44); cursor: default; }
-	.update-dialog { position: fixed; z-index: 61; inset-block: 0; inset-inline-end: 0; display: flex; flex-direction: column; width: min(640px, calc(100vw - 20px)); max-width: 100%; block-size: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 40px 40px max(32px, env(safe-area-inset-bottom)); border: 1px solid var(--pc-border-strong); border-inline-end: 0; border-start-start-radius: 30px; border-end-start-radius: 30px; color: var(--pc-text); background: var(--pc-surface-raised); }
+	.update-backdrop { position: fixed; z-index: 60; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: default; }
+	.update-dialog { position: fixed; z-index: 61; inset-block: 0; inset-inline-end: 0; display: flex; flex-direction: column; width: min(640px, calc(100vw - 20px)); max-width: 100%; block-size: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 40px 40px max(32px, env(safe-area-inset-bottom)); border: 1px solid var(--pc-border-strong); border-inline-end: 0; border-start-start-radius: 30px; border-end-start-radius: 30px; color: var(--pc-text); background: var(--pc-bg); }
 	.dialog-header { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--pc-border-strong); }
 	.dialog-header h2 { margin: 0; font-size: 26px; font-weight: 500; letter-spacing: -.045em; line-height: 1.1; }
 	.dialog-close { display: grid; flex: 0 0 auto; place-items: center; width: 42px; height: 42px; margin: -6px -6px 0 0; padding: 0; border: 0; border-radius: 50%; color: var(--pc-text-muted); background: transparent; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Callout from 'components-svelte/callout';
 	import { Add, ChevronDown, Trash } from 'reicon-svelte';
+	import { tooltip } from '$lib/components/Tooltip.svelte';
 	import type { DocsBlock } from '$lib/data/docsEditor';
 	import type { Component } from 'svelte';
 
@@ -128,7 +129,7 @@
 <div class="document-editor-body" aria-label="Documentation content editor">
 	{#each blocks as block, index (block.id)}
 		<div class="document-block" data-block-type={block.type}>
-			<button class="document-block-add" type="button" aria-label={`Add block after block ${index + 1}`} title="Add block" onclick={() => addBlock('paragraph', index)}><Add size={13} weight="Outline" /></button>
+			<button class="document-block-add" type="button" aria-label={`Add block after block ${index + 1}`} use:tooltip={{ text: 'Add block', island: true }} onclick={() => addBlock('paragraph', index)}><Add size={13} weight="Outline" aria-hidden="true" /></button>
 			{#if block.type === 'paragraph'}
 				<textarea class="document-block-input document-block-paragraph" rows="3" aria-label={`Paragraph ${index + 1}`} value={block.text} placeholder="Start writing your documentation…" oninput={(event) => patchBlock(index, { text: event.currentTarget.value })}></textarea>
 			{:else if block.type === 'heading'}
@@ -221,7 +222,7 @@
 					{:else}<div class="component-loading">Loading Expandable component…</div>{/if}
 				</div>
 			{/if}
-			<button class="document-block-remove" type="button" aria-label={`Remove block ${index + 1}`} title="Remove block" onclick={() => removeBlock(index)}><Trash size={12} weight="Outline" /></button>
+			<button class="document-block-remove" type="button" aria-label={`Remove block ${index + 1}`} use:tooltip={{ text: 'Remove block', island: true }} onclick={() => removeBlock(index)}><Trash size={12} weight="Outline" aria-hidden="true" /></button>
 		</div>
 	{:else}
 		<div class="document-block-empty">Add a block to begin writing.</div>

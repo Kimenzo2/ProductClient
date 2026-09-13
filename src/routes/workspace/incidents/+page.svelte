@@ -4,12 +4,18 @@
 	import { Button, StatePanel } from '$lib/components/ui';
 	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
 	import type { PublicIncidentStatus, StatusIncident } from '$lib/data/status';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
 
 	type QueueFilter = 'Open' | 'Resolved' | 'All';
 
-	let queue = $derived(incidentRecordsForWorkspace());
+	let baseQueue = $derived(incidentRecordsForWorkspace());
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Incidents` : 'Incidents');
+	let queue = $derived(activeSlug ? baseQueue.filter((incident) => incident.productSlug === activeSlug) : baseQueue);
 
 	let filter = $state<QueueFilter>('Open');
+	let composerOpen = $state(false);
 	let filtered = $derived(queue.filter((incident) => filter === 'All' || (filter === 'Open' ? incident.status !== 'Resolved' : incident.status === 'Resolved')));
 	let openCount = $derived(queue.filter((incident) => incident.status !== 'Resolved').length);
 	let resolvedCount = $derived(queue.filter((incident) => incident.status === 'Resolved').length);
@@ -29,6 +35,7 @@
 	let sparkIncMax = $derived(Math.max(...sparkOpen, ...sparkAll, ...sparkResolved, 1));
 
 	onMount(() => {
+		void hydrateActiveProduct();
 		void hydrateStatusEditor();
 	});
 
@@ -46,10 +53,10 @@
 	<header class="incident-header">
 		<div>
 			
-			<h1 class="text-wrap-balance">Incidents</h1>
+			<h1 class="text-wrap-balance">{headerTitle}</h1>
 			<p class="lede">Coordinate what the team knows, what customers need to hear, and what happens after the service is stable.</p>
 		</div>
-		<Button href="/workspace/incidents/new" variant="primary" size="md">Declare incident</Button>
+		<button type="button" class="declare-btn" onclick={() => (composerOpen = true)}>Declare incident</button>
 	</header>
 
 	<!-- Polished from Analytics Traffic header — exact CSS: rounded-xl border bg-background-gray p-4 + 5-metric style adapted to 3 -->
@@ -103,15 +110,23 @@
 					<span class="incident-meta"><span>{incident.status}</span><small>{incident.updates.length} update{incident.updates.length === 1 ? '' : 's'}</small><ArrowRight size={15} weight="Outline" aria-hidden="true" /></span>
 				</a>
 			{:else}
-				<StatePanel icon={filter === 'Resolved' ? CheckCircle : AlertTriangle} title={filter === 'Open' ? 'No open incidents' : 'No incidents here'} description={filter === 'Open' ? 'When a service needs attention, the response will appear in this queue.' : 'Try another view to see the incident history.'} actionLabel={filter === 'Open' ? 'Declare an incident' : 'Show all incidents'} actionHref={filter === 'Open' ? '/workspace/incidents/new' : '/workspace/incidents'} />
+				<StatePanel icon={filter === 'Resolved' ? CheckCircle : AlertTriangle} title={filter === 'Open' ? 'No open incidents' : 'No incidents here'} description={filter === 'Open' ? 'When a service needs attention, the response will appear in this queue.' : 'Try another view to see the incident history.'} actionLabel={filter === 'Open' ? 'Declare an incident' : 'Show all incidents'} actionHref={filter === 'Open' ? undefined : '/workspace/incidents'} onAction={filter === 'Open' ? () => (composerOpen = true) : undefined} />
 			{/each}
 		</div>
 	</section>
 </div>
 
+{#if composerOpen}
+	<IncidentComposer onclose={() => (composerOpen = false)} />
+{/if}
+
 <style>
 	.incident-page { width: min(100% - 32px, 960px); margin: 0 auto; padding: 44px 0 72px; }
 	.incident-header { display: flex; align-items: end; justify-content: space-between; gap: 28px; padding-bottom: 34px; border-bottom: 1px solid var(--pc-border-strong); }
+	.declare-btn { min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; color: var(--pc-bg); background: var(--pc-text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 120ms ease, transform 120ms ease; }
+	.declare-btn:hover { opacity: .88; }
+	.declare-btn:active { transform: scale(.98); }
+	.declare-btn:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 
 	h1, h2 { margin: 0; letter-spacing: -.04em; font-weight: 500; }
 	h1 { font-size: clamp(30px, 4vw, 44px); }

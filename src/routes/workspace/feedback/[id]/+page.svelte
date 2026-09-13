@@ -1,13 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, CheckCircle, Inbox, Map, UserSquare } from 'reicon-svelte';
 	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
 	import { feedback, productBySlug, problemsForFeedback } from '$lib/data/workspace';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let id = $derived(page.params.id);
 	let item = $derived(feedback.find((record) => record.id === id));
 	let product = $derived(item ? productBySlug(item.productSlug) : undefined);
 	let linkedProblem = $derived(item ? problemsForFeedback(item.id)[0] : undefined);
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	onMount(() => { void hydrateActiveProduct(); });
+	$effect(() => {
+		if (item && activeSlug && item.productSlug !== activeSlug) {
+			void goto('/workspace/feedback', { replaceState: true });
+		}
+	});
 </script>
 
 <svelte:head><title>{item?.title ?? 'Feedback'} | Inbox | Product Client</title></svelte:head>
