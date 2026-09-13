@@ -58,7 +58,7 @@ export const GET: RequestHandler = async ({ request }) => {
 		{
 			ok: true,
 			draft,
-			migrated: Boolean(isLegacyMock || isUnstructuredStarterDraft),
+			migrated: Boolean(!row || isLegacyMock || isUnstructuredStarterDraft),
 			version: row?.draft_version ?? 0,
 			published: row?.published ?? null,
 			publishedVersion: row?.published_version ?? 0,

@@ -43,6 +43,10 @@
 	let editorBlocks = $state<DocsBlock[]>([]);
 	let editorBlockPageId = '';
 
+	function cloneSnapshot<T>(value: T): T {
+		return structuredClone($state.snapshot(value));
+	}
+
 	const siteConfigSections = [
 		{ id: 'general', label: 'General', icon: Settings },
 		{ id: 'brand', label: 'Brand & Theme', icon: Eye },
@@ -90,7 +94,7 @@
 	function setMode(nextMode: 'visual' | 'markdown') {
 		mode = nextMode;
 		if (nextMode === 'visual' && currentPage) {
-			editorBlocks = structuredClone(blocksForPage(currentPage));
+			editorBlocks = cloneSnapshot(blocksForPage(currentPage));
 			editorBlockPageId = currentPage.id;
 		}
 	}
@@ -163,8 +167,8 @@
 	function commitEditorBlocks(nextBlocks: DocsBlock[]) {
 		const page = pageForEdit();
 		if (!page) return;
-		editorBlocks = structuredClone(nextBlocks);
-		page.blocks = structuredClone(nextBlocks);
+		editorBlocks = cloneSnapshot(nextBlocks);
+		page.blocks = cloneSnapshot(nextBlocks);
 		page.markdown = docsBlocksToMarkdown(nextBlocks);
 	}
 
@@ -270,7 +274,7 @@
 		publishing = true;
 		errorMessage = '';
 		try {
-			if (dirty && !(await saveDraft())) return;
+			if ((dirty || version === 0) && !(await saveDraft())) return;
 			const token = await sessionToken();
 			if (!token) throw new Error('Sign in again to publish the documentation.');
 			const response = await fetch('/api/docs/publish', {
@@ -290,7 +294,7 @@
 
 	$effect(() => {
 		if (currentPage && currentPage.id !== editorBlockPageId) {
-			editorBlocks = structuredClone(blocksForPage(currentPage));
+			editorBlocks = cloneSnapshot(blocksForPage(currentPage));
 			editorBlockPageId = currentPage.id;
 		}
 		if (searchOpen && searchInput) searchInput.focus();
