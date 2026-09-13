@@ -1,5 +1,5 @@
 import { makers, mockStates, preLaunchProducts, reviews } from '$lib/data/mockStates';
-import { hostedDocsPage, hostedStatusPage } from '$lib/config/tenant';
+import { hostedStatusPage } from '$lib/config/tenant';
 import type { SearchKind, SearchRecord } from '$lib/search/types';
 
 export type LifecycleStatus = 'Live' | 'Beta' | 'Planned' | 'Resolved' | 'In progress' | 'Draft';
@@ -330,16 +330,9 @@ export const feedback: FeedbackRecord[] = [
 		{ id: 'road-5', title: 'Invite-only launch rooms', description: 'Give launch teams a private place to prepare assets and replies.', status: 'Shipped', productSlug: 'quillpost', productName: 'Quillpost', feedbackCount: 11, owner: 'Lorenze', area: 'Launches', confidence: 'High', audience: 'Customer preview', targetWindow: 'Shipped', deliveryStatus: 'Shipped' }
 	];
 
-export const docs: DocRecord[] = [
-	// The mock workspace has no tenant-published hostname yet, so every public
-	// document points to the neutral hosted preview. A real publishing response
-	// replaces this value with the tenant's published documentation URL.
-	{ slug: 'getting-started', title: 'Getting started', description: 'The fastest path from account creation to the first useful result.', section: 'Start here', productSlug: 'bento', productName: 'Bento', updatedAt: 'Today', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
-	{ slug: 'release-notes', title: 'Release notes', description: 'A clear record of what shipped and why it matters.', section: 'Product updates', productSlug: 'bento', productName: 'Bento', updatedAt: 'Yesterday', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
-	{ slug: 'api-reference', title: 'API guide', description: 'How developers connect their apps, send requests, and read answers.', section: 'Developer guide', productSlug: 'hearth', productName: 'Hearth', updatedAt: 'Aug 27', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
-	{ slug: 'status-and-incidents', title: 'Status and service problems', description: 'How we report product health and explain service problems.', section: 'Service guide', productSlug: 'mossbit', productName: 'Mossbit', updatedAt: 'Aug 26', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' },
-	{ slug: 'feedback-loop', title: 'How feedback becomes a product update', description: 'How customer feedback becomes a choice, a release, and a follow-up.', section: 'Team guide', productSlug: 'tetra', productName: 'Tetra', updatedAt: 'Aug 22', publicPath: hostedDocsPage.href, workspacePath: '/workspace/docs' }
-];
+// Published documentation is tenant data, not workspace fixture data. Keep this
+// empty until the Docs Editor reads from the hosted publishing source.
+export const docs: DocRecord[] = [];
 
 export const incidents: IncidentRecord[] = [
 	{ id: 'inc-1', title: 'Some requests were slow', summary: 'Requests were slower than usual in one region. Things are back to normal, and the team is reviewing what happened.', status: 'Resolved', severity: 'High impact', productSlug: 'mossbit', productName: 'Mossbit', startedAt: 'Yesterday, 08:14', resolvedAt: 'Yesterday, 10:02', owner: 'Daniel Kim', publicPath: hostedStatusPage.href, workspacePath: '/workspace/incidents/inc-1' },
@@ -362,7 +355,6 @@ export const problems: ProblemRecord[] = [
 		owner: 'Maya Okafor',
 		updatedAt: '18 min ago',
 		feedbackIds: ['fb-1'],
-		docSlugs: ['feedback-loop'],
 		decisionId: 'thread-release-comparison',
 		workspacePath: '/workspace/problems/problem-compare-releases'
 	},
@@ -381,7 +373,6 @@ export const problems: ProblemRecord[] = [
 		updatedAt: '42 min ago',
 		feedbackIds: ['fb-2'],
 		incidentIds: ['inc-3'],
-		docSlugs: ['status-and-incidents'],
 		workspacePath: '/workspace/problems/problem-sign-in'
 	},
 	{
@@ -398,7 +389,6 @@ export const problems: ProblemRecord[] = [
 		owner: 'Nina Volkov',
 		updatedAt: 'Yesterday',
 		feedbackIds: ['fb-3'],
-		docSlugs: ['getting-started'],
 		decisionId: 'thread-docs-gap',
 		workspacePath: '/workspace/problems/problem-missing-answers'
 	}
@@ -406,7 +396,6 @@ export const problems: ProblemRecord[] = [
 
 export const followUps: FollowUpRecord[] = [
 	{ id: 'follow-up-1', incidentId: 'inc-1', title: 'Explain what caused the slow requests', description: 'Add a plain-language explanation to the service status page.', owner: 'Daniel Kim', status: 'In progress', due: 'Tomorrow', kind: 'Customer update', href: hostedStatusPage.href },
-	{ id: 'follow-up-2', incidentId: 'inc-1', title: 'Check the help page', description: 'Make sure the help page explains what customers should do when this happens.', owner: 'Nina Volkov', status: 'Open', due: 'Friday', kind: 'Help page', href: '/docs/mossbit/status-and-incidents' },
 	{ id: 'follow-up-3', incidentId: 'inc-3', title: 'Find why sign-in sends people back', description: 'Review the sign-in change and record the cause when it is known.', owner: 'Daniel Kim', status: 'Open', due: 'Today', kind: 'Product work', href: '/workspace/problems/problem-sign-in' }
 ];
 
@@ -416,14 +405,12 @@ export const postIncidentTasks: PostIncidentTask[] = [
 	{ id: 'post-incident-3', incidentId: 'inc-1', title: 'Decide whether a post-mortem is needed', description: 'Use the impact and response record to agree on the right learning step for this incident.', owner: 'Daniel Kim', status: 'Open', due: 'Friday', phase: 'Documenting', kind: 'Post-mortem decision' },
 	{ id: 'post-incident-4', incidentId: 'inc-1', title: 'Review the customer update', description: 'Confirm the public update explains the customer impact and what changed in plain language.', owner: 'Nina Volkov', status: 'Open', due: 'Tomorrow', phase: 'Reviewing', kind: 'Customer review', href: hostedStatusPage.href },
 	{ id: 'post-incident-5', incidentId: 'inc-1', title: 'Schedule a response debrief', description: 'Invite the responders to review what helped, what slowed the response, and what to change next time.', owner: 'Amara Mensah', status: 'Open', due: 'Next week', phase: 'Reviewing', kind: 'Debrief' }
-];	export const searchGaps: SearchGapRecord[] = [
-		{ id: 'gap-1', query: 'compare releases', searches: 21, lastSeen: 'Today, 09:14', status: 'Needs help', owner: 'Nina Volkov', productSlug: 'tetra', productName: 'Tetra', linkedDocSlug: 'feedback-loop' },
-		{ id: 'gap-2', query: 'why was my request slow', searches: 12, lastSeen: 'Yesterday, 16:40', status: 'In progress', owner: 'Daniel Kim', productSlug: 'mossbit', productName: 'Mossbit', linkedDocSlug: 'status-and-incidents' },
-		{ id: 'gap-3', query: 'use voice commands', searches: 7, lastSeen: 'Yesterday, 11:02', status: 'Answered', owner: 'Nina Volkov', productSlug: 'bento', productName: 'Bento', linkedDocSlug: 'getting-started' }
-	];	export const docFeedback: DocFeedbackRecord[] = [
-		{ id: 'doc-feedback-1', docSlug: 'getting-started', productSlug: 'bento', comment: 'I could not find the steps for using voice commands.', helpful: false, status: 'New', postedAt: 'Yesterday', linkedProblemId: 'problem-missing-answers' },
-		{ id: 'doc-feedback-2', docSlug: 'status-and-incidents', productSlug: 'mossbit', comment: 'This explains the current status, but not what caused the last problem.', helpful: false, status: 'Reviewed', postedAt: '2 days ago', linkedProblemId: 'problem-sign-in' }
-	];	export const proofs: ProofRecord[] = [
+];
+
+// These are populated from hosted documentation analytics and feedback.
+export const searchGaps: SearchGapRecord[] = [];
+export const docFeedback: DocFeedbackRecord[] = [];
+export const proofs: ProofRecord[] = [
 		{ id: 'proof-1', quote: 'The new product updates save me 30 minutes every day.', name: 'Julia Park', role: 'Product lead', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', source: 'Review', status: 'Approved', productSlug: 'tetra', productName: 'Tetra', tags: ['Productivity', 'Teams'], consent: 'Confirmed', allowedUses: ['Customer stories', 'Product page'], featured: true, outcome: 'Less time spent looking for changes.' },
 		{ id: 'proof-2', quote: 'The new feedback imports are exactly what our team needed.', name: 'Priya Sharma', role: 'Founder', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop', source: 'Customer call', status: 'Approved', productSlug: 'hearth', productName: 'Hearth', tags: ['Feedback imports', 'Technical teams'], consent: 'Confirmed', allowedUses: ['Customer stories', 'Product update'], outcome: 'Fewer interrupted imports.' },
 		{ id: 'proof-3', quote: 'Quillpost changed how we ship docs. From draft to live in two clicks.', name: 'Dev Patel', role: 'Marketing lead', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop', source: 'Imported', status: 'Needs review', productSlug: 'quillpost', productName: 'Quillpost', tags: ['Docs', 'Marketing'], consent: 'Needs confirmation', allowedUses: ['Internal review'], outcome: 'A faster path from draft to a live page.' },
@@ -466,7 +453,6 @@ export const decisionThreads: DecisionThread[] = [
 			{ kind: 'Feedback', title: 'Add a way to compare two releases', detail: 'Maya Okafor · Reviewed · 14 customer comments', href: '/workspace/feedback/fb-1', status: 'Reviewed' },
 			{ kind: 'Roadmap', title: 'See what changed between releases', detail: 'Now · 14 customer comments · Maya Okafor', href: '/workspace/roadmap#road-1', status: 'Now' },
 			{ kind: 'Release', title: 'Clearer product updates', detail: 'Tetra · latest public update', href: '/workspace/releases/r2', status: 'Live' },
-			{ kind: 'Doc', title: 'How feedback becomes a product update', detail: 'Team guide · updated Aug 22', href: '/docs/tetra/feedback-loop', status: 'Published' }
 		]
 	},
 	{
@@ -500,7 +486,6 @@ export const decisionThreads: DecisionThread[] = [
 		relations: [
 			{ kind: 'Incident', title: 'Some requests were slow', detail: 'High impact · Resolved yesterday', href: '/workspace/incidents/inc-1', status: 'Resolved' },
 			{ kind: 'Roadmap', title: 'Explain past service problems', detail: 'Now · 8 customer comments · Daniel Kim', href: '/workspace/roadmap#road-2', status: 'Now' },
-			{ kind: 'Doc', title: 'Status and service problems', detail: 'Service guide · updated Aug 26', href: '/docs/mossbit/status-and-incidents', status: 'Published' },
 			{ kind: 'Release', title: 'Fewer slow requests', detail: 'Mossbit · follow-up update', href: '/workspace/releases/r3', status: 'Live' }
 		]
 	},

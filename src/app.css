@@ -1,3 +1,8 @@
+/* Load the component library before ProductClient's shell styles. Its package
+   reset is intentionally global; loading it here prevents it from arriving
+   after the workspace layout and changing the shell's desktop cascade. */
+@import 'components-svelte/styles.css';
+
 /* ═══════════════════════════════════════════════════════════════
    CSS Cascade Layer order: base < theme < utilities
    Open Props MUST be in base layer, otherwise unlayered CSS
@@ -25,6 +30,9 @@
 	--color-brand-900: oklch(0.304 0.062 113);
 	--color-brand-950: oklch(0.228 0.04 113);
 }
+
+/* Edra ships its toolbar as compiled Svelte with Tailwind utility classes. */
+@source "../node_modules/edra/dist/**/*.{js,svelte}";
 
 /* ═══════════════════════════════════════════════════════════════
    Safelist: utility classes defined as string constants in

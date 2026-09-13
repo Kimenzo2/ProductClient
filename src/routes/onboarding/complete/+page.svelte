@@ -9,7 +9,7 @@
 	import { readableAuthError } from '$lib/auth/utils';
 	import { appHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, renameMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
+	import { ensureMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
 
 	let name = $state('');
 	let workspaceName = $state('');

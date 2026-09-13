@@ -20,7 +20,7 @@
 		{ label: 'Describe a problem', description: 'Explain what is getting in the way', href: '/workspace/problems', icon: Map },
 		{ label: 'Choose what to do', description: 'Write down the choice and why you made it', href: '/workspace/decisions?create=decision', icon: Map },
 		{ label: 'Write a product update', description: 'Prepare a clear message about a change', href: '/submit', icon: Rocket },
-		{ label: 'Write help content', description: 'Explain how a product works', href: '/submit', icon: FileText },
+		{ label: 'Write help content', description: 'Explain how a product works', href: '/workspace/docs/editor', icon: FileText },
 		{ label: 'Report a service problem', description: 'Tell the team what is wrong and who is affected', href: '/workspace/incidents/new', icon: AlertTriangle },
 		{ label: 'Add a customer quote', description: 'Save a review or story that you can share', href: '/workspace/proof', icon: Heart }
 	];
