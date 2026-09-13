@@ -106,7 +106,7 @@
 	<button
 		type="button"
 		bind:this={triggerEl}
-		class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--pc-accent)] text-[13px] font-medium tracking-[-0.01em] leading-none text-white transition-[background-color,transform] duration-150 hover:bg-[var(--pc-accent-hover)] active:scale-[0.96] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] {compact ? 'size-9 justify-center px-0' : 'px-4'}"
+		class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--pc-surface)] text-[13px] font-medium tracking-[-0.01em] leading-none text-[var(--pc-text)] transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface-2)] active:scale-[0.96] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] {compact ? 'size-9 justify-center px-0' : 'px-4'}"
 		aria-haspopup="menu"
 		aria-expanded={open}
 		aria-controls="quickcreate-menu"

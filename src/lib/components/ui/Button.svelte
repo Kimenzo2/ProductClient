@@ -14,7 +14,7 @@
 		children,
 		...restProps
 	}: {
-		variant?: 'primary' | 'ghost' | 'outline' | 'icon';
+		variant?: 'primary' | 'surface' | 'ghost' | 'outline' | 'icon';
 		size?: 'sm' | 'md' | 'lg';
 		disabled?: boolean;
 		loading?: boolean;
@@ -30,6 +30,7 @@
 
 	const variants: Record<string, string> = {
 		primary: 'bg-[var(--pc-text)] text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.96] transition-[background-color,color,opacity,transform] duration-150',
+		surface: 'bg-[var(--pc-surface)] text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150',
 		ghost: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150',
 		outline: 'border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] hover:border-[var(--pc-text-faint)] active:scale-[0.96] transition-[background-color,color,border-color,transform] duration-150',
 		icon: 'bg-transparent text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] active:scale-[0.96] transition-[background-color,color,transform] duration-150'
