@@ -40,11 +40,20 @@ export const POST: RequestHandler = async ({ request }) => {
 		const branchInfo = await getRepositoryBranch(installationId, repoFullName, branch);
 		const result = await syncDocsFromGithub(admin, link as Parameters<typeof syncDocsFromGithub>[1], branch, branchInfo.sha);
 		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'manual_sync', sha: branchInfo.sha, ok: result.ok, error: result.ok ? null : result.message, details: { files: result.files, imported: result.imported, code: result.ok ? null : result.code } });
+		await admin.from('github_kit_repositories').update({
+			last_sha: result.sha,
+			last_synced_at: new Date().toISOString(),
+			last_error: result.ok ? null : result.message,
+			sync_status: result.ok ? 'synced' : 'failed',
+			sync_error_code: result.ok ? null : result.code,
+			updated_at: new Date().toISOString()
+		}).eq('product_id', productId).eq('kit', 'docs');
 		if (!result.ok) return json({ ok: false, code: result.code, message: result.message, sha: result.sha, total: result.files }, { status: 422 });
 		return json({ ok: true, sha: result.sha, total: result.files, imported: result.imported });
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
 		await admin.from('github_repo_links').update({ last_error: msg, sync_status: 'failed', sync_error_code: 'SYNC_FAILED' }).eq('product_id', productId);
+		await admin.from('github_kit_repositories').update({ last_error: msg, sync_status: 'failed', sync_error_code: 'SYNC_FAILED', updated_at: new Date().toISOString() }).eq('product_id', productId).eq('kit', 'docs');
 		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'manual_sync', ok: false, error: msg });
 		return json({ ok: false, code: 'SYNC_FAILED', message: msg }, { status: 502 });
 	}

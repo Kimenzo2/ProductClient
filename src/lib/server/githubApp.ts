@@ -273,63 +273,6 @@ export async function getRepositoryBranch(installationId: bigint | number, repoF
 	return { sha: data.commit.sha, protected: Boolean(data.protected) };
 }
 
-export async function createBranch(installationId: bigint | number, repoFullName: string, branch: string, sha: string): Promise<void> {
-	const token = await getInstallationToken(installationId);
-	await githubRequest(token, `/repos/${repoFullName}/git/refs`, {
-		method: 'POST',
-		body: JSON.stringify({ ref: `refs/heads/${branch}`, sha })
-	});
-}
-
-export async function commitFiles(
-	installationId: bigint | number,
-	repoFullName: string,
-	branch: string,
-	message: string,
-	files: Array<{ path: string; content: string }>
-): Promise<{ sha: string }> {
-	if (!files.length) throw new Error('No files to commit');
-	const token = await getInstallationToken(installationId);
-	const ref = await githubRequest<{ object: { sha: string } }>(token, `/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`);
-	const commit = await githubRequest<{ tree: { sha: string } }>(token, `/repos/${repoFullName}/git/commits/${ref.object.sha}`);
-	const tree = [] as Array<{ path: string; mode: '100644'; type: 'blob'; sha: string }>;
-	for (const file of files) {
-		const blob = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/blobs`, {
-			method: 'POST',
-			body: JSON.stringify({ content: Buffer.from(file.content, 'utf8').toString('base64'), encoding: 'base64' })
-		});
-		tree.push({ path: file.path.replace(/^\/+/, ''), mode: '100644', type: 'blob', sha: blob.sha });
-	}
-	const nextTree = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/trees`, {
-		method: 'POST',
-		body: JSON.stringify({ base_tree: commit.tree.sha, tree })
-	});
-	const nextCommit = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/commits`, {
-		method: 'POST',
-		body: JSON.stringify({ message, tree: nextTree.sha, parents: [ref.object.sha] })
-	});
-	await githubRequest(token, `/repos/${repoFullName}/git/refs/heads/${encodeURIComponent(branch)}`, {
-		method: 'PATCH',
-		body: JSON.stringify({ sha: nextCommit.sha, force: false })
-	});
-	return { sha: nextCommit.sha };
-}
-
-export async function createPullRequest(
-	installationId: bigint | number,
-	repoFullName: string,
-	base: string,
-	head: string,
-	title: string,
-	body: string
-): Promise<{ number: number; html_url: string }> {
-	const token = await getInstallationToken(installationId);
-	return githubRequest<{ number: number; html_url: string }>(token, `/repos/${repoFullName}/pulls`, {
-		method: 'POST',
-		body: JSON.stringify({ title, body, base, head })
-	});
-}
-
 export async function createIssue(
 	installationId: bigint | number,
 	repoFullName: string,

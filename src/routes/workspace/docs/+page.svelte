@@ -123,8 +123,8 @@
 	{#if activeId}
 		<Card padding="md" class="mb-1 mt-4">
 			<div class="flex flex-wrap items-start justify-between gap-3">
-				<div class="min-w-0"><div class="flex items-center gap-2"><h2 id="github-docs-source-title" class="text-[14px] font-medium">GitHub documentation source</h2><span class="text-[11px] text-[var(--pc-text-faint)]">{githubLink ? githubLink.sync_status ?? 'connected' : 'not connected'}</span></div>
-					{#if githubLink}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">{githubLink.repo_full_name} · {githubLink.deploy_branch || githubLink.branch}{#if githubLink.last_sha} · <code>{githubLink.last_sha.slice(0, 7)}</code>{/if}{#if githubLink.last_synced_at} · {new Date(githubLink.last_synced_at).toLocaleString()}{/if}</p>{:else}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">Connect a source repository to see deployment state and sync documentation here.</p>{/if}
+				<div class="min-w-0"><div class="flex items-center gap-2"><h2 id="github-docs-source-title" class="text-[14px] font-medium">Documentation repository</h2><span class="text-[11px] text-[var(--pc-text-faint)]">{githubLink ? githubLink.sync_status ?? 'connected' : 'not connected'}</span></div>
+					{#if githubLink}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">{githubLink.repo_full_name} · {githubLink.deploy_branch || githubLink.branch}{#if githubLink.last_sha} · <code>{githubLink.last_sha.slice(0, 7)}</code>{/if}{#if githubLink.last_synced_at} · {new Date(githubLink.last_synced_at).toLocaleString()}{/if}</p>{:else}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">Connect a repository to keep documentation changes in sync.</p>{/if}
 				</div>
 				<div class="flex shrink-0 flex-wrap items-center gap-2">{#if githubLink}<Button size="sm" variant="outline" loading={githubBusy} onclick={syncGithubDocs}><Refresh size={14} weight="Outline" />Sync now</Button>{/if}<Button size="sm" variant="ghost" href="/workspace/settings/git">{githubLink ? 'Git settings' : 'Connect GitHub'}</Button></div>
 			</div>

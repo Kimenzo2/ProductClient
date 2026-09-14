@@ -38,8 +38,6 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	let loading = $state(true);
 	let saving = $state(false);
 	let publishing = $state(false);
-	let deploying = $state(false);
-	let deployMessage = $state('');
 	let githubLink = $state<{ repo_full_name: string; branch: string; deploy_branch?: string | null; last_sha: string | null; last_error: string | null } | null>(null);
 	let errorMessage = $state('');
 	// Loop 2: removed expandedViews/expandedGroups — mature TreeFolder owns open state internally
@@ -377,31 +375,6 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		}
 	}
 
-	async function deployToGithub() {
-		const productId = activeProductStore.activeProduct?.id;
-		if (!productId || productId.startsWith('mock-')) {
-			errorMessage = 'Choose a real product before deploying documentation.';
-			return;
-		}
-		deploying = true;
-		deployMessage = '';
-		errorMessage = '';
-		try {
-			if ((dirty || version === 0) && !(await saveDraft())) return;
-			const token = await sessionToken();
-			if (!token) throw new Error('Sign in again to deploy the documentation.');
-			const response = await fetch('/api/github/deploy', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: productId }) });
-			const result = await response.json().catch(() => null);
-			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not deploy to GitHub.');
-			deployMessage = result.mode === 'pull_request' ? `Pull request opened · ${result.branch}` : `Committed ${result.sha?.slice(0, 7) ?? ''} to ${result.branch}`;
-			await readGithubLink();
-		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : 'Could not deploy to GitHub.';
-		} finally {
-			deploying = false;
-		}
-	}
-
 	$effect(() => {
 		if (currentPage && currentPage.id !== editorBlockPageId) {
 			editorBlocks = cloneSnapshot(blocksForPage(currentPage));
@@ -481,9 +454,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 				<div class="mode-switch command-mode-switch" role="tablist" aria-label="Editor mode"><button class:active={mode === 'visual'} type="button" role="tab" aria-selected={mode === 'visual'} aria-label="Visual mode" onclick={() => setMode('visual')}><span use:tooltip={{ text: 'Visual mode', island: true }}><Eye size={14} weight="Outline" aria-hidden="true" /></span></button><button class:active={mode === 'markdown'} type="button" role="tab" aria-selected={mode === 'markdown'} aria-label="Markdown mode" onclick={() => setMode('markdown')}><span use:tooltip={{ text: 'Markdown mode', island: true }}><Code size={14} weight="Outline" aria-hidden="true" /></span></button></div>
 				{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" onclick={deleteSelectedPage}><span use:tooltip={{ text: 'Remove page', island: true }}><Trash size={14} weight="Outline" aria-hidden="true" /></span></button>{/if}
 			{/if}
-			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
-			{#if deployMessage}<span class="save-state" role="status">{deployMessage}</span>{/if}
-			{#if githubLink}<Button class="toolbar-button" variant="outline" size="sm" disabled={deploying || loading} loading={deploying} onclick={() => void deployToGithub()}>Deploy</Button>{/if}
+			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing to Cloudflare…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
 			<Button class="toolbar-button" variant="outline" size="sm" disabled={!dirty || saving} loading={saving} onclick={() => void saveDraft()}><Save size={13} weight="Outline" /> Save</Button>
 			<div class="publish-control menu-anchor">
 				<Button class="toolbar-button toolbar-button-primary" size="sm" disabled={publishing || loading || doc.pages.length === 0} loading={publishing} onclick={() => void publish()}>Publish</Button>

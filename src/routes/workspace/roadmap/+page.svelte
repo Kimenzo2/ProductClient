@@ -43,7 +43,7 @@
 		try {
 			const { data } = await supabase.auth.getSession();
 			const token = data.session?.access_token;
-			if (!token) throw new Error('Sign in again to link GitHub work.');
+			if (!token) throw new Error('Sign in again to link a GitHub issue.');
 			const res = await fetch('/api/github/roadmap', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: activeId, item_key: itemKey, reference: githubReference }) });
 			const result = await res.json().catch(() => null);
 			if (!res.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not link GitHub issue.');

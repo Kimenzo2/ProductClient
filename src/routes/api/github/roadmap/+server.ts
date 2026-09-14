@@ -49,7 +49,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const parsed = parseGithubReference(reference);
 	if (!parsed || parsed.kind !== 'issue') return json({ ok: false, code: 'INVALID_GITHUB_REFERENCE', message: 'Use a GitHub issue URL or owner/repo#123.' }, { status: 422 });
 	const { data: repoLink } = await admin.from('github_repo_links').select('installation_id, role').eq('product_id', productId).eq('repo_full_name', parsed.repo).in('role', ['source', 'context']).limit(1).maybeSingle();
-	if (!repoLink) return json({ ok: false, code: 'WRONG_GITHUB_REPOSITORY', message: 'Link an issue from the product source or context repository.' }, { status: 422 });
+	if (!repoLink) return json({ ok: false, code: 'WRONG_GITHUB_REPOSITORY', message: 'Use an issue from a connected repository.' }, { status: 422 });
 	try {
 		const githubItem = await getGithubIssue(repoLink.installation_id, parsed.repo, parsed.number);
 		const { data, error } = await admin.from('roadmap_github_links').upsert({ tenant_id: product.tenant_id, product_id: productId, item_key: itemKey, kind: 'issue', url: parsed.url, repo_full_name: parsed.repo, number: parsed.number, title: githubItem.title, state: githubItem.state, created_by: userId, updated_at: new Date().toISOString() }, { onConflict: 'product_id,item_key' }).select('*').maybeSingle();

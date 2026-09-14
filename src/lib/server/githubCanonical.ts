@@ -1,8 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { buildDocsArtifacts, docsArtifactFiles } from '$lib/server/docsArtifacts';
-import { docsContentHash } from '$lib/server/docsPublish';
-import { commitFiles, createBranch, createPullRequest, getRepositoryBranch, GithubApiError } from '$lib/server/githubApp';
-import type { DocsDocument } from '$lib/data/docsEditor';
 
 export const GITHUB_CONTRACT_ID = 'productclient.github.v1' as const;
 
@@ -62,11 +58,6 @@ export function parseGithubReference(input: string): GithubReference | null {
 	return { kind, repo, number, url };
 }
 
-export function joinGithubPath(root: string, file: string): string {
-	const cleanRoot = root.trim().replace(/^\/+|\/+$/g, '');
-	return cleanRoot ? `${cleanRoot}/${file}` : file;
-}
-
 export async function getOwnedProductGithubLink(
 	admin: SupabaseClient,
 	productId: string,
@@ -88,54 +79,4 @@ export async function recordGithubAudit(
 	repoFullName?: string | null
 ): Promise<void> {
 	await admin.from('github_audit_events').insert({ product_id: productId, actor_id: actorId ?? null, event_type: eventType, repo_full_name: repoFullName ?? null, details: data });
-}
-
-export function docsDeploymentFiles(document: DocsDocument, tenantSlug: string, version: number, docsPath: string): Array<{ path: string; content: string }> {
-	const digest = docsContentHash(document);
-	const artifacts = buildDocsArtifacts(document, tenantSlug, version, digest);
-	return docsArtifactFiles(document, artifacts).map((file) => ({ ...file, path: joinGithubPath(docsPath, file.path) }));
-}
-
-export async function deployDocsToGithub(options: {
-	link: GithubRepoLink;
-	document: DocsDocument;
-	tenantSlug: string;
-	version: number;
-	productName: string;
-	productClientUrl: string;
-}): Promise<{ mode: 'commit' | 'pull_request'; sha: string; branch: string; pullRequestUrl?: string; pullRequestNumber?: number }> {
-	const { link, document, tenantSlug, version, productName, productClientUrl } = options;
-	const files = docsDeploymentFiles(document, tenantSlug, version, link.docs_path);
-	const targetBranch = link.deploy_branch?.trim() || link.branch;
-	const branchInfo = await getRepositoryBranch(link.installation_id, link.repo_full_name, targetBranch);
-	const message = `Publish ${productName} documentation v${version}`;
-	const commit = async (branch: string) => commitFiles(link.installation_id, link.repo_full_name, branch, message, files);
-	const openPr = async (branch: string, base: string, sha: string) => {
-		const pr = await createPullRequest(
-			link.installation_id,
-			link.repo_full_name,
-			base,
-			branch,
-			`Publish ${productName} documentation v${version}`,
-			`ProductClient documentation deployment for release v${version}.\n\nProductClient: ${productClientUrl}\nContent digest: ${docsContentHash(document)}`
-		);
-		return { mode: 'pull_request' as const, sha, branch, pullRequestUrl: pr.html_url, pullRequestNumber: pr.number };
-	};
-
-	if (branchInfo.protected || targetBranch !== link.branch) {
-		const branch = `productclient/docs/${Date.now().toString(36)}`;
-		await createBranch(link.installation_id, link.repo_full_name, branch, branchInfo.sha);
-		const commitResult = await commit(branch);
-		return openPr(branch, targetBranch, commitResult.sha);
-	}
-	try {
-		const commitResult = await commit(targetBranch);
-		return { mode: 'commit', sha: commitResult.sha, branch: targetBranch };
-	} catch (error) {
-		if (!(error instanceof GithubApiError) || error.status !== 403) throw error;
-		const branch = `productclient/docs/${Date.now().toString(36)}`;
-		await createBranch(link.installation_id, link.repo_full_name, branch, branchInfo.sha);
-		const commitResult = await commit(branch);
-		return openPr(branch, targetBranch, commitResult.sha);
-	}
 }

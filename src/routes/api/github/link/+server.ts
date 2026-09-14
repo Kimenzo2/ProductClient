@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repoFullName)) return json({ ok: false, code: 'INVALID_REPOSITORY' }, { status: 422 });
 	if (!/^[^\s]+$/.test(branch) || (deployBranch !== null && !/^[^\s]+$/.test(deployBranch))) return json({ ok: false, code: 'INVALID_BRANCH' }, { status: 422 });
 
-	const { data: product } = await admin.from('products').select('id, maker_id').eq('id', productId).maybeSingle();
+	const { data: product } = await admin.from('products').select('id, maker_id, tenant_id').eq('id', productId).maybeSingle();
 	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
 
 	const { data: install } = await admin.from('github_installations').select('installation_id').eq('installation_id', installationId).eq('maker_id', userId).maybeSingle();
@@ -128,7 +128,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	const error = write.error;
 
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
-	if (role === 'source') await admin.from('products').update({ github_url: githubRepositoryUrl(repoFullName) }).eq('id', productId);
+	if (role === 'source') {
+		await admin.from('products').update({ github_url: githubRepositoryUrl(repoFullName) }).eq('id', productId);
+		if (product.tenant_id) {
+			const { error: kitError } = await admin.from('github_kit_repositories').upsert({
+				tenant_id: product.tenant_id,
+				product_id: productId,
+				installation_id: installationId,
+				kit: 'docs',
+				repo_full_name: repoFullName,
+				branch,
+				content_path: docsPath,
+				updated_at: new Date().toISOString()
+			}, { onConflict: 'tenant_id,kit' });
+			if (kitError) return json({ ok: false, code: 'KIT_REPOSITORY_SYNC_FAILED', message: kitError.message }, { status: 500 });
+		}
+	}
 	return json({ ok: true, link: data });
 };
 
@@ -138,15 +153,22 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const productId = url.searchParams.get('product_id') ?? (await request.json().catch(() => ({} as Record<string, string>))).product_id;
 	if (!productId) return json({ ok: false, code: 'MISSING_PRODUCT_ID' }, { status: 400 });
-	const { data: product } = await admin.from('products').select('maker_id').eq('id', productId).maybeSingle();
+	const { data: product } = await admin.from('products').select('maker_id, tenant_id').eq('id', productId).maybeSingle();
 	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
 
 	const role = url.searchParams.get('role') === 'context' ? 'context' : 'source';
+	const removeAll = url.searchParams.get('all') === '1';
 	const repo = url.searchParams.get('repo_full_name');
-	let query = admin.from('github_repo_links').delete().eq('product_id', productId).eq('role', role);
+	let query = admin.from('github_repo_links').delete().eq('product_id', productId);
+	if (!removeAll) query = query.eq('role', role);
 	if (repo) query = query.eq('repo_full_name', repo);
 	const { error } = await query;
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (product.tenant_id && (removeAll || role === 'source')) {
+		let kitQuery = admin.from('github_kit_repositories').delete().eq('tenant_id', product.tenant_id);
+		if (!removeAll) kitQuery = kitQuery.eq('kit', 'docs');
+		await kitQuery;
+	}
 	if (role === 'source') await admin.from('products').update({ github_url: null }).eq('id', productId);
 	return json({ ok: true });
 };

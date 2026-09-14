@@ -78,8 +78,8 @@
 			<main class="space-y-4">
 				{#if liveDetail}
 					<Card padding="md">
-						<div class="flex items-center justify-between gap-3"><h2 class="text-[13px] font-medium">GitHub issue</h2><span class="text-[11px] text-[var(--pc-text-faint)]">Source repository</span></div>
-						<p class="mt-2 text-xs text-[var(--pc-text-muted)]">Create or link the issue that carries this feedback into engineering work.</p>
+						<div class="flex items-center justify-between gap-3"><h2 class="text-[13px] font-medium">GitHub issue</h2><span class="text-[11px] text-[var(--pc-text-faint)]">Linked repository</span></div>
+						<p class="mt-2 text-xs text-[var(--pc-text-muted)]">Create or link a GitHub issue to track this feedback.</p>
 						<div class="mt-3 flex flex-wrap gap-2"><Button size="sm" loading={githubBusy} onclick={() => githubAction('create')}>Create issue</Button><div class="flex min-w-[230px] flex-1 gap-2"><Input bind:value={githubReference} placeholder="owner/repo#123 or URL" aria-label="GitHub issue URL" /><Button size="sm" variant="outline" loading={githubBusy} onclick={() => githubAction('link')}>Link issue</Button></div></div>
 						{#if githubMessage}<p class="mt-2 text-xs text-[var(--pc-text-muted)]" role="status">{githubMessage}</p>{/if}
 					</Card>

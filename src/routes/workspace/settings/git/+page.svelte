@@ -1,19 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-import { Check, Plug, Search, Settings } from 'reicon-svelte';
+import { Check, Plug, Search } from 'reicon-svelte';
 import { Button, Input, Label, Select } from '$lib/components/ui';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 import { supabase } from '$lib/supabaseClient';
 
 	type Product = { id: string; name: string; slug: string };
+	type KitKey = 'docs' | 'roadmap' | 'status';
 	type Link = { product_id: string; repo_full_name: string; branch: string; deploy_branch?: string | null; docs_path: string; last_sha: string | null; last_synced_at: string | null; last_error: string | null; installation_id: number };
+	type KitRepository = { tenant_id: string; product_id: string | null; repo_full_name: string; branch: string; content_path: string; last_sha: string | null; last_synced_at: string | null; last_error: string | null; installation_id: number; kit: KitKey };
 	type Repo = { full_name: string; default_branch: string; private: boolean };
+	const starterKits: Array<{ value: KitKey; label: string }> = [
+		{ value: 'docs', label: 'Documentation Starter Kit' },
+		{ value: 'roadmap', label: 'RoadMap Page' },
+		{ value: 'status', label: 'Status Page' }
+	];
 
 	let products = $state<Product[]>([]);
 	let activeProductId = $state<string | null>(null);
 	let link = $state<Link | null>(null);
 	let contextLinks = $state<Link[]>([]);
+	let kitRepositories = $state<Record<KitKey, KitRepository | null>>({ docs: null, roadmap: null, status: null });
 	let repos = $state<Repo[]>([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -22,9 +30,15 @@ import { supabase } from '$lib/supabaseClient';
 
 	let selectedRepo = $state('');
 	let branch = $state('main');
-	let deployBranch = $state('');
 	let docsPath = $state('/');
 	let contextRepo = $state('');
+	let contextError = $state('');
+	let targetKit = $state<KitKey>('docs');
+	let targetRepo = $state('');
+	let targetBranch = $state('main');
+	let targetPath = $state('/');
+	let targetError = $state('');
+	let targetBusy = $state(false);
 	let busy = $state(false);
 	let installPending = $state(false);
 	let installPoll: ReturnType<typeof setInterval> | undefined;
@@ -60,7 +74,7 @@ import { supabase } from '$lib/supabaseClient';
 	}
 
 	async function loadLink() {
-		if (!activeProductId) { link = null; contextLinks = []; return; }
+		if (!activeProductId) { link = null; contextLinks = []; kitRepositories = { docs: null, roadmap: null, status: null }; return; }
 		const token = await authToken();
 		if (!token) return;
 		const res = await fetch(`/api/github/link?product_id=${activeProductId}`, { headers: { authorization: `Bearer ${token}` } });
@@ -70,7 +84,6 @@ import { supabase } from '$lib/supabaseClient';
 			installationId = link.installation_id;
 			selectedRepo = link.repo_full_name;
 			branch = link.branch;
-			deployBranch = link.deploy_branch ?? '';
 			docsPath = link.docs_path;
 		} else {
 			link = null;
@@ -81,6 +94,34 @@ import { supabase } from '$lib/supabaseClient';
 		const contextRes = await fetch(`/api/github/link?product_id=${activeProductId}&role=context`, { headers: { authorization: `Bearer ${token}` } });
 		const contextResult = await contextRes.json().catch(() => null);
 		contextLinks = contextResult?.ok ? (contextResult.links as Link[]) ?? [] : [];
+		await loadKitRepositories(token);
+	}
+
+	async function loadKitRepositories(token?: string) {
+		if (!activeProductId) return;
+		const auth = token ?? (await authToken());
+		if (!auth) return;
+		const response = await fetch(`/api/github/kits?product_id=${activeProductId}`, { headers: { authorization: `Bearer ${auth}` } });
+		const result = await response.json().catch(() => null);
+		const next: Record<KitKey, KitRepository | null> = { docs: null, roadmap: null, status: null };
+		for (const repository of (result?.repositories ?? []) as KitRepository[]) if (repository.kit in next) next[repository.kit] = repository;
+		kitRepositories = next;
+		const selected = kitRepositories[targetKit];
+		if (selected) {
+			targetRepo = selected.repo_full_name;
+			targetBranch = selected.branch;
+			targetPath = selected.content_path || '/';
+		}
+	}
+
+	function chooseTargetKit(value: string) {
+		if (!['docs', 'roadmap', 'status'].includes(value)) return;
+		targetKit = value as KitKey;
+		targetError = '';
+		const selected = kitRepositories[targetKit];
+		targetRepo = selected?.repo_full_name ?? '';
+		targetBranch = selected?.branch ?? 'main';
+		targetPath = selected?.content_path ?? '/';
 	}
 
 	async function loadRepos() {
@@ -174,7 +215,7 @@ import { supabase } from '$lib/supabaseClient';
 	}
 
 	async function saveLink() {
-		if (!activeProductId || !installationId || !selectedRepo) { error = 'Pick a repo'; return; }
+		if (!activeProductId || !installationId || !selectedRepo) { error = 'Choose a repository.'; return; }
 		busy = true;
 		error = '';
 		notice = '';
@@ -184,11 +225,12 @@ import { supabase } from '$lib/supabaseClient';
 			const res = await fetch('/api/github/link', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-				body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: selectedRepo, branch, deploy_branch: deployBranch || null, docs_path: docsPath })
+				body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: selectedRepo, branch, deploy_branch: null, docs_path: docsPath })
 			});
 			const j = await res.json().catch(() => null);
 			if (!j?.ok) throw new Error(j?.message ?? j?.code ?? 'Could not save');
 			link = j.link as Link;
+			await loadKitRepositories(token);
 			notice = 'Connected';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -198,8 +240,10 @@ import { supabase } from '$lib/supabaseClient';
 	}
 
 	async function saveContextRepo() {
-		if (!activeProductId || !installationId || !contextRepo) { error = 'Pick a context repository'; return; }
+		if (!activeProductId || !installationId) return;
+		if (!contextRepo) { contextError = 'Choose a repository first.'; return; }
 		busy = true;
+		contextError = '';
 		error = '';
 		try {
 			const token = await authToken();
@@ -210,7 +254,7 @@ import { supabase } from '$lib/supabaseClient';
 			if (!res.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save context repository');
 			contextRepo = '';
 			await loadLink();
-			notice = 'Context repository added. It is read-only in ProductClient.';
+			notice = 'Repository added.';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -233,16 +277,49 @@ import { supabase } from '$lib/supabaseClient';
 		try {
 			const token = await authToken();
 			if (!token) throw new Error('Not signed in');
-			const res = await fetch(`/api/github/link?product_id=${activeProductId}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+			const res = await fetch(`/api/github/link?product_id=${activeProductId}&all=1`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
 			const j = await res.json().catch(() => null);
 			if (!j?.ok) throw new Error(j?.message ?? 'Could not disconnect');
 			link = null;
+			await fetch(`/api/github/kits?product_id=${activeProductId}&all=1`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+			kitRepositories = { docs: null, roadmap: null, status: null };
 			notice = 'Disconnected';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
 			busy = false;
 		}
+	}
+
+	async function saveKitRepository() {
+		if (!activeProductId || !installationId || !targetRepo) { targetError = 'Choose a repository for this starter kit.'; return; }
+		targetBusy = true;
+		targetError = '';
+		try {
+			const token = await authToken();
+			if (!token) throw new Error('Not signed in');
+			const response = await fetch('/api/github/kits', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+				body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: targetRepo, branch: targetBranch, content_path: targetPath || '/', kit: targetKit })
+			});
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save starter-kit repository.');
+			await loadKitRepositories(token);
+			notice = `${starterKits.find((kit) => kit.value === targetKit)?.label ?? 'Starter kit'} repository saved.`;
+		} catch (e) {
+			targetError = e instanceof Error ? e.message : String(e);
+		} finally {
+			targetBusy = false;
+		}
+	}
+
+	async function removeKitRepository(kit: KitKey) {
+		if (!activeProductId) return;
+		const token = await authToken();
+		if (!token) return;
+		await fetch(`/api/github/kits?product_id=${activeProductId}&kit=${kit}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+		await loadKitRepositories(token);
 	}
 
 	async function syncNow() {
@@ -271,8 +348,7 @@ import { supabase } from '$lib/supabaseClient';
 
 <div class="mx-auto w-full max-w-[880px]">
 	<header class="mb-5">
-		<h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><Plug size={20} weight="Outline" aria-hidden="true" />GitHub<span use:tooltip={{ text: 'One repo per product. Pushes to the chosen branch update this product only.', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Settings size={14} weight="Outline" aria-hidden="true" /></span></h2>
-		<p class="mt-1 text-sm text-[var(--pc-text-muted)]">Connect a repo. Pushes to the chosen branch sync docs for this product.</p>
+		<h2 class="flex items-center gap-2 text-xl font-semibold tracking-tight"><Plug size={20} weight="Outline" aria-hidden="true" />GitHub</h2>
 	</header>
 
 	{#if loading}
@@ -309,9 +385,10 @@ import { supabase } from '$lib/supabaseClient';
 						{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
 						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
 							<div class="text-sm font-medium">Context repositories</div>
-							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Read-only product code context for future links and release context. Docs deploy only uses the source repository above.</p>
+							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Optional repositories for GitHub links and release details.</p>
 							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-mono">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
-							<div class="mt-3 flex gap-2"><Select bind:value={contextRepo} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
+			<div class="mt-3 flex gap-2"><Select value={contextRepo} onValueChange={(value) => { contextRepo = value; contextError = ''; }} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
+			{#if contextError}<p class="mt-2 text-[12px] text-[#fca5a5]" role="alert">{contextError}</p>{/if}
 						</div>
 					</div>
 				{:else if !installationId}
@@ -325,7 +402,7 @@ import { supabase } from '$lib/supabaseClient';
 				{:else}
 					<div class="p-4">
 						<div class="mb-3 flex items-center gap-2 text-sm font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> GitHub app installed</div>
-						<p class="mb-4 text-[13px]/[18px] text-[var(--pc-text-muted)]">Choose the repository and docs folder this product should sync.</p>
+							<p class="mb-4 text-[13px]/[18px] text-[var(--pc-text-muted)]">Choose the repository for this product.</p>
 						<div class="grid gap-3">
 							<div class="grid gap-1.5"><Label>Repository</Label>
 								{#if repos.length}
@@ -334,15 +411,35 @@ import { supabase } from '$lib/supabaseClient';
 									<div class="flex gap-2"><Input value={selectedRepo} placeholder="org/repo" oninput={(e: Event) => (selectedRepo = (e.target as HTMLInputElement).value)} class="flex-1 font-mono" /><Button size="sm" variant="outline" onclick={loadRepos}><Search size={14} weight="Outline" aria-hidden="true" /></Button></div>
 								{/if}
 							</div>
-							<div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-								<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
-								<div class="grid gap-1.5"><Label for="gh-deploy-branch">Deploy into</Label><Input id="gh-deploy-branch" bind:value={deployBranch} placeholder="Optional PR base" class="font-mono max-sm:text-base!" /></div>
-							</div>
-							<div class="grid gap-1.5"><Label for="gh-path">Docs folder</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+							<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
+							<div class="grid gap-1.5"><Label for="gh-path">Source path</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
 							<div class="flex gap-2">
 								<Button size="sm" loading={busy} onclick={saveLink}>Save</Button>
 								<Button size="sm" variant="outline" onclick={connect}>Change install</Button>
 							</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if installationId}
+					<div class="border-t border-[var(--pc-border-strong)] p-4">
+						<div class="text-sm font-medium">Starter-kit repositories</div>
+						<p class="mt-1 max-w-[64ch] text-[13px]/[18px] text-[var(--pc-text-muted)]">Connect a repository for each starter kit.</p>
+						<div class="mt-3 grid gap-2">
+							{#each starterKits as kit}
+								<div class="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2.5">
+									<div class="min-w-0"><div class="text-[13px] font-medium">{kit.label}</div><div class="truncate text-[11px] text-[var(--pc-text-muted)]">{kitRepositories[kit.value] ? `${kitRepositories[kit.value]?.repo_full_name} · ${kitRepositories[kit.value]?.branch}` : 'No repository connected'}</div></div>
+									<Button size="sm" variant="outline" onclick={() => chooseTargetKit(kit.value)}>{kitRepositories[kit.value] ? 'Edit' : 'Connect'}</Button>
+								</div>
+							{/each}
+						</div>
+						<div class="mt-3 grid gap-3 rounded-[10px] border border-[var(--pc-border-strong)] p-3">
+							<div class="grid gap-1.5"><Label>Starter kit</Label><Select value={targetKit} onValueChange={chooseTargetKit} options={starterKits.map((kit) => ({ value: kit.value, label: kit.label }))} /></div>
+							<div class="grid gap-1.5"><Label>Repository</Label><Select value={targetRepo} onValueChange={(value) => (targetRepo = value)} options={[{ value: '', label: 'Choose a repository' }, ...repos.map((repo) => ({ value: repo.full_name, label: repo.full_name + (repo.private ? ' · private' : '') }))]} /></div>
+							<div class="grid gap-1.5"><Label for="target-branch">Branch</Label><Input id="target-branch" bind:value={targetBranch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
+							<div class="grid gap-1.5"><Label for="target-path">Content path</Label><Input id="target-path" bind:value={targetPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+							<div class="flex flex-wrap gap-2"><Button size="sm" loading={targetBusy} onclick={saveKitRepository}>Save repository</Button>{#if kitRepositories[targetKit]}<Button size="sm" variant="outline" onclick={() => void removeKitRepository(targetKit)}>Disconnect repository</Button>{/if}</div>
+							{#if targetError}<p class="text-[12px] text-[#fca5a5]" role="alert">{targetError}</p>{/if}
 						</div>
 					</div>
 				{/if}

@@ -47,6 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			const action = String(payload.action ?? '');
 			if (action === 'deleted') {
 				await admin.from('github_repo_links').delete().eq('installation_id', installation.id);
+				await admin.from('github_kit_repositories').delete().eq('installation_id', installation.id);
 				await admin.from('github_installations').update({ suspended_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('installation_id', installation.id);
 			} else if (action === 'created' || action === 'unsuspend') {
 				await admin.from('github_installations').update({ suspended_at: null, account_login: installation.account?.login ?? 'unknown', account_type: installation.account?.type === 'Organization' ? 'Organization' : 'User', account_id: installation.account?.id ?? null, updated_at: new Date().toISOString() }).eq('installation_id', installation.id);
@@ -58,7 +59,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			const installation = payload.installation as GithubInstallation | undefined;
 			const removed = (payload.repositories_removed as Array<{ full_name?: string }> | undefined) ?? [];
 			if (installation?.id && removed.length) {
-				for (const repo of removed) if (repo.full_name) await admin.from('github_repo_links').delete().eq('installation_id', installation.id).eq('repo_full_name', repo.full_name);
+				for (const repo of removed) if (repo.full_name) {
+					await admin.from('github_repo_links').delete().eq('installation_id', installation.id).eq('repo_full_name', repo.full_name);
+					await admin.from('github_kit_repositories').delete().eq('installation_id', installation.id).eq('repo_full_name', repo.full_name);
+				}
 			}
 			return response({ ok: true });
 		}
@@ -76,10 +80,19 @@ export const POST: RequestHandler = async ({ request }) => {
 				const productId = String(link.product_id);
 				try {
 					const sync = await syncDocsFromGithub(admin, link as Parameters<typeof syncDocsFromGithub>[1], branch, after);
+					await admin.from('github_kit_repositories').update({
+						last_sha: sync.sha,
+						last_synced_at: new Date().toISOString(),
+						last_error: sync.ok ? null : sync.message,
+						sync_status: sync.ok ? 'synced' : 'failed',
+						sync_error_code: sync.ok ? null : sync.code,
+						updated_at: new Date().toISOString()
+					}).eq('product_id', productId).eq('kit', 'docs');
 					await logRun(admin, productId, delivery, 'push', after, sync.ok, sync.ok ? null : sync.message, { branch, docsFiles: sync.files, imported: sync.imported, code: sync.ok ? null : sync.code });
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
 					await admin.from('github_repo_links').update({ last_error: message, sync_status: 'failed', sync_error_code: 'PUSH_SYNC_FAILED' }).eq('id', link.id);
+					await admin.from('github_kit_repositories').update({ last_error: message, sync_status: 'failed', sync_error_code: 'PUSH_SYNC_FAILED', updated_at: new Date().toISOString() }).eq('product_id', productId).eq('kit', 'docs');
 					await logRun(admin, productId, delivery, 'push', after, false, message, { branch });
 				}
 			}
