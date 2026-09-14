@@ -1,145 +1,185 @@
--- Hotfix for PostgREST stale cache and RLS after products_submit_pad_fields
--- - products table had new columns (availability, draft, etc.) not in PostgREST cache → PGRST204
--- - products INSERT via REST failed with 42501 permission denied for authenticated due to missing GRANT to authenticator
--- - profiles UPDATE via email failed due to RLS only allowing id = auth.uid(), not email match (split auth DB vs postgres DB)
--- - pgrst_ddl_watch event trigger was missing (non-superuser owned function), so DDL never notified PostgREST
+-- Product Submit Pad contract repair.
+-- The live products table was missing the fields used by the dashboard and the
+-- client was stashing a payload in profiles before calling an unrelated RPC.
+-- Keep ownership subject-based: auth.uid() is the only maker identity.
 
--- 1) Ensure products has correct grants for all roles (including authenticator for PostgREST SET ROLE)
-grant all on table public.products to authenticated, anon, service_role, authenticator;
-grant usage on schema public to authenticated, anon, service_role, authenticator;
-grant all on table public.profiles to authenticated, anon, service_role, authenticator;
-grant usage on schema public to authenticated, anon, service_role, authenticator;
+alter table public.products
+  add column if not exists logo_url text,
+  add column if not exists avatar text,
+  add column if not exists website text,
+  add column if not exists tagline text,
+  add column if not exists description text,
+  add column if not exists categories text[] not null default '{}'::text[],
+  add column if not exists pricing text,
+  add column if not exists availability text not null default 'live',
+  add column if not exists screenshots jsonb not null default '[]'::jsonb,
+  add column if not exists video_url text,
+  add column if not exists extra_links jsonb not null default '[]'::jsonb,
+  add column if not exists launch_title text,
+  add column if not exists launch_note text,
+  add column if not exists you_built_this boolean not null default true,
+  add column if not exists draft boolean not null default true,
+  add column if not exists status text not null default 'Draft';
 
--- 2) Fix profiles RLS to allow email fallback (auth DB split: JWT sub b466... vs postgres auth.users id 02f19...)
-drop policy if exists "Users can view own profile" on public.profiles;
-create policy "Users can view own profile" on public.profiles for select to authenticated using ((select auth.uid()) = id or email = (auth.jwt() ->> 'email'));
-drop policy if exists "Users can insert own profile" on public.profiles;
-create policy "Users can insert own profile" on public.profiles for insert to authenticated with check ((select auth.uid()) = id or email = (auth.jwt() ->> 'email'));
-drop policy if exists "Users can update own profile" on public.profiles;
-create policy "Users can update own profile" on public.profiles for update to authenticated using ((select auth.uid()) = id or email = (auth.jwt() ->> 'email')) with check ((select auth.uid()) = id or email = (auth.jwt() ->> 'email'));
-drop policy if exists "Users can delete own profile" on public.profiles;
-create policy "Users can delete own profile" on public.profiles for delete to authenticated using ((select auth.uid()) = id or email = (auth.jwt() ->> 'email'));
+alter table public.profiles
+  add column if not exists active_product_id uuid references public.products(id) on delete set null;
 
--- 3) Ensure get_my_products and set_active_product handle email-split and x-payload bypass
-create or replace function public.notify_pgrst_reload() returns event_trigger language plpgsql as $$ begin perform pg_notify('pgrst', 'reload schema'); end; $$;
-drop event trigger if exists pgrst_reload_on_ddl;
-create event trigger pgrst_reload_on_ddl on ddl_command_end when tag in ('CREATE SCHEMA', 'ALTER SCHEMA', 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE', 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE', 'CREATE VIEW', 'ALTER VIEW', 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW', 'CREATE FUNCTION', 'ALTER FUNCTION', 'CREATE TRIGGER', 'CREATE TYPE', 'ALTER TYPE', 'CREATE RULE', 'COMMENT', 'GRANT', 'REVOKE') execute function public.notify_pgrst_reload();
-drop event trigger if exists pgrst_reload_on_drop;
-create event trigger pgrst_reload_on_drop on sql_drop execute function public.notify_pgrst_reload();
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on table public.products to authenticated;
+grant select on table public.products to anon;
+grant select, update on table public.profiles to authenticated;
 
--- set_active_product: handle null create via profiles.gamification_data and email fallback, plus launched_at
+create or replace function public.get_my_products()
+returns setof public.products
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select p.*
+  from public.products p
+  where p.maker_id = (select auth.uid())
+    and p.deleted_at is null
+  order by p.created_at asc;
+$function$;
+
+revoke execute on function public.get_my_products() from anon;
+grant execute on function public.get_my_products() to authenticated;
+
 create or replace function public.set_active_product(p_product_id uuid)
+returns boolean
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+declare
+  v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null then
+    raise exception 'not authenticated';
+  end if;
+
+  if not exists (
+    select 1
+    from public.products p
+    where p.id = p_product_id
+      and p.maker_id = v_uid
+      and p.deleted_at is null
+  ) then
+    return false;
+  end if;
+
+  update public.profiles
+  set active_product_id = p_product_id
+  where id = v_uid;
+
+  return found;
+end;
+$function$;
+
+revoke execute on function public.set_active_product(uuid) from anon;
+grant execute on function public.set_active_product(uuid) to authenticated;
+
+create or replace function public.upsert_product_pad(p_payload jsonb)
 returns public.products
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $function$
 declare
-  v_product public.products;
-  v_payload jsonb;
-  v_maker uuid;
-  v_email text;
-begin
-  v_email := coalesce((auth.jwt() ->> 'email'), (select email from auth.users where id = (select auth.uid()) limit 1));
-  if v_email is not null then
-    select id into v_maker from auth.users where email = v_email limit 1;
-  end if;
-  if v_maker is null then v_maker := (select auth.uid()); end if;
-  if v_maker is null then raise exception 'Not authenticated'; end if;
-  if p_product_id is null then
-    select gamification_data into v_payload from public.profiles where id = v_maker;
-    if v_payload is null and v_email is not null then select gamification_data into v_payload from public.profiles where email = v_email limit 1; end if;
-    if v_payload is null or jsonb_typeof(v_payload) != 'object' or not (v_payload ? 'name') then raise exception 'Missing product payload'; end if;
-    insert into public.products (maker_id, slug, name, tagline, description, categories, pricing, availability, logo_url, avatar, website, screenshots, video_url, extra_links, launch_title, launch_note, you_built_this, draft, status)
-    values (v_maker, coalesce(v_payload->>'slug', 'product-'||substr(md5(random()::text),1,6)), v_payload->>'name', v_payload->>'tagline', v_payload->>'description', coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(v_payload->'categories','[]')) x), '{}'), v_payload->>'pricing', coalesce(v_payload->>'availability','live'), v_payload->>'logo_url', v_payload->>'logo_url', v_payload->>'website', coalesce(v_payload->'screenshots','[]'), v_payload->>'video_url', coalesce(v_payload->'extra_links','[]'), v_payload->>'launch_title', v_payload->>'launch_note', coalesce((v_payload->>'you_built_this')::boolean, true), coalesce((v_payload->>'draft')::boolean, true), 'Live') returning * into v_product;
-    update public.profiles set active_product_id = v_product.id, updated_at = now() where id = v_maker;
-    if not found and v_email is not null then update public.profiles set active_product_id = v_product.id, updated_at = now() where email = v_email; end if;
-    return v_product;
-  end if;
-  select * into v_product from public.products where id = p_product_id and deleted_at is null;
-  if not found then raise exception 'Product not found'; end if;
-  if not (v_product.maker_id = v_maker or exists (select 1 from public.profiles where email = v_email and id = v_product.maker_id)) then
-    if v_email is not null and exists (select 1 from auth.users where id = v_product.maker_id and email = v_email) then null; else raise exception 'Not authorized for this product'; end if;
-  end if;
-  begin
-    select gamification_data into v_payload from public.profiles where id = v_maker;
-    if v_payload is null and v_email is not null then select gamification_data into v_payload from public.profiles where email = v_email limit 1; end if;
-    if v_payload is not null and jsonb_typeof(v_payload) = 'object' and (v_payload ? 'name') then
-      update public.products set tagline = coalesce(v_payload->>'tagline', tagline), description = coalesce(v_payload->>'description', description), categories = coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(v_payload->'categories','[]')) x), categories), pricing = coalesce(v_payload->>'pricing', pricing), availability = coalesce(v_payload->>'availability', availability), logo_url = coalesce(v_payload->>'logo_url', logo_url), avatar = coalesce(v_payload->>'logo_url', avatar), website = coalesce(v_payload->>'website', website), screenshots = coalesce(v_payload->'screenshots', screenshots), video_url = coalesce(v_payload->>'video_url', video_url), extra_links = coalesce(v_payload->'extra_links', extra_links), launch_title = coalesce(v_payload->>'launch_title', launch_title), launch_note = coalesce(v_payload->>'launch_note', launch_note), you_built_this = coalesce((v_payload->>'you_built_this')::boolean, you_built_this), draft = coalesce((v_payload->>'draft')::boolean, draft), status = case when (v_payload->>'draft')::boolean = false then 'Live' else status end, launched_at = case when (v_payload->>'draft')::boolean = false and coalesce(v_payload->>'availability','live') = 'live' then coalesce(launched_at, now()) when (v_payload->>'draft')::boolean = false and coalesce(v_payload->>'availability','live') != 'live' then null else launched_at end, updated_at = now() where id = p_product_id;
-      select * into v_product from public.products where id = p_product_id;
-    end if;
-  exception when others then null; end;
-  update public.profiles set active_product_id = p_product_id, updated_at = now() where id = v_maker;
-  if not found and v_email is not null then update public.profiles set active_product_id = p_product_id, updated_at = now() where email = v_email; end if;
-  if not found then insert into public.profiles (id, email, active_product_id) select v_maker, v_email, p_product_id on conflict (id) do update set active_product_id = excluded.active_product_id, updated_at = now(); end if;
-  return v_product;
-end;
-$$;
-grant execute on function public.set_active_product(uuid) to anon, authenticated, service_role, authenticator;
-
--- get_my_products with x-payload header support and email fallback
-drop function if exists public.get_my_products();
-create or replace function public.get_my_products()
-returns setof public.products
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_payload jsonb;
-  v_headers text;
+  v_uid uuid := (select auth.uid());
   v_product public.products;
   v_slug text;
-  v_maker uuid;
-  v_email text;
+  v_draft boolean;
+  v_availability text;
+  v_categories text[];
 begin
-  v_email := coalesce((auth.jwt() ->> 'email'), (select email from auth.users where id = (select auth.uid()) limit 1));
-  if v_email is not null then select id into v_maker from auth.users where email = v_email limit 1; end if;
-  if v_maker is null then v_maker := (select auth.uid()); end if;
-  begin
-    v_headers := current_setting('request.headers', true);
-    if v_headers is not null then v_payload := (v_headers::jsonb ->> 'x-payload')::jsonb; end if;
-  exception when others then v_payload := null; end;
-  if v_payload is not null and jsonb_typeof(v_payload) = 'object' and v_payload ? 'name' then
-    if v_maker is null then raise exception 'Not authenticated'; end if;
-    v_slug := coalesce(v_payload->>'slug', lower(regexp_replace(v_payload->>'name', '[^a-z0-9]+','-','g')));
-    v_slug := regexp_replace(lower(v_slug), '^-+|-+$','','g');
-    if v_slug = '' or char_length(v_slug) < 3 then v_slug := 'product-'||substr(md5(random()::text),1,4); end if;
-    select * into v_product from public.products where maker_id = v_maker and slug = v_slug and deleted_at is null limit 1;
-    if found then
-      update public.products set name = coalesce(v_payload->>'name', name), tagline = coalesce(v_payload->>'tagline', tagline), description = coalesce(v_payload->>'description', description), categories = coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(v_payload->'categories','[]')) x), categories), pricing = coalesce(v_payload->>'pricing', pricing), availability = coalesce(v_payload->>'availability', availability), logo_url = coalesce(v_payload->>'logo_url', logo_url), avatar = coalesce(v_payload->>'logo_url', avatar), website = coalesce(v_payload->>'website', website), screenshots = coalesce(v_payload->'screenshots', screenshots), video_url = coalesce(v_payload->>'video_url', video_url), extra_links = coalesce(v_payload->'extra_links', extra_links), launch_title = coalesce(v_payload->>'launch_title', launch_title), launch_note = coalesce(v_payload->>'launch_note', launch_note), you_built_this = coalesce((v_payload->>'you_built_this')::boolean, you_built_this), draft = coalesce((v_payload->>'draft')::boolean, draft), status = case when (v_payload->>'draft')::boolean = false then 'Live' else status end, launched_at = case when (v_payload->>'draft')::boolean = false and coalesce(v_payload->>'availability','live') = 'live' then coalesce(launched_at, now()) when (v_payload->>'draft')::boolean = false and coalesce(v_payload->>'availability','live') != 'live' then null else launched_at end, updated_at = now() where id = v_product.id returning * into v_product;
-    else
-      insert into public.products (maker_id, slug, name, tagline, description, categories, pricing, availability, logo_url, avatar, website, screenshots, video_url, extra_links, launch_title, launch_note, you_built_this, draft, status, launched_at) values (v_maker, v_slug, v_payload->>'name', v_payload->>'tagline', v_payload->>'description', coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(v_payload->'categories','[]')) x), '{}'), v_payload->>'pricing', coalesce(v_payload->>'availability','live'), v_payload->>'logo_url', v_payload->>'logo_url', v_payload->>'website', coalesce(v_payload->'screenshots','[]'), v_payload->>'video_url', coalesce(v_payload->'extra_links','[]'), v_payload->>'launch_title', v_payload->>'launch_note', coalesce((v_payload->>'you_built_this')::boolean, true), coalesce((v_payload->>'draft')::boolean, true), 'Live', case when coalesce((v_payload->>'draft')::boolean, true) = false and coalesce(v_payload->>'availability','live') = 'live' then now() else null end) returning * into v_product;
-    end if;
-    insert into public.profiles (id, email) values (v_maker, v_email) on conflict (id) do nothing;
-    update public.profiles set active_product_id = v_product.id, updated_at = now() where id = v_maker;
-    if not found and v_email is not null then update public.profiles set active_product_id = v_product.id, updated_at = now() where email = v_email; end if;
-    return query select * from public.products where maker_id = v_maker and deleted_at is null order by created_at asc;
-    return;
+  if v_uid is null then
+    raise exception 'not authenticated';
   end if;
-  if v_maker is null then return query select * from public.products where false; end if;
-  return query select * from public.products where maker_id = v_maker and deleted_at is null order by created_at asc;
+  if p_payload is null or jsonb_typeof(p_payload) <> 'object' then
+    raise exception 'invalid product payload';
+  end if;
+  if nullif(trim(p_payload->>'name'), '') is null then
+    raise exception 'product name is required';
+  end if;
+
+  v_slug := regexp_replace(
+    lower(coalesce(nullif(trim(p_payload->>'slug'), ''), trim(p_payload->>'name'))),
+    '[^a-z0-9]+', '-', 'g'
+  );
+  v_slug := trim(both '-' from left(v_slug, 63));
+  if v_slug = '' or char_length(v_slug) < 3 then
+    v_slug := 'product-' || substr(md5(random()::text), 1, 6);
+  end if;
+
+  v_draft := coalesce((p_payload->>'draft')::boolean, true);
+  v_availability := coalesce(nullif(trim(p_payload->>'availability'), ''), 'live');
+  select coalesce(array_agg(item.value order by item.ordinality), '{}'::text[])
+  into v_categories
+  from jsonb_array_elements_text(coalesce(p_payload->'categories', '[]'::jsonb))
+    with ordinality as item(value, ordinality);
+
+  select * into v_product
+  from public.products
+  where maker_id = v_uid and slug = v_slug and deleted_at is null
+  limit 1;
+
+  if v_product.id is null then
+    insert into public.products (
+      maker_id, slug, name, logo_url, avatar, website, tagline, description,
+      categories, pricing, availability, screenshots, video_url, extra_links,
+      launch_title, launch_note, you_built_this, draft, status, launched_at
+    ) values (
+      v_uid, v_slug, trim(p_payload->>'name'), nullif(p_payload->>'logo_url', ''),
+      nullif(p_payload->>'logo_url', ''), nullif(p_payload->>'website', ''),
+      nullif(p_payload->>'tagline', ''), nullif(p_payload->>'description', ''),
+      v_categories, nullif(p_payload->>'pricing', ''), v_availability,
+      coalesce(p_payload->'screenshots', '[]'::jsonb), nullif(p_payload->>'video_url', ''),
+      coalesce(p_payload->'extra_links', '[]'::jsonb), nullif(p_payload->>'launch_title', ''),
+      nullif(p_payload->>'launch_note', ''), coalesce((p_payload->>'you_built_this')::boolean, true),
+      v_draft, case when v_draft then 'Draft' else 'Live' end,
+      case when not v_draft and v_availability = 'live' then now() else null end
+    ) returning * into v_product;
+  else
+    update public.products
+    set name = trim(p_payload->>'name'),
+        logo_url = nullif(p_payload->>'logo_url', ''),
+        avatar = nullif(p_payload->>'logo_url', ''),
+        website = nullif(p_payload->>'website', ''),
+        tagline = nullif(p_payload->>'tagline', ''),
+        description = nullif(p_payload->>'description', ''),
+        categories = v_categories,
+        pricing = nullif(p_payload->>'pricing', ''),
+        availability = v_availability,
+        screenshots = coalesce(p_payload->'screenshots', '[]'::jsonb),
+        video_url = nullif(p_payload->>'video_url', ''),
+        extra_links = coalesce(p_payload->'extra_links', '[]'::jsonb),
+        launch_title = nullif(p_payload->>'launch_title', ''),
+        launch_note = nullif(p_payload->>'launch_note', ''),
+        you_built_this = coalesce((p_payload->>'you_built_this')::boolean, true),
+        draft = v_draft,
+        status = case when v_draft then 'Draft' else 'Live' end,
+        launched_at = case
+          when not v_draft and v_availability = 'live' then coalesce(launched_at, now())
+          when not v_draft then null
+          else launched_at
+        end
+    where id = v_product.id
+    returning * into v_product;
+  end if;
+
+  update public.profiles
+  set active_product_id = v_product.id
+  where id = v_uid;
+
+  return v_product;
 end;
-$$;
-grant execute on function public.get_my_products() to anon, authenticated, service_role, authenticator;
+$function$;
 
--- Ensure tenants helpers are visible (were 404 for anon)
-drop function if exists public.get_my_tenant();
-create or replace function public.get_my_tenant()
-returns setof public.tenants
-language sql
-security definer
-set search_path = public
-as $$ select * from public.tenants where owner_id = (select auth.uid()) order by created_at asc; $$;
-grant execute on function public.get_my_tenant() to anon, authenticated, service_role, authenticator;
+revoke execute on function public.upsert_product_pad(jsonb) from public, anon;
+grant execute on function public.upsert_product_pad(jsonb) to authenticated;
 
-drop function if exists public.ensure_my_tenant();
-create or replace function public.ensure_my_tenant()
-returns public.tenants
-language plpgsql
-security definer
-set search_path = public
-as $$ declare v_tenant public.tenants; begin select * into v_tenant from public.tenants where owner_id = (select auth.uid()) limit 1; if found then return v_tenant; end if; insert into public.tenants (owner_id, slug, name) values ((select auth.uid()), 'workspace-'||substr(md5(random()::text),1,6), 'My Workspace') returning * into v_tenant; return v_tenant; exception when unique_violation then select * into v_tenant from public.tenants where owner_id = (select auth.uid()) limit 1; return v_tenant; end; $$;
-grant execute on function public.ensure_my_tenant() to anon, authenticated, service_role, authenticator;
-
+-- Native pgrst_ddl_watch is present on the project; this explicit notification
+-- also refreshes the schema cache after the migration completes.
 select pg_notify('pgrst', 'reload schema');

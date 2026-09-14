@@ -184,7 +184,6 @@
 		try {
 			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
 			if (!slug) slug = finalSlug;
-			// PostgREST cache is stale for new columns (tagline etc. also 42703) — use only columns known to be in cache: slug, name, category
 			const fullPayload: any = {
 				name: name || 'Untitled product',
 				slug: finalSlug,
@@ -203,33 +202,11 @@
 				you_built_this: youBuiltThis,
 				draft: true
 			};
-			// profiles + set_active_product bypass PostgREST column cache (availability etc.) and handles email-split auth DB
-			const vEmail = session.session.user.email as string;
-			let profileId: string | null = session.session.user.id;
-			try {
-				const { data: prof } = await supabase.from('profiles').select('id').eq('email', vEmail).maybeSingle();
-				if (prof?.id) profileId = prof.id;
-			} catch {}
-			try {
-				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('id', profileId as string);
-			} catch {}
-			// Also try email fallback if id was wrong
-			try {
-				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('email', vEmail);
-			} catch {}
-			const { data: rpcData, error: rpcErr } = await supabase.rpc('set_active_product', { p_product_id: draftId });
+			const { data: rpcData, error: rpcErr } = await supabase.rpc('upsert_product_pad', { p_payload: fullPayload });
 			if (rpcErr) throw rpcErr;
-			if (rpcData && !draftId) {
-				const pid = (rpcData as any)?.id || (Array.isArray(rpcData) ? (rpcData as any)[0]?.id : null);
-				if (pid) draftId = pid;
-			} else if (rpcData && draftId) {
-				// draftId already set, keep it
-			}
-			try {
-				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('id', session.session.user.id);
-			} catch {
-				// non-fatal — SQL apply will still try with old stash
-			}
+			const product = Array.isArray(rpcData) ? (rpcData as any[])[0] : rpcData as any;
+			if (!product?.id) throw new Error('Product was not returned by the database.');
+			draftId = product.id;
 			if (showHint) {
 				savedHint = 'Saved';
 				setTimeout(() => (savedHint = ''), 1200);
@@ -294,7 +271,6 @@
 			if (!draftId) {
 				throw new Error('Could not create product — try saving draft first.');
 			}
-			// Publish via set_active_product which is cached and will apply the stashed payload (including draft=false, launched_at) via SQL
 			const publishPayload: any = {
 				name: name || 'Untitled product',
 				slug: slug || normalizeSlug(name),
@@ -313,12 +289,12 @@
 				you_built_this: youBuiltThis,
 				draft: false
 			};
-			const { error: stashErr } = await supabase.from('profiles').update({ gamification_data: publishPayload as any }).eq('id', preSession.session.user.id);
-			if (stashErr) throw stashErr;
-			const { error: pubError } = await supabase.rpc('set_active_product', { p_product_id: draftId });
+			const { data: publishedData, error: pubError } = await supabase.rpc('upsert_product_pad', { p_payload: publishPayload });
 			if (pubError) throw pubError;
-			// set_active_product already applied draft/launched_at via SQL, just ensure local store
-			await setActiveProduct(draftId);
+			const publishedProduct = Array.isArray(publishedData) ? (publishedData as any[])[0] : publishedData as any;
+			if (!publishedProduct?.id) throw new Error('Published product was not returned by the database.');
+			draftId = publishedProduct.id;
+			await setActiveProduct(publishedProduct.id);
 			const targetSlug = slug || normalizeSlug(name);
 			await goto(`/workspace/products/${targetSlug}`);
 		} catch (e: any) {
