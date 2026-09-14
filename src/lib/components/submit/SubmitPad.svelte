@@ -181,34 +181,29 @@
 		saving = true;
 		if (showHint) mediaError = '';
 		try {
-			const payload: any = {
-				maker_id: session.session.user.id,
-				slug: slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2,6)}`,
-				name: name || 'Untitled product',
-				tagline: tagline || null,
-				description: description || null,
-				categories,
-				pricing,
-				availability,
-				logo_url: logoUrl || null,
-				avatar: logoUrl || null,
-				website: website || null,
-				screenshots,
-				video_url: videoUrl || null,
-				extra_links: extraLinks,
-				launch_title: launchTitle || null,
-				launch_note: launchNote || null,
-				you_built_this: youBuiltThis,
-				draft: true
-			};
-			if (draftId) {
-				const { error } = await supabase.from('products').update(payload).eq('id', draftId);
-				if (error) throw error;
-			} else {
-				const { data, error } = await supabase.from('products').insert(payload).select('id').single();
-				if (error) throw error;
-				draftId = (data as any).id;
-			}
+			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
+			if (!slug) slug = finalSlug;
+			const { data: rpcId, error: rpcError } = await supabase.rpc('upsert_product_pad', {
+				p_id: draftId,
+				p_slug: finalSlug,
+				p_name: name || 'Untitled product',
+				p_tagline: tagline || null,
+				p_description: description || null,
+				p_categories: categories,
+				p_pricing: pricing,
+				p_availability: availability,
+				p_logo_url: logoUrl || null,
+				p_website: website || null,
+				p_screenshots: screenshots as any,
+				p_video_url: videoUrl || null,
+				p_extra_links: extraLinks as any,
+				p_launch_title: launchTitle || null,
+				p_launch_note: launchNote || null,
+				p_you_built_this: youBuiltThis,
+				p_draft: true
+			});
+			if (rpcError) throw rpcError;
+			if (rpcId && !draftId) draftId = rpcId as string;
 			if (showHint) {
 				savedHint = 'Saved';
 				setTimeout(() => (savedHint = ''), 1200);
@@ -275,21 +270,18 @@
 			if (!draftId) {
 				throw new Error('Could not create product — try saving draft first.');
 			}
-			const now = new Date().toISOString();
-			const isLive = availability === 'live';
-			const updates: any = {
-				draft: false,
-				status: 'Live',
-				launched_at: isLive ? now : null
-			};
-			const { error } = await supabase.from('products').update(updates).eq('id', draftId);
-			if (error) throw error;
+			const { error: pubError } = await supabase.rpc('publish_product_pad', {
+				p_id: draftId,
+				p_availability: availability
+			});
+			if (pubError) throw pubError;
 			await setActiveProduct(draftId);
 			const targetSlug = slug || normalizeSlug(name);
 			await goto(`/workspace/products/${targetSlug}`);
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : 'Could not publish';
-			mediaError = msg.includes('duplicate') || msg.toLowerCase().includes('slug') ? 'That address is taken — try another.' : msg;
+		} catch (e: any) {
+			const raw = e?.message ?? e?.details ?? String(e);
+			const msg = typeof raw === 'string' ? raw : 'Could not publish';
+			mediaError = msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('slug') ? 'That address is taken — try another.' : msg;
 		} finally {
 			publishing = false;
 		}
