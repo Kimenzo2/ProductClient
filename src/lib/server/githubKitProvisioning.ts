@@ -101,20 +101,23 @@ async function loadTemplate(template: string, token: string): Promise<{
 	return { defaultBranch: branch, sha: ref.object.sha, files };
 }
 
-async function createRepository(installation: Installation, name: string, product: Product, token: string): Promise<{ id: number; full_name: string; default_branch: string }> {
-	const path = installation.account_type === 'Organization' ? `/orgs/${encodeURIComponent(installation.account_login)}/repos` : '/user/repos';
+async function createRepositoryFromTemplate(
+	template: string,
+	installation: Installation,
+	name: string,
+	product: Product,
+	token: string
+): Promise<{ id: number; full_name: string; default_branch: string }> {
 	return githubJson<{ id: number; full_name: string; default_branch: string }>(
-		path,
+		`/repos/${template}/generate`,
 		{
 			method: 'POST',
 			body: JSON.stringify({
+				owner: installation.account_login,
 				name,
 				private: true,
-				auto_init: false,
+				include_all_branches: false,
 				description: `${product.name} ${name.slice(product.slug.length + 1, product.slug.length + 6)} starter kit managed by ProductClient`,
-				has_issues: true,
-				has_projects: false,
-				has_wiki: false
 			})
 		},
 		token
@@ -224,13 +227,17 @@ async function provisionOne(admin: SupabaseClient, product: Product, installatio
 			throw error;
 		}
 		let repository: { id: number; full_name: string; default_branch: string };
+		let generatedFromTemplate = false;
 		if (row.repo_full_name) {
 			repository = await githubJson<{ id: number; full_name: string; default_branch: string }>(`/repos/${row.repo_full_name}`, {}, token);
 		} else {
-			repository = await createRepository(installation, repositoryName(product, kit), product, token);
+			repository = await createRepositoryFromTemplate(template, installation, repositoryName(product, kit), product, token);
+			generatedFromTemplate = true;
 			row = await upsertKitRow(admin, product, kit, { installation_id: installation.installation_id, managed: true, template_repo: template, template_sha: templateData.sha, repository_id: repository.id, repo_full_name: repository.full_name, branch: repository.default_branch || 'main', provision_status: 'provisioning' });
 		}
-		const sha = await copyTemplateToRepository(token, template, templateData, repository);
+		const sha = generatedFromTemplate
+			? (await githubJson<{ object: { sha: string } }>(`/repos/${repository.full_name}/git/ref/heads/${encodeURIComponent(repository.default_branch || 'main')}`, {}, token)).object.sha
+			: await copyTemplateToRepository(token, template, templateData, repository);
 		const { data, error } = await admin.from('github_kit_repositories').update({ repository_id: repository.id, repo_full_name: repository.full_name, branch: repository.default_branch || 'main', template_repo: template, template_sha: templateData.sha, last_sha: sha, provision_status: 'ready', provision_error: null, provisioned_at: new Date().toISOString(), sync_status: 'synced', updated_at: new Date().toISOString() }).eq('id', row.id).select('*').single();
 		if (error) throw new Error(error.message);
 		if (kit === 'docs') {
@@ -245,6 +252,9 @@ async function provisionOne(admin: SupabaseClient, product: Product, installatio
 		let message = error instanceof Error ? error.message : String(error);
 		if (message.includes('GitHub 403') && message.toLowerCase().includes('resource not accessible')) {
 			message = 'The GitHub App cannot create repositories. Grant it Administration: read and write permission, then reinstall the App.';
+		}
+		if (message.includes('GitHub 422') && message.toLowerCase().includes('template')) {
+			message = `Starter-kit template ${template} must be marked as a GitHub Template repository.`;
 		}
 		await admin.from('github_kit_repositories').update({ provision_status: 'failed', provision_error: message.slice(0, 1000), last_error: message.slice(0, 1000), sync_status: 'failed', updated_at: new Date().toISOString() }).eq('id', row.id);
 		throw new Error(`${kit}: ${message}`);

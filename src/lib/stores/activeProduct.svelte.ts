@@ -90,13 +90,18 @@ export async function requestGithubProvisioning(productId: string, force = false
 		const token = session.session?.access_token;
 		if (!token) return;
 		sessionStorage.setItem(marker, String(Date.now()));
-		await fetch('/api/github/provision', {
+		const response = await fetch('/api/github/provision', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
 			body: JSON.stringify({ product_id: productId })
 		});
-	} catch {
+		const result = await response.json().catch(() => null) as { ok?: boolean; message?: string; code?: string } | null;
+		if (!response.ok || result?.ok === false) {
+			throw new Error(result?.message ?? result?.code ?? `GitHub provisioning failed (${response.status})`);
+		}
+	} catch (error) {
 		// Provisioning is background work. Workspace navigation must remain usable.
+		if (force) throw error;
 	}
 }
 
