@@ -1,4 +1,5 @@
 {
   "installCommand": "bunx --yes bun@1.4.0 install",
+  "buildCommand": "npm run build",
   "framework": "sveltekit"
 }
