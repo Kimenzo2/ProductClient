@@ -149,10 +149,21 @@
 	});
 
 	async function saveDraft(showHint = true) {
-		if (!supabase) return;
+		if (!supabase) {
+			mediaError = 'Service unavailable — try again.';
+			return false;
+		}
 		const { data: session } = await supabase.auth.getSession();
-		if (!session.session) return;
+		if (!session.session) {
+			mediaError = 'Sign in to save — your draft stays here until you sign in.';
+			if (showHint) {
+				// keep hint visible as error, not success
+				savedHint = '';
+			}
+			return false;
+		}
 		saving = true;
+		mediaError = '';
 		try {
 			const payload: any = {
 				maker_id: session.session.user.id,
@@ -189,8 +200,11 @@
 				savedHint = 'Saved';
 				setTimeout(() => (savedHint = ''), 900);
 			}
-		} catch {
-			// silent — autosave must not toast
+			return true;
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : 'Could not save draft';
+			mediaError = msg.includes('duplicate') || msg.includes('slug') ? 'That address is taken — try another.' : msg;
+			return false;
 		} finally {
 			saving = false;
 		}
@@ -214,14 +228,33 @@
 	async function handlePublish() {
 		const err = publishValidation();
 		if (err) {
-			// field error under field, not toast
 			return;
 		}
-		if (!supabase) return;
+		if (!supabase) {
+			mediaError = 'Service unavailable — try again.';
+			return;
+		}
+		// Explicit auth check before network to avoid silent no-op
+		const { data: preSession } = await supabase.auth.getSession();
+		if (!preSession.session) {
+			mediaError = 'Sign in to publish — your draft stays here until you sign in.';
+			// Send to auth with back redirect; keep draft in state
+			await goto(`/auth?next=${encodeURIComponent(page.url.pathname + page.url.search)}`);
+			return;
+		}
 		publishing = true;
+		mediaError = '';
 		try {
-			await saveDraft(false);
-			// Determine launched_at
+			const saved = await saveDraft(false);
+			if (!saved) {
+				// saveDraft already set mediaError (e.g., sign in, slug taken)
+				return;
+			}
+			// After saveDraft, draftId must exist — if still null, insert failed silently,
+			// try direct insert as fallback.
+			if (!draftId) {
+				throw new Error('Could not create product — try saving draft first.');
+			}
 			const now = new Date().toISOString();
 			const isLive = availability === 'live';
 			const updates: any = {
@@ -229,18 +262,14 @@
 				status: 'Live',
 				launched_at: isLive ? now : null
 			};
-			if (draftId) {
-				const { error } = await supabase.from('products').update(updates).eq('id', draftId);
-				if (error) throw error;
-				await setActiveProduct(draftId);
-				// Go to product in ProductClient
-				const targetSlug = slug || normalizeSlug(name);
-				await goto(`/workspace/products/${targetSlug}`);
-			}
+			const { error } = await supabase.from('products').update(updates).eq('id', draftId);
+			if (error) throw error;
+			await setActiveProduct(draftId);
+			const targetSlug = slug || normalizeSlug(name);
+			await goto(`/workspace/products/${targetSlug}`);
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : 'Could not publish';
-			// show inline under media
-			mediaError = msg;
+			mediaError = msg.includes('duplicate') || msg.toLowerCase().includes('slug') ? 'That address is taken — try another.' : msg;
 		} finally {
 			publishing = false;
 		}
@@ -327,6 +356,7 @@
 
 		<!-- Body scrolls -->
 		<div class="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7" style="scrollbar-width: thin;">
+			{#if mediaError}<p class="mx-auto mb-4 max-w-[560px] rounded-[12px] bg-[#fca5a5]/10 px-3 py-2 text-sm leading-[1.5] text-[#fca5a5]" role="alert">{mediaError} {#if mediaError.includes('Sign in')}<a href={`/auth?next=${encodeURIComponent(page.url.pathname)}`} class="underline hover:no-underline">Sign in</a>{/if}</p>{/if}
 			{#if activeTab === 'product'}
 				<div class="mx-auto max-w-[560px] space-y-7">
 					<div class="space-y-2">
