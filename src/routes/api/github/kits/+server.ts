@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
 import { getInstallationToken } from '$lib/server/githubApp';
+import { ownedProductWithTenant } from '$lib/server/productTenant';
 import type { RequestHandler } from './$types';
 
 const kits = new Set(['docs', 'roadmap', 'status']);
@@ -14,9 +15,7 @@ async function userIdFromRequest(request: Request, admin: ReturnType<typeof crea
 }
 
 async function ownedProduct(admin: ReturnType<typeof createAdminClient>, productId: string, userId: string) {
-	const { data } = await admin.from('products').select('id, maker_id, tenant_id').eq('id', productId).is('deleted_at', null).maybeSingle();
-	if (!data || data.maker_id !== userId || !data.tenant_id) return null;
-	return data as { id: string; maker_id: string; tenant_id: string };
+	return ownedProductWithTenant(admin, productId, userId);
 }
 
 export const GET: RequestHandler = async ({ request, url }) => {

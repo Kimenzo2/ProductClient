@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
 import { provisionStarterKits } from '$lib/server/githubKitProvisioning';
+import { ownedProductWithTenant } from '$lib/server/productTenant';
 import type { RequestHandler } from './$types';
 
 async function userIdFromRequest(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -30,8 +31,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const productId = body.product_id?.trim();
 	if (!productId) return json({ ok: false, code: 'MISSING_PRODUCT_ID' }, { status: 400 });
 
-	const { data: product } = await admin.from('products').select('id, maker_id').eq('id', productId).maybeSingle();
-	if (!product || product.maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
+	const product = await ownedProductWithTenant(admin, productId, userId);
+	if (!product) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
 
 	try {
 		const result = await provisionStarterKits(admin, productId, userId);

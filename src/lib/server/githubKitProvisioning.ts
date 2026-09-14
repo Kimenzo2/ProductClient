@@ -27,6 +27,13 @@ function privateValue(name: string): string | undefined {
 	return (privateEnv as Record<string, string | undefined>)[name];
 }
 
+function templateInstallationId(): number | null {
+	const value = privateValue('GITHUB_KIT_TEMPLATE_INSTALLATION_ID');
+	if (!value?.trim()) return null;
+	const parsed = Number(value);
+	return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export function templateRepository(kit: KitKey): string {
 	const override = privateValue(`GITHUB_KIT_TEMPLATE_${kit.toUpperCase()}`);
 	if (override?.trim()) return override.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
@@ -73,16 +80,18 @@ function repositoryName(product: Product, kit: KitKey): string {
 	return base.slice(0, 100).replace(/[-_.]+$/g, '') || `product-${kit}`;
 }
 
-async function loadTemplate(template: string): Promise<{
+async function loadTemplate(template: string, token: string): Promise<{
 	defaultBranch: string;
 	sha: string;
 	files: Array<{ path: string; mode: string; sha: string }>;
 }> {
-	const repo = await githubJson<{ default_branch: string }>(`/repos/${template}`);
+	const repo = await githubJson<{ default_branch: string }>(`/repos/${template}`, {}, token);
 	const branch = repo.default_branch || 'main';
-	const ref = await githubJson<{ object: { sha: string } }>(`/repos/${template}/git/ref/heads/${encodeURIComponent(branch)}`);
+	const ref = await githubJson<{ object: { sha: string } }>(`/repos/${template}/git/ref/heads/${encodeURIComponent(branch)}`, {}, token);
 	const tree = await githubJson<{ truncated?: boolean; tree: Array<{ path: string; mode?: string; type: string; sha: string }> }>(
-		`/repos/${template}/git/trees/${ref.object.sha}?recursive=1`
+		`/repos/${template}/git/trees/${ref.object.sha}?recursive=1`,
+		{},
+		token
 	);
 	if (tree.truncated) throw new Error('The starter-kit template is too large to provision safely.');
 	const files = tree.tree
@@ -124,7 +133,7 @@ async function copyTemplateToRepository(
 		while (cursor < templateData.files.length) {
 			const index = cursor++;
 			const file = templateData.files[index];
-			const content = await githubJson<{ content: string; encoding: string }>(`/repos/${template}/git/blobs/${file.sha}`);
+			const content = await githubJson<{ content: string; encoding: string }>(`/repos/${template}/git/blobs/${file.sha}`, {}, token);
 			if (content.encoding !== 'base64') throw new Error(`Template file ${file.path} used an unsupported encoding.`);
 			const created = await githubJson<{ sha: string }>(
 				`/repos/${repository.full_name}/git/blobs`,
@@ -203,7 +212,17 @@ async function provisionOne(admin: SupabaseClient, product: Product, installatio
 	});
 	try {
 		const token = await getInstallationToken(installation.installation_id);
-		const templateData = await loadTemplate(template);
+		const templateToken = templateInstallationId() ? await getInstallationToken(templateInstallationId() as number) : token;
+		let templateData: Awaited<ReturnType<typeof loadTemplate>>;
+		try {
+			templateData = await loadTemplate(template, templateToken);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (message.includes('GitHub 401') || message.includes('GitHub 403') || message.includes('GitHub 404')) {
+				throw new Error(`Starter-kit template ${template} is not accessible. Make it readable by the GitHub App or set GITHUB_KIT_TEMPLATE_INSTALLATION_ID to an installation that can read it.`);
+			}
+			throw error;
+		}
 		let repository: { id: number; full_name: string; default_branch: string };
 		if (row.repo_full_name) {
 			repository = await githubJson<{ id: number; full_name: string; default_branch: string }>(`/repos/${row.repo_full_name}`, {}, token);
@@ -223,7 +242,10 @@ async function provisionOne(admin: SupabaseClient, product: Product, installatio
 		}
 		return data as KitRow;
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
+		let message = error instanceof Error ? error.message : String(error);
+		if (message.includes('GitHub 403') && message.toLowerCase().includes('resource not accessible')) {
+			message = 'The GitHub App cannot create repositories. Grant it Administration: read and write permission, then reinstall the App.';
+		}
 		await admin.from('github_kit_repositories').update({ provision_status: 'failed', provision_error: message.slice(0, 1000), last_error: message.slice(0, 1000), sync_status: 'failed', updated_at: new Date().toISOString() }).eq('id', row.id);
 		throw new Error(`${kit}: ${message}`);
 	}

@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { page } from '$app/state';
 import { supabase } from '$lib/supabaseClient';
 import { env } from '$env/dynamic/public';
+import { ensureMyTenant } from '$lib/tenant';
 import { products as mockProductsSeed } from '$lib/data/workspace';
 import type { ProductRecord } from '$lib/data/workspace';
 
@@ -253,10 +254,13 @@ export async function createProduct(input: { name: string; slug?: string; catego
 		const { data: session } = await supabase.auth.getSession();
 		if (!session.session) return null;
 		const maker_id = session.session.user.id;
+		const tenant = await ensureMyTenant();
+		if (!tenant) return null;
 		const { data, error } = await supabase
 			.from('products')
 			.insert({
 				maker_id,
+				tenant_id: tenant.id,
 				slug,
 				name,
 				category: input.category ?? null,
@@ -271,7 +275,7 @@ export async function createProduct(input: { name: string; slug?: string; catego
 				const altSlug = `${slug.slice(0, 63 - suffix.length)}${suffix}`;
 				const { data: retry, error: retryErr } = await supabase
 					.from('products')
-					.insert({ maker_id, slug: altSlug, name, category: input.category ?? null, status: 'Live' })
+					.insert({ maker_id, tenant_id: tenant.id, slug: altSlug, name, category: input.category ?? null, status: 'Live' })
 					.select('id, slug, name, logo_url, avatar, category, tagline, status')
 					.single();
 				if (retryErr) return null;
