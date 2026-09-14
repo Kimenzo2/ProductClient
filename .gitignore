@@ -27,4 +27,3 @@ vite.config.ts.timestamp-*
 supabase/.temp/
 
 # local-only: Vercel resolves fresh (see 303fe98)
-bun.lock
