@@ -57,22 +57,50 @@ export function tenantRoadmapUrl(slug: string, path = ''): string {
 	return `https://${ROADMAP_HOST}/${slug}${suffix}`;
 }
 
+async function tryRefreshSession(): Promise<boolean> {
+	if (!supabase) return false;
+	try {
+		const { data, error } = await supabase.auth.refreshSession();
+		if (error) return false;
+		return !!data.session;
+	} catch {
+		return false;
+	}
+}
+
+function isAuthError(error: unknown): boolean {
+	const msg = (error as { message?: string; code?: string })?.message ?? '';
+	const code = (error as { code?: string })?.code ?? '';
+	return code === '401' || code === 'PGRST301' || msg.toLowerCase().includes('jwt') || msg.toLowerCase().includes('not authenticated');
+}
+
 export async function getMyTenant(): Promise<Tenant | null> {
 	if (!supabase) return null;
 	const { data, error } = await supabase.rpc('get_my_tenant');
-	if (error) {
-		// fallback to direct select if rpc missing (RLS still enforces owner)
-		const { data: rows, error: selErr } = await supabase
-			.from('tenants')
-			.select('*')
-			.limit(1)
-			.maybeSingle();
-		if (selErr) return null;
-		return (rows as unknown as Tenant) ?? null;
+	if (!error) {
+		if (Array.isArray(data)) return (data[0] as Tenant) ?? null;
+		return (data as unknown as Tenant) ?? null;
 	}
-	// rpc returns setof for get_my_tenant (array), ensure_my_tenant returns a single row
-	if (Array.isArray(data)) return (data[0] as Tenant) ?? null;
-	return (data as unknown as Tenant) ?? null;
+	// 401 on get_my_tenant almost always means the access token expired and was not refreshed
+	// (pre-fix: auth host did not refresh). Try one refresh + retry before falling back.
+	if (isAuthError(error)) {
+		const refreshed = await tryRefreshSession();
+		if (refreshed) {
+			const { data: retryData, error: retryErr } = await supabase.rpc('get_my_tenant');
+			if (!retryErr) {
+				if (Array.isArray(retryData)) return (retryData[0] as Tenant) ?? null;
+				return (retryData as unknown as Tenant) ?? null;
+			}
+		}
+	}
+	// fallback to direct select if rpc missing (RLS still enforces owner)
+	const { data: rows, error: selErr } = await supabase
+		.from('tenants')
+		.select('*')
+		.limit(1)
+		.maybeSingle();
+	if (selErr) return null;
+	return (rows as unknown as Tenant) ?? null;
 }
 
 export async function ensureMyTenant(): Promise<Tenant | null> {
@@ -81,15 +109,25 @@ export async function ensureMyTenant(): Promise<Tenant | null> {
 	const existing = await getMyTenant();
 	if (existing) return existing;
 	const { data, error } = await supabase.rpc('ensure_my_tenant');
-	if (error) {
-		// Race: another tab finished creating it between our read and write.
-		const retry = await getMyTenant();
-		if (retry) return retry;
-		console.warn('[tenant] ensure_my_tenant failed', error.message);
-		return null;
+	if (!error) {
+		if (Array.isArray(data)) return (data[0] as Tenant) ?? null;
+		return (data as unknown as Tenant) ?? null;
 	}
-	if (Array.isArray(data)) return (data[0] as Tenant) ?? null;
-	return (data as unknown as Tenant) ?? null;
+	if (isAuthError(error)) {
+		const refreshed = await tryRefreshSession();
+		if (refreshed) {
+			const { data: retryData, error: retryErr } = await supabase.rpc('ensure_my_tenant');
+			if (!retryErr) {
+				if (Array.isArray(retryData)) return (retryData[0] as Tenant) ?? null;
+				return (retryData as unknown as Tenant) ?? null;
+			}
+		}
+	}
+	// Race: another tab finished creating it between our read and write.
+	const retry = await getMyTenant();
+	if (retry) return retry;
+	console.warn('[tenant] ensure_my_tenant failed', (error as { message?: string })?.message ?? String(error));
+	return null;
 }
 
 export async function syncTenantRegistry(tenant: Pick<Tenant, 'id' | 'slug' | 'name'>): Promise<boolean> {
