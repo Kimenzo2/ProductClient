@@ -273,6 +273,41 @@ export async function getRepositoryBranch(installationId: bigint | number, repoF
 	return { sha: data.commit.sha, protected: Boolean(data.protected) };
 }
 
+export async function commitRepositoryFiles(
+	installationId: bigint | number,
+	repoFullName: string,
+	branch: string,
+	files: Array<{ path: string; content: string }>,
+	message: string
+): Promise<{ sha: string }> {
+	if (!files.length) throw new GithubApiError(422, 'No files to commit.');
+	const token = await getInstallationToken(installationId);
+	const branchInfo = await githubRequest<{ object: { sha: string } }>(token, `/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`);
+	const parentSha = branchInfo.object.sha;
+	const parent = await githubRequest<{ tree: { sha: string } }>(token, `/repos/${repoFullName}/git/commits/${parentSha}`);
+	const treeEntries: Array<{ path: string; mode: '100644'; type: 'blob'; sha: string }> = [];
+	for (const file of files) {
+		const blob = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/blobs`, {
+			method: 'POST',
+			body: JSON.stringify({ content: file.content, encoding: 'utf-8' })
+		});
+		treeEntries.push({ path: file.path.replace(/^\/+/, ''), mode: '100644', type: 'blob', sha: blob.sha });
+	}
+	const tree = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/trees`, {
+		method: 'POST',
+		body: JSON.stringify({ base_tree: parent.tree.sha, tree: treeEntries })
+	});
+	const commit = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/commits`, {
+		method: 'POST',
+		body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] })
+	});
+	await githubRequest(token, `/repos/${repoFullName}/git/refs/heads/${encodeURIComponent(branch)}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ sha: commit.sha, force: false })
+	});
+	return { sha: commit.sha };
+}
+
 export async function createIssue(
 	installationId: bigint | number,
 	repoFullName: string,

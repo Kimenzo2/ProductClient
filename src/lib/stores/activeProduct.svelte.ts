@@ -18,6 +18,7 @@ export type ActiveProduct = {
 };
 
 const PC_ACTIVE_PRODUCT_KEY = 'pc.active_product_id';
+const PC_GITHUB_PROVISION_PREFIX = 'pc.github_provisioned_at:';
 
 function toActiveProduct(row: any): ActiveProduct {
 	return {
@@ -71,6 +72,31 @@ function writeLocal(id: string | null) {
 		if (id) localStorage.setItem(PC_ACTIVE_PRODUCT_KEY, id);
 		else localStorage.removeItem(PC_ACTIVE_PRODUCT_KEY);
 	} catch {}
+}
+
+/**
+ * Start starter-kit provisioning without delaying workspace navigation.
+ * The server owns the idempotency and returns an authorization-needed state
+ * until the maker installs the GitHub App.
+ */
+export async function requestGithubProvisioning(productId: string, force = false): Promise<void> {
+	if (!browser || !productId || productId.startsWith('mock-')) return;
+	try {
+		const marker = `${PC_GITHUB_PROVISION_PREFIX}${productId}`;
+		const lastAttempt = Number(sessionStorage.getItem(marker) ?? 0);
+		if (!force && Number.isFinite(lastAttempt) && Date.now() - lastAttempt < 5 * 60 * 1000) return;
+		const { data: session } = await supabase?.auth.getSession() ?? { data: { session: null } };
+		const token = session.session?.access_token;
+		if (!token) return;
+		sessionStorage.setItem(marker, String(Date.now()));
+		await fetch('/api/github/provision', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+			body: JSON.stringify({ product_id: productId })
+		});
+	} catch {
+		// Provisioning is background work. Workspace navigation must remain usable.
+	}
 }
 
 async function fetchProfileActiveId(): Promise<string | null> {
@@ -171,6 +197,7 @@ export async function hydrateActiveProduct(): Promise<void> {
 			activeIdState = nextId;
 			if (nextId) writeLocal(nextId);
 			else writeLocal(null);
+			if (nextId) void requestGithubProvisioning(nextId);
 
 			// If DB has products but profile/local disagree, sync profile lazily (no await)
 			if (nextId && profileId !== nextId && supabase) {
@@ -251,6 +278,7 @@ export async function createProduct(input: { name: string; slug?: string; catego
 				const prod = toActiveProduct(retry);
 				productsState = [...productsState, prod];
 				await setActiveProduct(prod.id);
+				void requestGithubProvisioning(prod.id);
 				return prod;
 			}
 			return null;
@@ -258,6 +286,7 @@ export async function createProduct(input: { name: string; slug?: string; catego
 		const prod = toActiveProduct(data);
 		productsState = [...productsState, prod];
 		await setActiveProduct(prod.id);
+		void requestGithubProvisioning(prod.id);
 		return prod;
 	} catch {
 		return null;

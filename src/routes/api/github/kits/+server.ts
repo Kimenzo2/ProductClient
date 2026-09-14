@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	if (!productId) return json({ ok: false, code: 'MISSING_PRODUCT_ID' }, { status: 400 });
 	const product = await ownedProduct(admin, productId, userId);
 	if (!product) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
-	const { data, error } = await admin.from('github_kit_repositories').select('*').eq('tenant_id', product.tenant_id).order('kit', { ascending: true });
+	const { data, error } = await admin.from('github_kit_repositories').select('*').eq('product_id', product.id).order('kit', { ascending: true });
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	return json({ ok: true, repositories: data ?? [] });
 };
@@ -85,8 +85,11 @@ export const POST: RequestHandler = async ({ request }) => {
 		repo_full_name: repoFullName,
 		branch,
 		content_path: contentPath,
+		managed: false,
+		provision_status: 'manual',
+		provision_error: null,
 		updated_at: new Date().toISOString()
-	}, { onConflict: 'tenant_id,kit' }).select('*').maybeSingle();
+	}, { onConflict: 'product_id,kit' }).select('*').maybeSingle();
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	return json({ ok: true, repository: data });
 };
@@ -101,7 +104,11 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 	if (!productId || (!kit && !removeAll) || (kit && !kits.has(kit))) return json({ ok: false, code: 'MISSING_FIELDS' }, { status: 400 });
 	const product = await ownedProduct(admin, productId, userId);
 	if (!product) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
-	let query = admin.from('github_kit_repositories').delete().eq('tenant_id', product.tenant_id);
+	let managedQuery = admin.from('github_kit_repositories').update({ installation_id: null, provision_status: 'awaiting_authorization', github_sync_status: 'idle', updated_at: new Date().toISOString() }).eq('product_id', product.id).eq('managed', true);
+	if (kit) managedQuery = managedQuery.eq('kit', kit);
+	const managedWrite = await managedQuery;
+	if (managedWrite.error) return json({ ok: false, code: 'DB_ERROR', message: managedWrite.error.message }, { status: 500 });
+	let query = admin.from('github_kit_repositories').delete().eq('product_id', product.id).eq('managed', false);
 	if (kit) query = query.eq('kit', kit);
 	const { error } = await query;
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });

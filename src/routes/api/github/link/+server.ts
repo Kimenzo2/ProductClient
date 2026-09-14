@@ -140,7 +140,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				branch,
 				content_path: docsPath,
 				updated_at: new Date().toISOString()
-			}, { onConflict: 'tenant_id,kit' });
+			}, { onConflict: 'product_id,kit' });
 			if (kitError) return json({ ok: false, code: 'KIT_REPOSITORY_SYNC_FAILED', message: kitError.message }, { status: 500 });
 		}
 	}
@@ -165,9 +165,12 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 	const { error } = await query;
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	if (product.tenant_id && (removeAll || role === 'source')) {
-		let kitQuery = admin.from('github_kit_repositories').delete().eq('tenant_id', product.tenant_id);
-		if (!removeAll) kitQuery = kitQuery.eq('kit', 'docs');
-		await kitQuery;
+		let managedQuery = admin.from('github_kit_repositories').update({ installation_id: null, provision_status: 'awaiting_authorization', github_sync_status: 'idle', updated_at: new Date().toISOString() }).eq('product_id', productId).eq('managed', true);
+		if (!removeAll) managedQuery = managedQuery.eq('kit', 'docs');
+		await managedQuery;
+		let manualQuery = admin.from('github_kit_repositories').delete().eq('product_id', productId).eq('managed', false);
+		if (!removeAll) manualQuery = manualQuery.eq('kit', 'docs');
+		await manualQuery;
 	}
 	if (role === 'source') await admin.from('products').update({ github_url: null }).eq('id', productId);
 	return json({ ok: true });

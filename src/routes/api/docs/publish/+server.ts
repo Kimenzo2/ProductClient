@@ -4,6 +4,7 @@ import { findTenantForUser } from '$lib/server/tenantAccess';
 import { pagePath, validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
 import { docsContentHash, mirrorDocsToD1, type DocsRedirect } from '$lib/server/docsPublish';
 import { buildDocsArtifacts } from '$lib/server/docsArtifacts';
+import { enqueueGithubKitSyncJob } from '$lib/server/githubKitSync';
 import type { RequestHandler } from './$types';
 
 function redirectsBetween(previous: DocsDocument | null, next: DocsDocument): DocsRedirect[] {
@@ -98,6 +99,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		await admin.from('docs_documents').update({ publication_state: 'published', publication_error: null, publication_attempted_at: new Date().toISOString() }).eq('tenant_id', tenant.id);
 		await admin.from('docs_publication_attempts').update({ state: 'succeeded', completed_at: new Date().toISOString() }).eq('tenant_id', tenant.id).eq('release_id', current.published_release_id);
 		await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.publish_retry_succeeded', release_id: current.published_release_id, version: current.published_version, details: { contentHash } });
+		try {
+			await enqueueGithubKitSyncJob(admin, { tenantId: tenant.id, kit: 'docs', releaseId: current.published_release_id, contentHash });
+		} catch (error) {
+			console.error('[docs/publish] could not enqueue GitHub mirror retry', error);
+			await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.github_sync_enqueue_failed', release_id: current.published_release_id, version: current.published_version, details: { message: error instanceof Error ? error.message : String(error) } });
+		}
 		return json({ ok: true, version: current.published_version, publishedAt: current.published_at, retried: true });
 	}
 
@@ -192,5 +199,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	await admin.from('docs_documents').update({ publication_state: 'published', publication_error: null }).eq('tenant_id', tenant.id);
 	await admin.from('docs_publication_attempts').update({ state: 'succeeded', completed_at: new Date().toISOString() }).eq('tenant_id', tenant.id).eq('release_id', releaseId);
 	await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.publish_succeeded', release_id: releaseId, version: publishedVersion, details: { contentHash, redirectCount: redirects.length } });
+	try {
+		await enqueueGithubKitSyncJob(admin, { tenantId: tenant.id, kit: 'docs', releaseId, contentHash });
+	} catch (error) {
+		// Cloudflare has already published successfully. GitHub is a durable,
+		// retryable mirror and must not make the primary publish look failed.
+		console.error('[docs/publish] could not enqueue GitHub mirror', error);
+		await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.github_sync_enqueue_failed', release_id: releaseId, version: publishedVersion, details: { message: error instanceof Error ? error.message : String(error) } });
+	}
 	return json({ ok: true, version: publishedVersion, publishedAt });
 };
