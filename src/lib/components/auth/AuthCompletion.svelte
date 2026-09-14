@@ -6,7 +6,7 @@
 	import { ArrowRight, CheckCircle, Lock } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
 	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
-	import { appHref, authHref, feedHref } from '$lib/auth/urls';
+	import { appHref, authHref } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 	import { ensureMyTenant, tenantHost } from '$lib/tenant';
 
@@ -42,8 +42,7 @@
 				return;
 			}
 			// Cross-origin handoff: this page loaded from a link, so there is
-			// no click gesture and a scripted popup would be blocked. Show the
-			// continue button instead — a real click always opens the new tab.
+			// no click gesture. Wait for the user to move this page to the workspace.
 			appDestination = destination;
 			status = 'ready';
 		};
@@ -108,12 +107,12 @@
 	</div>
 	{#if status === 'ready'}
 		<h1 class="text-wrap-balance">You are signed in</h1>
-		<p class="description">Your workspace opens in a new tab — this page takes you to the feed.</p>
+		<p class="description">Your workspace is ready.</p>
 		{#if tenantSlug}
 			<p class="tenant-note">Your live subdomain is ready: <strong>{tenantHost(tenantSlug)}</strong></p>
 		{/if}
 		<div class="completion-actions">
-			<Button href={appDestination} target="_blank" rel="noopener" size="lg" onclick={() => { window.setTimeout(() => { window.location.assign(feedHref()); }, 600); }}>Open workspace <ArrowRight size={16} weight="Outline" /></Button>
+			<Button href={appDestination} target="_blank" rel="noopener" size="lg">Open workspace <ArrowRight size={16} weight="Outline" /></Button>
 		</div>
 	{:else}
 	<h1 class="text-wrap-balance">{status === 'checking' ? 'Finishing your sign-in' : 'We could not finish signing you in'}</h1>

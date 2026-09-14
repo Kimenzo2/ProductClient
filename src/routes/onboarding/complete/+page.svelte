@@ -7,7 +7,7 @@
 	import { requireSession } from '$lib/auth/guard';
 	import { clearOnboardingDraft, readOnboardingDraft } from '$lib/auth/onboarding';
 	import { readableAuthError } from '$lib/auth/utils';
-	import { appHref, openBlankTab, completeAppHandoff } from '$lib/auth/urls';
+	import { appHref, completeAppHandoff, openBlankTab } from '$lib/auth/urls';
 	import { supabase } from '$lib/supabaseClient';
 	import { ensureMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
 
@@ -91,7 +91,6 @@
 		const session = sessionData.session ?? undefined;
 		const destination = appHref('/workspace', session);
 		if (!destination.startsWith('http')) {
-			appTab?.close();
 			await goto(destination, { replaceState: true });
 			return;
 		}

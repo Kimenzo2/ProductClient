@@ -103,17 +103,11 @@ export function feedHref(): string {
 }
 
 /**
- * Complete a cross-origin app handoff: the dashboard opens in the captured
- * tab, and this tab moves on to the discovery feed a beat later so a
- * signed-in visitor is never stranded on a dead auth page. Falls back to
- * same-tab navigation when popups are blocked.
+ * Complete a cross-origin app handoff, using the tab captured in the click.
  */
 export function completeAppHandoff(tab: Window | null, destination: string): void {
 	if (tab && !tab.closed) {
 		tab.location.href = destination;
-		window.setTimeout(() => {
-			window.location.assign(feedHref());
-		}, 600);
 		return;
 	}
 	window.location.assign(destination);

@@ -4,6 +4,7 @@ import { supabase } from '$lib/supabaseClient';
 import { authHref } from '$lib/auth/urls';
 
 let sessionHandoff: Promise<boolean> | undefined;
+const HANDOFF_RETRY_DELAYS = [0, 120, 320] as const;
 
 async function importSessionHandoff(): Promise<boolean> {
 	if (!supabase || typeof window === 'undefined') return false;
@@ -35,6 +36,19 @@ async function importSessionHandoff(): Promise<boolean> {
 	return ok;
 }
 
+async function restoreSession(): Promise<boolean> {
+	if (!supabase || typeof window === 'undefined') return false;
+	const hasHandoff = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('pc_session_handoff') === '1';
+	if (hasHandoff) {
+		for (const delay of HANDOFF_RETRY_DELAYS) {
+			if (delay) await new Promise((resolve) => window.setTimeout(resolve, delay));
+			if (await importSessionHandoff()) return true;
+		}
+	}
+	const { data } = await supabase.auth.getSession();
+	return Boolean(data.session);
+}
+
 export async function requireSession(next: string): Promise<boolean> {
 	// DEV ONLY zero-auth flag (PUBLIC_DEV_AUTH_BYPASS=1 in .env.local):
 	// dashboard renders on mock data with no session. PROD builds ignore it
@@ -43,9 +57,7 @@ export async function requireSession(next: string): Promise<boolean> {
 		return true;
 	}
 	if (!supabase) return false;
-	await importSessionHandoff();
-	const { data } = await supabase.auth.getSession();
-	if (data.session) return true;
+	if (await restoreSession()) return true;
 	const destination = authHref('login', next);
 	if (destination.startsWith('http')) {
 		window.location.assign(destination);

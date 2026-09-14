@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toggleTheme, getTheme } from '$lib/theme';
-	import { Bell, Menu, Moon, Search, SidebarLeft, SidebarRight, Sun } from 'reicon-svelte';
+	import { ArrowUpRight, Bell, Menu, Moon, Search, SidebarLeft, SidebarRight, Sun } from 'reicon-svelte';
+	import { feedHref } from '$lib/auth/urls';
 import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
 import ProductSwitcher from '$lib/components/layout/ProductSwitcher.svelte';
 import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
@@ -60,6 +61,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		</div>
 
 		<div class="ms-auto flex items-center gap-3">
+			<a href={feedHref()} target="_blank" rel="noopener" aria-label="Open feed in a new tab" title="Open feed in a new tab" class="grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]">
+				<ArrowUpRight size={18} weight="Outline" aria-hidden="true" />
+			</a>
 			<div class="hidden sm:block"><QuickCreate /></div>
 			<div class="sm:hidden"><QuickCreate compact /></div>
 
