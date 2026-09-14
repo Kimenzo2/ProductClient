@@ -146,7 +146,7 @@
 
 <button type="button" class="composer-backdrop" aria-label="Close incident composer" onclick={() => onclose?.()}></button>
 
-<aside class="composer" role="dialog" aria-modal="true" aria-label="Start a public incident" transition:fade={{ duration: 120 }}>
+<div class="composer" role="dialog" aria-modal="true" aria-label="Start a public incident" transition:fade={{ duration: 120 }}>
 	<header class="composer-header">
 		<div class="min-w-0">
 			<h2 class="inline-flex items-center gap-2 text-wrap-balance">Start a public incident <span use:tooltip={{ text: 'Write the first factual update customers will see on the hosted Status Page.', island: true, typeY: 'bottom' }} class="inline-flex"><InfoCircle size={14} weight="Outline" aria-hidden="true" class="opacity-60" /></span></h2>
@@ -215,7 +215,7 @@
 			</form>
 		{/if}
 	</div>
-</aside>
+</div>
 
 <style>
 	.composer-backdrop { position: fixed; z-index: 80; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: default; }

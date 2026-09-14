@@ -15,7 +15,28 @@
 	let displayName = $state('');
 	let role = $state('');
 	let tenant = $state<Tenant | null>(null);
+	let greeting = $state('Good morning');
 	let mode = $derived<HomeMode>(role === 'Developer' || role === 'Builder' ? 'build' : 'coordinate');
+
+	function getTimeBasedGreeting(date = new Date()): string {
+		// Uses browser local time — which is the user's location time.
+		// Intl hour is equivalent to getHours() but explicit about timeZone.
+		const hour = Number(
+			new Intl.DateTimeFormat('en-US', {
+				hour: 'numeric',
+				hour12: false,
+				timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+			}).format(date)
+		);
+		if (hour >= 5 && hour < 12) return 'Good morning';
+		if (hour >= 12 && hour < 18) return 'Good afternoon';
+		if (hour >= 18 && hour < 22) return 'Good evening';
+		return 'Good evening';
+	}
+
+	function refreshGreeting() {
+		greeting = getTimeBasedGreeting();
+	}
 
 	const coordinateActions: StarterAction[] = [
 		{ label: 'Add feedback', detail: 'Capture what someone needs', href: '/feedback/new', icon: MessageDots },
@@ -44,20 +65,35 @@
 	let actions = $derived(mode === 'build' ? buildActions : coordinateActions);
 	let workItems = $derived(mode === 'build' ? buildWork : coordinateWork);
 
-	onMount(async () => {
-		const allowed = await requireSession('/workspace');
-		if (!allowed || !supabase) return;
-		const { data } = await supabase.auth.getUser();
-		const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
-		const fullName = typeof metadata?.full_name === 'string' ? metadata.full_name : '';
-		displayName = fullName || data.user?.email?.split('@')[0] || '';
-		role = typeof metadata?.role === 'string' ? metadata.role : '';
-		// Never assume tenant exists — ensure idempotently; handles first-time OAuth/email users and orphaned profiles
-		try {
-			tenant = await ensureMyTenant();
-		} catch {
-			// keep UX; user can retry via settings
-		}
+	onMount(() => {
+		refreshGreeting();
+		// keep greeting live if user keeps tab open across noon/evening
+		const interval = setInterval(refreshGreeting, 60_000);
+		const onVisibility = () => {
+			if (document.visibilityState === 'visible') refreshGreeting();
+		};
+		document.addEventListener('visibilitychange', onVisibility);
+
+		(async () => {
+			const allowed = await requireSession('/workspace');
+			if (!allowed || !supabase) return;
+			const { data } = await supabase.auth.getUser();
+			const metadata = data.user?.user_metadata as Record<string, unknown> | undefined;
+			const fullName = typeof metadata?.full_name === 'string' ? metadata.full_name : '';
+			displayName = fullName || data.user?.email?.split('@')[0] || '';
+			role = typeof metadata?.role === 'string' ? metadata.role : '';
+			// Never assume tenant exists — ensure idempotently; handles first-time OAuth/email users and orphaned profiles
+			try {
+				tenant = await ensureMyTenant();
+			} catch {
+				// keep UX; user can retry via settings
+			}
+		})();
+
+		return () => {
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', onVisibility);
+		};
 	});
 </script>
 
@@ -69,7 +105,7 @@
 <div class="workspace-home">
 	<div class="home-content">
 		<section class="home-welcome" aria-labelledby="workspace-home-title">
-			<p class="home-greeting">Good morning{displayName ? `, ${displayName}` : ''}</p>
+			<p class="home-greeting">{greeting}{displayName ? `, ${displayName}` : ''}</p>
 			<h1 id="workspace-home-title">{mode === 'build' ? 'What are you trying to ship?' : 'What needs your attention?'}</h1>
 			<p class="home-description">{mode === 'build' ? 'Find the customer need, decision, and docs behind your work.' : 'See what needs a reply, decision, or update.'}</p>
 			{#if tenant}

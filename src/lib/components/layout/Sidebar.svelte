@@ -7,9 +7,10 @@
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
 	import { panelRegistry } from './sidebar/panelRegistry';
 	import WorkspaceHoverPanel from './sidebar/WorkspaceHoverPanel.svelte';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
-	import type { SignalKey } from '$lib/data/signalRegistry.svelte';
+import { tooltip } from '$lib/components/Tooltip.svelte';
+import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
+import type { SignalKey } from '$lib/data/signalRegistry.svelte';
+import { supabase } from '$lib/supabaseClient';
 
 	let {
 		collapsed = $bindable(false),
@@ -74,8 +75,40 @@
 
 	const panelDefs = panelRegistry;
 
+	let profileAvatar = $state('');
+	let profileName = $state('');
+	let profileInitials = $derived(
+		profileName ? profileName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() : '?'
+	);
+
 	onMount(() => {
 		void hydrateSignalRegistry();
+		if (!supabase) return;
+		(async () => {
+			try {
+				const { data } = await supabase.auth.getUser();
+				const user = data.user;
+				if (!user) return;
+				const { data: prof } = await supabase
+					.from('profiles')
+					.select('avatar_url, display_name, full_name')
+					.eq('id', user.id)
+					.maybeSingle();
+				const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+				const avatarFromProfile = (prof as { avatar_url?: string | null } | null)?.avatar_url ?? null;
+				const avatarFromMeta =
+					(typeof meta.avatar_url === 'string' && meta.avatar_url) ||
+					(typeof meta.picture === 'string' && meta.picture) ||
+					null;
+				profileAvatar = avatarFromProfile || avatarFromMeta || '';
+				const nameFromProfile =
+					(prof as { display_name?: string | null; full_name?: string | null } | null)?.display_name ||
+					(prof as { display_name?: string | null; full_name?: string | null } | null)?.full_name ||
+					null;
+				const nameFromMeta = typeof meta.full_name === 'string' ? meta.full_name : typeof meta.name === 'string' ? meta.name : null;
+				profileName = nameFromProfile || nameFromMeta || user.email?.split('@')[0] || 'Profile';
+			} catch {}
+		})();
 	});
 
 	let pinnedHref = $derived(workspaceItems.find((item) => isActive(item.href))?.href ?? null);
@@ -132,7 +165,7 @@
 					<Settings size={16} weight="Filled" aria-hidden="true" /><span>Settings</span>
 				</a>
 				<a href="/you" class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] text-[var(--pc-text-muted)] transition-colors hover:bg-[var(--pc-accent-soft)] {focusClass}">
-					<Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile" size="sm" /><span class="truncate">Lorenze</span>
+					<Avatar src={profileAvatar} alt={profileName || 'Profile'} fallback={profileInitials} size="sm" /><span class="truncate">{profileName || 'Profile'}</span>
 				</a>
 			</div>
 		{:else}
@@ -160,7 +193,7 @@
 				</div>
 				<div class="flex shrink-0 flex-col items-center gap-2 border-t border-[var(--pc-border-strong)]/10 px-2 pb-1 pt-3">
 					<a href="/workspace/settings" aria-label="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: 'Settings', typeX: 'right', typeY: 'center' }}><Settings size={18} weight="Filled" aria-hidden="true" /></a>
-					<a href="/you" aria-label="Profile — Lorenze" class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: 'Lorenze — Profile', typeX: 'right', typeY: 'center' }}><Avatar src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop" alt="Profile — Lorenze" size="sm" /></a>
+					<a href="/you" aria-label={profileName ? `Profile — ${profileName}` : 'Profile'} class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: profileName ? `${profileName} — Profile` : 'Profile', typeX: 'right', typeY: 'center' }}><Avatar src={profileAvatar} alt={profileName ? `Profile — ${profileName}` : 'Profile'} fallback={profileInitials} size="sm" /></a>
 				</div>
 			</div>
 		{/if}

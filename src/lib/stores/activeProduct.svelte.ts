@@ -76,9 +76,8 @@ function writeLocal(id: string | null) {
 }
 
 /**
- * Start starter-kit provisioning without delaying workspace navigation.
- * The server owns the idempotency and returns an authorization-needed state
- * until the maker installs the GitHub App.
+ * Start starter-kit provisioning from an explicit Git settings action.
+ * Workspace hydration and product creation must never call GitHub implicitly.
  */
 export async function requestGithubProvisioning(productId: string, force = false): Promise<void> {
 	if (!browser || !productId || productId.startsWith('mock-')) return;
@@ -203,7 +202,6 @@ export async function hydrateActiveProduct(): Promise<void> {
 			activeIdState = nextId;
 			if (nextId) writeLocal(nextId);
 			else writeLocal(null);
-			if (nextId) void requestGithubProvisioning(nextId);
 
 			// If DB has products but profile/local disagree, sync profile lazily (no await)
 			if (nextId && profileId !== nextId && supabase) {
@@ -287,7 +285,6 @@ export async function createProduct(input: { name: string; slug?: string; catego
 				const prod = toActiveProduct(retry);
 				productsState = [...productsState, prod];
 				await setActiveProduct(prod.id);
-				void requestGithubProvisioning(prod.id);
 				return prod;
 			}
 			return null;
@@ -295,7 +292,6 @@ export async function createProduct(input: { name: string; slug?: string; catego
 		const prod = toActiveProduct(data);
 		productsState = [...productsState, prod];
 		await setActiveProduct(prod.id);
-		void requestGithubProvisioning(prod.id);
 		return prod;
 	} catch {
 		return null;
