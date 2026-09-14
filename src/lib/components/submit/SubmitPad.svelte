@@ -80,16 +80,16 @@
 		const { data: session } = await supabase.auth.getSession();
 		if (!session.session) return;
 		try {
-			// Use eq lower to avoid ilike pattern quirks and PostgREST 400 on edge cases
 			const { data, error } = await supabase
 				.from('products')
 				.select('id')
 				.eq('slug', slug)
 				.neq('id', draftId ?? '00000000-0000-0000-0000-000000000000')
-				.limit(1)
 				.maybeSingle();
-			if (error && (error as any).code !== 'PGRST116') {
-				// 400s here were silent; log for debug but don't block
+			if (error) {
+				const code = (error as any).code;
+				// PGRST116 = no rows, 406 etc are fine
+				if (code === 'PGRST116' || code === 'PGRST301') return;
 				console.warn('[pad] slug check', error);
 				return;
 			}
