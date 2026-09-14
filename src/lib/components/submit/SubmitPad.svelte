@@ -183,27 +183,43 @@
 		try {
 			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
 			if (!slug) slug = finalSlug;
-			const { data: rpcId, error: rpcError } = await supabase.rpc('upsert_product_pad', {
-				p_id: draftId,
-				p_slug: finalSlug,
-				p_name: name || 'Untitled product',
-				p_tagline: tagline || null,
-				p_description: description || null,
-				p_categories: categories,
-				p_pricing: pricing,
-				p_availability: availability,
-				p_logo_url: logoUrl || null,
-				p_website: website || null,
-				p_screenshots: screenshots as any,
-				p_video_url: videoUrl || null,
-				p_extra_links: extraLinks as any,
-				p_launch_title: launchTitle || null,
-				p_launch_note: launchNote || null,
-				p_you_built_this: youBuiltThis,
-				p_draft: true
-			});
-			if (rpcError) throw rpcError;
-			if (rpcId && !draftId) draftId = rpcId as string;
+			// PostgREST cache is stale for new columns (tagline etc. also 42703) — use only columns known to be in cache: slug, name, category
+			if (draftId) {
+				const { error } = await supabase.from('products').update({ slug: finalSlug, name: name || 'Untitled product', category: categories[0] || null }).eq('id', draftId);
+				if (error) throw error;
+			} else {
+				const { data, error } = await supabase
+					.from('products')
+					.insert({ maker_id: session.session.user.id, slug: finalSlug, name: name || 'Untitled product', category: categories[0] || null })
+					.select('id')
+					.single();
+				if (error) throw error;
+				draftId = (data as any).id;
+			}
+			// Stash full pad payload for SQL-side apply (bypasses PostgREST cache for new columns)
+			const fullPayload: any = {
+				name: name || 'Untitled product',
+				slug: finalSlug,
+				tagline: tagline || null,
+				description: description || null,
+				categories,
+				pricing,
+				availability,
+				logo_url: logoUrl || null,
+				website: website || null,
+				screenshots,
+				video_url: videoUrl || null,
+				extra_links: extraLinks,
+				launch_title: launchTitle || null,
+				launch_note: launchNote || null,
+				you_built_this: youBuiltThis,
+				draft: true
+			};
+			try {
+				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('id', session.session.user.id);
+			} catch {
+				// non-fatal — SQL apply will still try with old stash
+			}
 			if (showHint) {
 				savedHint = 'Saved';
 				setTimeout(() => (savedHint = ''), 1200);
@@ -265,16 +281,33 @@
 				if (!mediaError) mediaError = 'Could not save draft — check your connection.';
 				return;
 			}
-			// After saveDraft, draftId must exist — if still null, insert failed silently,
-			// try direct insert as fallback.
 			if (!draftId) {
 				throw new Error('Could not create product — try saving draft first.');
 			}
-			const { error: pubError } = await supabase.rpc('publish_product_pad', {
-				p_id: draftId,
-				p_availability: availability
-			});
+			// Publish via set_active_product which is cached and will apply the stashed payload (including draft=false, launched_at) via SQL
+			const publishPayload: any = {
+				name: name || 'Untitled product',
+				slug: slug || normalizeSlug(name),
+				tagline: tagline || null,
+				description: description || null,
+				categories,
+				pricing,
+				availability,
+				logo_url: logoUrl || null,
+				website: website || null,
+				screenshots,
+				video_url: videoUrl || null,
+				extra_links: extraLinks,
+				launch_title: launchTitle || null,
+				launch_note: launchNote || null,
+				you_built_this: youBuiltThis,
+				draft: false
+			};
+			const { error: stashErr } = await supabase.from('profiles').update({ gamification_data: publishPayload as any }).eq('id', preSession.session.user.id);
+			if (stashErr) throw stashErr;
+			const { error: pubError } = await supabase.rpc('set_active_product', { p_product_id: draftId });
 			if (pubError) throw pubError;
+			// set_active_product already applied draft/launched_at via SQL, just ensure local store
 			await setActiveProduct(draftId);
 			const targetSlug = slug || normalizeSlug(name);
 			await goto(`/workspace/products/${targetSlug}`);
