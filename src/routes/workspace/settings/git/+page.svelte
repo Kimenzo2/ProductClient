@@ -5,7 +5,6 @@ import { Check, Plug, Search } from 'reicon-svelte';
 import { Button, Input, Label, Select } from '$lib/components/ui';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 import { supabase } from '$lib/supabaseClient';
-import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 
 	type Product = { id: string; name: string; slug: string };
 	type KitKey = 'docs' | 'roadmap' | 'status';
@@ -43,12 +42,11 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 	let busy = $state(false);
 	let installPending = $state(false);
 	let installPoll: ReturnType<typeof setInterval> | undefined;
+	let kitSetupOpen = $state(false);
 
 	// sync
 	let syncBusy = $state(false);
 	let syncMessage = $state('');
-	let provisionBusy = $state(false);
-	let provisionMessage = $state('');
 
 	async function authToken(): Promise<string | null> {
 		if (!supabase) return null;
@@ -129,12 +127,18 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 	}
 
 	function kitStatus(repository: KitRepository | null): string {
-		if (!repository) return 'Preparing repository';
+		if (!repository) return 'Not connected';
 		if (repository.provision_status === 'awaiting_authorization') return 'GitHub access needed';
-		if (repository.provision_status === 'provisioning' || repository.provision_status === 'pending') return 'Preparing repository';
+		if (repository.provision_status === 'provisioning' || repository.provision_status === 'pending') return 'Connection in progress';
 		if (repository.provision_status === 'failed') return 'Setup needs attention';
 		if (repository.provision_status === 'ready' && repository.repo_full_name) return repository.repo_full_name;
-		return 'Preparing repository';
+		return 'Not connected';
+	}
+
+	function openKitSetup(kit: KitKey) {
+		chooseTargetKit(kit);
+		kitSetupOpen = true;
+		setTimeout(() => document.getElementById('kit-repository-settings')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 0);
 	}
 
 	async function loadRepos() {
@@ -167,8 +171,7 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 		if (event.origin !== window.location.origin || event.data?.source !== 'productclient-github') return;
 		if (event.data?.type !== 'connected') return;
 		stopInstallMonitor();
-		notice = 'GitHub is connected. Preparing your workspaces.';
-		if (activeProductId) void requestGithubProvisioning(activeProductId, true).then(async () => { await loadLink(); if (installationId) await loadRepos(); });
+		notice = 'GitHub is connected. Choose a repository for each workspace when you are ready.';
 		await loadLink();
 		if (installationId) await loadRepos();
 	}
@@ -184,11 +187,10 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 			await loadProducts();
 			await loadLink();
 			if (installationId) await loadRepos();
-			if (installationId && activeProductId) void requestGithubProvisioning(activeProductId, true).then(async () => { await loadLink(); if (installationId) await loadRepos(); });
 			// handle setup redirect notice
 			const githubError = page.url.searchParams.get('github_error');
 			if (githubError) error = githubError;
-			else if (page.url.searchParams.get('connected') === '1') notice = 'GitHub is connected. Preparing your workspaces.';
+			else if (page.url.searchParams.get('connected') === '1') notice = 'GitHub is connected. Choose a repository for each workspace when you are ready.';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -296,8 +298,12 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 			const j = await res.json().catch(() => null);
 			if (!j?.ok) throw new Error(j?.message ?? 'Could not disconnect');
 			link = null;
+			installationId = null;
+			contextLinks = [];
+			repos = [];
 			await fetch(`/api/github/kits?product_id=${activeProductId}&all=1`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
 			kitRepositories = { docs: null, roadmap: null, status: null };
+			kitSetupOpen = false;
 			notice = 'Disconnected';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -320,8 +326,27 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 			});
 			const result = await response.json().catch(() => null);
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save starter-kit repository.');
+			if (targetKit === 'docs') {
+				const sourceResponse = await fetch('/api/github/link', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+					body: JSON.stringify({
+						product_id: activeProductId,
+						installation_id: installationId,
+						repo_full_name: targetRepo,
+						role: 'source',
+						branch: targetBranch,
+						deploy_branch: null,
+						docs_path: targetPath || '/'
+					})
+				});
+				const sourceResult = await sourceResponse.json().catch(() => null);
+				if (!sourceResponse.ok || !sourceResult?.ok) throw new Error(sourceResult?.message ?? sourceResult?.code ?? 'Could not connect the documentation repository.');
+			}
 			await loadKitRepositories(token);
-			notice = `${starterKits.find((kit) => kit.value === targetKit)?.label ?? 'Starter kit'} repository saved.`;
+			await loadLink();
+			kitSetupOpen = false;
+			notice = `${starterKits.find((kit) => kit.value === targetKit)?.label ?? 'Starter kit'} repository connected.`;
 		} catch (e) {
 			targetError = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -334,7 +359,14 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 		const token = await authToken();
 		if (!token) return;
 		await fetch(`/api/github/kits?product_id=${activeProductId}&kit=${kit}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+		if (kit === 'docs') {
+			await fetch(`/api/github/link?product_id=${activeProductId}&role=source`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+			link = null;
+		}
 		await loadKitRepositories(token);
+		await loadLink();
+		kitSetupOpen = false;
+		notice = `${starterKits.find((item) => item.value === kit)?.label ?? 'Starter kit'} disconnected.`;
 	}
 
 	async function syncNow() {
@@ -356,20 +388,6 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 		}
 	}
 
-	async function provisionNow() {
-		if (!activeProductId) return;
-		provisionBusy = true;
-		provisionMessage = '';
-		try {
-			await requestGithubProvisioning(activeProductId, true);
-			await loadLink();
-			provisionMessage = 'Repository setup is up to date.';
-		} catch (e) {
-			provisionMessage = e instanceof Error ? e.message : String(e);
-		} finally {
-			provisionBusy = false;
-		}
-	}
 </script>
 
 <svelte:window onmessage={handleGitHubMessage} />
@@ -404,84 +422,63 @@ import { requestGithubProvisioning } from '$lib/stores/activeProduct.svelte';
 					</div>
 				</div>
 
-				{#if link}
-					<div class="p-4">
-						<div class="flex flex-wrap items-center gap-2 text-sm font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> {link.repo_full_name} · {link.branch}<span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
-						{#if link.last_error}<p class="mt-2 text-[12px] text-[#fca5a5]" use:tooltip={{ text: link.last_error, island: true }}>Sync failed — check connection</p>{/if}
-						<div class="mt-3 flex flex-wrap gap-2">
-							<Button size="sm" variant="outline" loading={syncBusy} onclick={syncNow}>Sync now</Button>
-							<Button size="sm" variant="outline" onclick={disconnect}>Disconnect</Button>
-						</div>
-						{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
-						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
-							<div class="text-sm font-medium">Context repositories</div>
-							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Optional repositories for GitHub links and release details.</p>
-							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-mono">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
-			<div class="mt-3 flex gap-2"><Select value={contextRepo} onValueChange={(value) => { contextRepo = value; contextError = ''; }} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
-			{#if contextError}<p class="mt-2 text-[12px] text-[#fca5a5]" role="alert">{contextError}</p>{/if}
-						</div>
-						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
-							<div class="text-sm font-medium">Starter-kit workspaces</div>
-							<div class="mt-2 grid gap-1">
-								{#each starterKits as kit}
-									<div class="flex items-center justify-between gap-4 py-1.5 text-[13px]"><span>{kit.label}</span><span class="max-w-[55%] truncate text-right text-[var(--pc-text-muted)]">{kitStatus(kitRepositories[kit.value])}</span></div>
-								{/each}
-							</div>
-							<div class="mt-3 flex flex-wrap items-center gap-2"><Button size="sm" variant="outline" loading={provisionBusy} onclick={provisionNow}>Retry setup</Button>{#if provisionMessage}<span class="text-[12px] text-[var(--pc-text-muted)]">{provisionMessage}</span>{/if}</div>
-						</div>
-					</div>
-				{:else if !installationId}
+				{#if !installationId}
 					<div class="flex items-center gap-3 p-4">
 						<div class="min-w-0 flex-1">
 							<div class="truncate text-sm font-medium">Connect GitHub</div>
-			<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Connect GitHub to prepare your workspaces.</p>
+							<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Connect a repository when you want to edit a workspace outside ProductClient.</p>
 						</div>
 						<span class="shrink-0"><Button size="sm" loading={busy} onclick={connect}>{installPending ? 'Waiting for GitHub…' : 'Connect'}{#if !installPending}<Plug size={14} weight="Outline" aria-hidden="true" />{/if}</Button></span>
 					</div>
 				{:else}
 					<div class="p-4">
 						<div class="flex items-center gap-2 text-sm font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> GitHub is connected</div>
-						<p class="mt-1 max-w-[58ch] text-[13px]/[18px] text-[var(--pc-text-muted)]">Your starter-kit workspaces are being prepared. You can keep working in ProductClient while they finish.</p>
-						<div class="mt-4 grid gap-1">
-							{#each starterKits as kit}
-								<div class="flex items-center justify-between gap-4 py-2 text-[13px]">
-									<span>{kit.label}</span>
-									<span class="max-w-[55%] truncate text-right text-[var(--pc-text-muted)]">{kitStatus(kitRepositories[kit.value])}</span>
-								</div>
-							{/each}
-						</div>
-						<div class="mt-3 flex flex-wrap items-center gap-2">
-							<Button size="sm" variant="outline" loading={provisionBusy} onclick={provisionNow}>Retry setup</Button>
-							{#if provisionMessage}<span class="text-[12px] text-[var(--pc-text-muted)]">{provisionMessage}</span>{/if}
-						</div>
-					</div>
-				{/if}
+						<p class="mt-1 max-w-[58ch] text-[13px]/[18px] text-[var(--pc-text-muted)]">Choose a repository for each workspace when you are ready.</p>
 
-				{#if installationId}
-					<details class="border-t border-[var(--pc-border-strong)]">
-						<summary class="cursor-pointer px-4 py-3 text-[12px] text-[var(--pc-text-muted)]">Advanced repository settings</summary>
-						<div class="grid gap-3 px-4 pb-4">
-							<p class="text-[12px]/[17px] text-[var(--pc-text-muted)]">Use this only when you need to connect an existing repository instead of the managed starter-kit workspaces.</p>
-							<div class="grid gap-1.5"><Label>Documentation repository</Label>
-								{#if repos.length}
-									<Select bind:value={selectedRepo} options={repos.map((r) => ({ value: r.full_name, label: r.full_name + (r.private ? ' · private' : '') }))} />
-								{:else}
-									<div class="flex gap-2"><Input value={selectedRepo} placeholder="org/repo" oninput={(e: Event) => (selectedRepo = (e.target as HTMLInputElement).value)} class="flex-1 font-mono" /><Button size="sm" variant="outline" onclick={loadRepos}><Search size={14} weight="Outline" aria-hidden="true" /></Button></div>
-								{/if}
+						{#if link}
+							<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
+								<div class="text-sm font-medium">Documentation source</div>
+								<div class="mt-2 flex flex-wrap items-center gap-2 text-[13px]"><Check size={14} weight="Outline" aria-hidden="true" /> <span class="font-mono">{link.repo_full_name}</span><span class="text-[var(--pc-text-muted)]">· {link.branch}</span><span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
+								{#if link.last_error}<p class="mt-2 text-[12px] text-[#fca5a5]" use:tooltip={{ text: link.last_error, island: true }}>Sync failed — check connection</p>{/if}
+								<div class="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" loading={syncBusy} onclick={syncNow}>Sync now</Button><Button size="sm" variant="outline" onclick={disconnect}>Disconnect GitHub</Button></div>
+								{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
 							</div>
-							<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
-							<div class="grid gap-1.5"><Label for="gh-path">Source path</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
-							<div class="flex flex-wrap gap-2"><Button size="sm" loading={busy} onclick={saveLink}>Save repository</Button><Button size="sm" variant="outline" onclick={() => void provisionNow()}>Use managed repositories</Button></div>
-							<div class="mt-2 border-t border-[var(--pc-border-strong)] pt-3">
-								<div class="grid gap-1.5"><Label>Starter kit</Label><Select value={targetKit} onValueChange={chooseTargetKit} options={starterKits.map((kit) => ({ value: kit.value, label: kit.label }))} /></div>
-								<div class="mt-3 grid gap-1.5"><Label>Repository</Label><Select value={targetRepo} onValueChange={(value) => (targetRepo = value)} options={[{ value: '', label: 'Choose a repository' }, ...repos.map((repo) => ({ value: repo.full_name, label: repo.full_name + (repo.private ? ' · private' : '') }))]} /></div>
-								<div class="mt-3 grid gap-1.5"><Label for="target-branch">Branch</Label><Input id="target-branch" bind:value={targetBranch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
-								<div class="mt-3 grid gap-1.5"><Label for="target-path">Content path</Label><Input id="target-path" bind:value={targetPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
-								<div class="mt-3 flex flex-wrap gap-2"><Button size="sm" loading={targetBusy} onclick={saveKitRepository}>Save repository</Button>{#if kitRepositories[targetKit]}<Button size="sm" variant="outline" onclick={() => void removeKitRepository(targetKit)}>Disconnect repository</Button>{/if}</div>
-								{#if targetError}<p class="text-[12px] text-[#fca5a5]" role="alert">{targetError}</p>{/if}
+						{/if}
+
+						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
+							<div class="text-sm font-medium">Starter kits</div>
+							<div class="mt-3 grid gap-2">
+								{#each starterKits as kit}
+									<div class="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-3">
+										<div class="min-w-0"><div class="text-[13px] font-medium">{kit.label}</div><div class="mt-1 max-w-[42ch] truncate font-mono text-[12px] text-[var(--pc-text-muted)]">{kitStatus(kitRepositories[kit.value])}</div></div>
+										<Button size="sm" variant="outline" onclick={() => openKitSetup(kit.value)}>{kitRepositories[kit.value]?.repo_full_name ? 'Edit connection' : 'Connect repository'}</Button>
+									</div>
+								{/each}
 							</div>
 						</div>
-					</details>
+
+						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
+							<div class="text-sm font-medium">Context repositories</div>
+							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Optional repositories for links and release details.</p>
+							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-mono">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
+							<div class="mt-3 flex gap-2"><Select value={contextRepo} onValueChange={(value) => { contextRepo = value; contextError = ''; }} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
+							{#if contextError}<p class="mt-2 text-[12px] text-[#fca5a5]" role="alert">{contextError}</p>{/if}
+						</div>
+
+						{#if kitSetupOpen}
+							<div id="kit-repository-settings" class="mt-5 rounded-[10px] border border-[var(--pc-border-strong)] p-4">
+								<div class="flex items-start justify-between gap-3"><div><div class="text-sm font-medium">Repository connection</div><p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Choose where this workspace is edited outside ProductClient.</p></div><Button size="sm" variant="ghost" onclick={() => (kitSetupOpen = false)}>Cancel</Button></div>
+								<div class="mt-4 grid gap-3">
+									<div class="grid gap-1.5"><Label>Starter kit</Label><Select value={targetKit} onValueChange={chooseTargetKit} options={starterKits.map((kit) => ({ value: kit.value, label: kit.label }))} /></div>
+									<div class="grid gap-1.5"><Label>Repository</Label><Select value={targetRepo} onValueChange={(value) => (targetRepo = value)} options={[{ value: '', label: 'Choose a repository' }, ...repos.map((repo) => ({ value: repo.full_name, label: repo.full_name + (repo.private ? ' · private' : '') }))]} /></div>
+									<div class="grid gap-1.5"><Label for="target-branch">Branch</Label><Input id="target-branch" bind:value={targetBranch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
+									<div class="grid gap-1.5"><Label for="target-path">Content path</Label><Input id="target-path" bind:value={targetPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+									<div class="flex flex-wrap gap-2"><Button size="sm" loading={targetBusy} onclick={saveKitRepository}>{kitRepositories[targetKit] ? 'Save connection' : 'Connect repository'}</Button>{#if kitRepositories[targetKit]}<Button size="sm" variant="outline" onclick={() => void removeKitRepository(targetKit)}>Disconnect repository</Button>{/if}</div>
+									{#if targetError}<p class="text-[12px] text-[#fca5a5]" role="alert">{targetError}</p>{/if}
+								</div>
+							</div>
+						{/if}
+					</div>
 				{/if}
 			</section>
 		{/if}
