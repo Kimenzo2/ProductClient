@@ -69,7 +69,7 @@ import { supabase } from '$lib/supabaseClient';
 		} else {
 			link = null;
 			// try to get installation_id from query (post-setup redirect)
-			const qInst = page.url.searchParams.get('installation_id');
+			const qInst = page.url.searchParams.get('installation_id') ?? (j?.installation_id ? String(j.installation_id) : null);
 			if (qInst) installationId = Number(qInst);
 		}
 	}
@@ -99,7 +99,9 @@ import { supabase } from '$lib/supabaseClient';
 			await loadLink();
 			if (installationId) await loadRepos();
 			// handle setup redirect notice
-			if (page.url.searchParams.get('connected') === '1') notice = 'GitHub connected';
+			const githubError = page.url.searchParams.get('github_error');
+			if (githubError) error = githubError;
+			else if (page.url.searchParams.get('connected') === '1') notice = 'GitHub app installed — choose a repository to finish connecting.';
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {
@@ -239,6 +241,8 @@ import { supabase } from '$lib/supabaseClient';
 					</div>
 				{:else}
 					<div class="p-4">
+						<div class="mb-3 flex items-center gap-2 text-sm font-medium"><Check size={14} weight="Outline" aria-hidden="true" /> GitHub app installed</div>
+						<p class="mb-4 text-[13px]/[18px] text-[var(--pc-text-muted)]">Choose the repository and docs folder this product should sync.</p>
 						<div class="grid gap-3">
 							<div class="grid gap-1.5"><Label>Repository</Label>
 								{#if repos.length}

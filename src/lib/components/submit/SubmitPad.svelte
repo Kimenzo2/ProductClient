@@ -34,6 +34,8 @@
 	let pricing: Pricing = $state(null);
 	let availability: Availability = $state('live');
 	let logoUrl = $state('');
+	let logoPreviewUrl = $state('');
+	let logoUploading = $state(false);
 	let screenshots: string[] = $state([]);
 	let videoUrl = $state('');
 	let extraLinks: Array<{ label: string; url: string }> = $state([]);
@@ -126,7 +128,11 @@
 	function removeScreenshot(index: number) {
 		screenshots = screenshots.filter((_, i) => i !== index);
 	}
-	function handleLogoChange(e: Event) {
+	function isDurableMediaUrl(value: string): boolean {
+		return /^https?:\/\//i.test(value) || value.startsWith('/');
+	}
+
+	async function handleLogoChange(e: Event) {
 		const file = (e.currentTarget as HTMLInputElement).files?.[0];
 		if (!file) return;
 		// Size cap — a 20MB file would decode on the main thread and freeze the tab
@@ -136,10 +142,40 @@
 			return;
 		}
 		mediaError = '';
-		// Revoke the previous blob URL so dropped logos don't accumulate in memory
-		if (logoUrl.startsWith('blob:')) URL.revokeObjectURL(logoUrl);
-		// Preview as object URL; upload would be to storage — for now preview only
-		logoUrl = URL.createObjectURL(file);
+		if (!supabase) {
+			mediaError = 'Service unavailable — try again.';
+			return;
+		}
+		if (logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
+		const previewUrl = URL.createObjectURL(file);
+		logoPreviewUrl = previewUrl;
+		logoUploading = true;
+		try {
+			const { data: session } = await supabase.auth.getSession();
+			const token = session.session?.access_token;
+			if (!token) throw new Error('Sign in to upload a logo.');
+			const form = new FormData();
+			form.set('file', file);
+			if (draftId) form.set('product_id', draftId);
+			const response = await fetch('/api/products/upload', {
+				method: 'POST',
+				headers: { authorization: `Bearer ${token}` },
+				body: form
+			});
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok || typeof result.url !== 'string') {
+				throw new Error(result?.message ?? 'Could not upload logo.');
+			}
+			logoUrl = result.url;
+			URL.revokeObjectURL(previewUrl);
+			logoPreviewUrl = '';
+		} catch (error) {
+			URL.revokeObjectURL(previewUrl);
+			logoPreviewUrl = '';
+			mediaError = error instanceof Error ? error.message : 'Could not upload logo.';
+		} finally {
+			logoUploading = false;
+		}
 	}
 
 	let isDirty = $derived(
@@ -244,6 +280,11 @@
 	}
 
 	async function handlePublish() {
+		if (logoUploading) {
+			mediaError = 'Wait for the logo upload to finish.';
+			activeTab = 'media';
+			return;
+		}
 		const err = publishValidation();
 		if (err) {
 			return;
@@ -337,7 +378,9 @@
 					categories = row.categories ?? [];
 					pricing = row.pricing ?? null;
 					availability = row.availability ?? 'live';
-					logoUrl = row.logo_url ?? row.avatar ?? '';
+					const persistedLogo = row.logo_url ?? row.avatar ?? '';
+					logoUrl = isDurableMediaUrl(persistedLogo) ? persistedLogo : '';
+					logoPreviewUrl = '';
 					screenshots = Array.isArray(row.screenshots) ? row.screenshots : [];
 					videoUrl = row.video_url ?? '';
 					extraLinks = Array.isArray(row.extra_links) ? row.extra_links : [];
@@ -457,7 +500,7 @@
 						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Logo</p>
 						<label class="flex cursor-pointer items-center gap-4 rounded-[16px] border border-dashed border-[var(--pc-border-strong)] bg-[var(--pc-surface)] p-4 transition-[background-color] hover:bg-[var(--pc-surface-2)]">
 							<span class="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[14px] bg-[var(--pc-bg)] outline outline-1 -outline-offset-1 outline-white/10">
-								{#if logoUrl}<img src={logoUrl} alt="" decoding="async" class="size-20 object-cover" />{:else}<ImagePlus size={22} weight="Outline" class="text-[var(--pc-text-faint)]" aria-hidden="true" />{/if}
+								{#if logoPreviewUrl || logoUrl}<img src={logoPreviewUrl || logoUrl} alt="" decoding="async" class="size-20 object-cover" />{:else}<ImagePlus size={22} weight="Outline" class="text-[var(--pc-text-faint)]" aria-hidden="true" />{/if}
 							</span>
 							<span class="min-w-0 flex-1">
 								<span class="block text-sm font-medium text-[var(--pc-text)]">Square logo</span>
@@ -525,7 +568,7 @@
 					<div class="rounded-[16px] border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] p-5">
 						<div class="flex items-start gap-3">
 							<span class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-[12px] bg-[var(--pc-bg)] outline outline-1 -outline-offset-1 outline-white/10">
-								{#if logoUrl}<img src={logoUrl} alt="" class="size-11 object-cover" />{:else}<Globe size={18} weight="Outline" class="text-[var(--pc-text-faint)]" aria-hidden="true" />{/if}
+								{#if logoPreviewUrl || logoUrl}<img src={logoPreviewUrl || logoUrl} alt="" class="size-11 object-cover" />{:else}<Globe size={18} weight="Outline" class="text-[var(--pc-text-faint)]" aria-hidden="true" />{/if}
 							</span>
 							<div class="min-w-0 flex-1">
 								<h2 class="truncate text-lg font-medium tracking-[-0.01em] text-[var(--pc-text)]">{name || 'Your product'}</h2>

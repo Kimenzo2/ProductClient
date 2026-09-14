@@ -17,9 +17,13 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	if (!Number.isFinite(installationId)) return json({ ok: false, code: 'INVALID_INSTALLATION_ID' }, { status: 400 });
 
 	if (!stateRaw) {
-		// fallback: if no state, show error but still allow manual linking via product picker
-		// redirect to settings git with installation_id
-		throw redirect(302, `/workspace/settings/git?installation_id=${installationId}&setup_action=${setupAction ?? ''}`);
+		// A setup callback without state cannot be safely bound to a ProductClient
+		// product. Surface the configuration problem instead of pretending that the
+		// App is connected to an arbitrary product.
+		throw redirect(
+			302,
+			`/workspace/settings/git?github_error=${encodeURIComponent(`GitHub returned without setup state. Set the GitHub App Setup URL to ${url.origin}/api/github/setup and start the install from ProductClient.`)}&installation_id=${installationId}&setup_action=${setupAction ?? ''}`
+		);
 	}
 
 	const state = verifyState(stateRaw);

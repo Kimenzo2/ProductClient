@@ -17,11 +17,22 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const productId = url.searchParams.get('product_id');
 	if (productId) {
-		const { data } = await admin.from('github_repo_links').select('*').eq('product_id', productId).maybeSingle();
-		if (!data) return json({ ok: true, link: null });
 		// verify ownership via product
 		const { data: prod } = await admin.from('products').select('maker_id').eq('id', productId).maybeSingle();
 		if (!prod || (prod as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
+		const { data } = await admin.from('github_repo_links').select('*').eq('product_id', productId).maybeSingle();
+		if (!data) {
+			// Installing the GitHub App and linking a repository are separate steps.
+			// Recover the maker's latest installation when the callback query was lost.
+			const { data: installation } = await admin
+				.from('github_installations')
+				.select('installation_id')
+				.eq('maker_id', userId)
+				.order('updated_at', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+			return json({ ok: true, link: null, installation_id: installation?.installation_id ?? null });
+		}
 		return json({ ok: true, link: data });
 	}
 	// list all links for maker
