@@ -45,6 +45,7 @@ import { supabase } from '$lib/supabaseClient';
 	async function loadGithubReleases() {
 		if (!activeId || !supabase) return;
 		githubReleaseLoadedFor = activeId;
+		githubReleaseError = '';
 		try {
 			const { data } = await supabase.auth.getSession();
 			const token = data.session?.access_token;
@@ -134,8 +135,8 @@ import { supabase } from '$lib/supabaseClient';
 	</div>
 	{#if activeId}
 		<Card padding="md" class="mb-10">
-			<div class="flex items-center justify-between gap-3"><div><h2 class="text-[14px] font-medium">GitHub releases</h2><p class="mt-1 text-xs text-[var(--pc-text-muted)]">GitHub releases enter as drafts here until you confirm them for ProductClient.</p></div><span class="text-xs text-[var(--pc-text-faint)]">{githubReleases.length}</span></div>
-			{#if githubReleaseError}<p class="mt-3 text-xs text-[var(--pc-danger)]" role="alert">{githubReleaseError}</p>{:else if githubReleases.length === 0}<p class="mt-4 text-xs text-[var(--pc-text-faint)]">No GitHub releases have been ingested for this product.</p>{:else}<div class="mt-4 divide-y divide-[var(--pc-border)]/60">{#each githubReleases as release (release.id)}<div class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate text-sm font-medium">{release.title}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)]">{release.version ?? 'Unversioned'} · {release.status === 'published' ? 'Published in ProductClient' : 'Awaiting maker confirmation'}</p></div><div class="flex shrink-0 items-center gap-3"><a class="inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)] hover:underline" href={release.github_release_url} target="_blank" rel="noreferrer">Open GitHub release <ArrowRight size={12} weight="Outline" /></a>{#if release.status !== 'published'}<Button size="sm" loading={confirmingRelease === release.id} onclick={() => void confirmGithubRelease(release.id)}>Confirm</Button>{/if}</div></div>{/each}</div>{/if}
+			<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 id="github-releases-title" class="text-[14px] font-medium">GitHub releases</h2><p class="mt-1 text-xs text-[var(--pc-text-muted)]">GitHub releases enter as drafts here until you confirm them for ProductClient.</p></div><span class="text-xs text-[var(--pc-text-faint)]">{githubReleases.length}</span></div>
+			{#if githubReleaseError}<p class="mt-3 text-xs text-[var(--red-6)]" role="alert">{githubReleaseError}</p>{:else if githubReleases.length === 0}<p class="mt-4 text-xs text-[var(--pc-text-faint)]">No GitHub releases have been ingested for this product.</p>{:else}<div class="mt-4 divide-y divide-[var(--pc-border)]/60">{#each githubReleases as release (release.id)}<div class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate text-sm font-medium">{release.title}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)]">{release.version ?? 'Unversioned'} · {release.status === 'published' ? 'Published in ProductClient' : 'Awaiting maker confirmation'}</p></div><div class="flex shrink-0 flex-wrap items-center gap-1"><Button size="sm" variant="ghost" href={release.github_release_url} target="_blank">Open GitHub release <ArrowRight size={12} weight="Outline" /></Button>{#if release.status !== 'published'}<Button size="sm" loading={confirmingRelease === release.id} onclick={() => void confirmGithubRelease(release.id)}>Confirm</Button>{/if}</div></div>{/each}</div>{/if}
 		</Card>
 	{/if}
 </div>

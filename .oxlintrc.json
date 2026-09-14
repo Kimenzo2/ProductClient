@@ -1,0 +1,10 @@
+{
+	"jsPlugins": ["@shadcn/lint"],
+	"settings": {
+		"shadcn": {
+			"ui": "$lib/components/ui",
+			"componentImports": ["^components-svelte(/|$)"],
+			"note": "ProductClient pages use the existing shared UI components and theme. Do not invent a new layout language or restyle components from page markup."
+		}
+	}
+}

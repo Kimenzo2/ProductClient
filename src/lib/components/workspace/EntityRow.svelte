@@ -10,7 +10,8 @@
 		description = '',
 		status,
 		meta,
-		avatar
+		avatar,
+		onclick
 	}: {
 		href: string;
 		kind: SearchKind;
@@ -20,6 +21,7 @@
 		status?: string;
 		meta?: string;
 		avatar?: string;
+		onclick?: (event: MouseEvent) => void;
 	} = $props();
 
 	const icons: Record<SearchKind, typeof Box> = {
@@ -38,7 +40,7 @@
 
 {#if kind}
 	{@const Icon = icons[kind]}
-	<a href={href} class="group flex min-w-0 items-start gap-3 rounded-[16px] bg-[var(--pc-surface-2)] p-3 transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface)] active:scale-[0.99] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">
+	<a href={href} {onclick} class="group flex min-w-0 items-start gap-3 rounded-[16px] bg-[var(--pc-surface-2)] p-3 transition-[background-color,transform] duration-150 hover:bg-[var(--pc-surface)] active:scale-[0.99] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">
 		{#if avatar}
 			<img src={avatar} alt="" class="size-10 shrink-0 rounded-[11px] object-cover" />
 		{:else}

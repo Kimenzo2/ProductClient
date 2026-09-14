@@ -2,7 +2,7 @@
 	import { AlertTriangle, Inbox, Sparkles } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { StatePanel } from '$lib/components/ui';
+	import { Button, StatePanel } from '$lib/components/ui';
 	import { loadInboxIncidents, loadInboxThreads, type InboxThreadView, type IncidentRowView } from '$lib/data/feedbackInbox';
 	import { requireSession } from '$lib/auth/guard';
 	import { onMount } from 'svelte';
@@ -114,7 +114,7 @@
 			{:else if loadError}
 				<StatePanel icon={Inbox} title="Could not load inbox" description={loadError} actionLabel="Retry" onAction={() => void load()} />
 			{:else}
-				{#each filtered as item (item.kind + item.id)}<div><EntityRow href={item.href} kind={item.kind} title={item.title} subtitle={item.subtitle} description={item.description} status={item.status} meta={item.meta} />{#if item.githubIssueUrl}<a class="ml-14 mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--pc-accent-light)] hover:underline" href={item.githubIssueUrl} target="_blank" rel="noreferrer">GitHub issue{#if item.githubIssueNumber} #{item.githubIssueNumber}{/if} ↗</a>{/if}</div>{/each}
+				{#each filtered as item (item.kind + item.id)}<div><EntityRow href={item.href} kind={item.kind} title={item.title} subtitle={item.subtitle} description={item.description} status={item.status} meta={item.meta} />{#if item.githubIssueUrl}<Button class="ml-14 mt-1" size="sm" variant="ghost" href={item.githubIssueUrl} target="_blank">GitHub issue{#if item.githubIssueNumber} #{item.githubIssueNumber}{/if} <span aria-hidden="true">↗</span></Button>{/if}</div>{/each}
 				{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
 			{/if}
 		</section>

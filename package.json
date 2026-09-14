@@ -8,6 +8,7 @@
 		"dev": "vite dev",
 		"build": "node scripts/patch-reicon.mjs && vite build",
 		"preview": "vite preview",
+		"lint": "oxlint .",
 		"prepare": "node scripts/patch-sveltekit-css.mjs && svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -16,10 +17,12 @@
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
+		"@shadcn/lint": "^0.1.0",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/vite": "^4.3.3",
 		"@typescript/native": "npm:typescript@7.0.2",
+		"oxlint": "^1.83.0",
 		"svelte": "^5.57.0",
 		"svelte-5-doctor": "0.5.9",
 		"svelte-check": "^4.7.6",

@@ -40,7 +40,7 @@
 				</div>
 				<div class="flex flex-wrap gap-2">
 					<Button href="/submit" variant="primary" size="sm">Write product update</Button>
-					{#if product.github_url}<a href={product.github_url} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-xs text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]">GitHub ↗</a>{/if}
+					{#if product.github_url}<Button href={product.github_url} target="_blank" variant="outline" size="sm">GitHub <span aria-hidden="true">↗</span></Button>{/if}
 				</div>
 			</div>
 			{#if product.tagline}<p class="mt-4 max-w-[60ch] text-[13px] leading-[1.6] tracking-[-0.003em] text-[var(--pc-text-muted)] text-pretty">{product.tagline}</p>{/if}

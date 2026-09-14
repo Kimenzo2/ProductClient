@@ -123,19 +123,19 @@
 	{#if activeId}
 		<Card padding="md" class="mb-1 mt-4">
 			<div class="flex flex-wrap items-start justify-between gap-3">
-				<div class="min-w-0"><div class="flex items-center gap-2"><h2 class="text-[14px] font-medium">GitHub documentation source</h2><span class="text-[11px] text-[var(--pc-text-faint)]">{githubLink ? githubLink.sync_status ?? 'connected' : 'not connected'}</span></div>
+				<div class="min-w-0"><div class="flex items-center gap-2"><h2 id="github-docs-source-title" class="text-[14px] font-medium">GitHub documentation source</h2><span class="text-[11px] text-[var(--pc-text-faint)]">{githubLink ? githubLink.sync_status ?? 'connected' : 'not connected'}</span></div>
 					{#if githubLink}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">{githubLink.repo_full_name} · {githubLink.deploy_branch || githubLink.branch}{#if githubLink.last_sha} · <code>{githubLink.last_sha.slice(0, 7)}</code>{/if}{#if githubLink.last_synced_at} · {new Date(githubLink.last_synced_at).toLocaleString()}{/if}</p>{:else}<p class="mt-1 text-xs text-[var(--pc-text-muted)]">Connect a source repository to see deployment state and sync documentation here.</p>{/if}
 				</div>
-				<div class="flex shrink-0 items-center gap-2">{#if githubLink}<Button size="sm" variant="outline" loading={githubBusy} onclick={syncGithubDocs}><Refresh size={14} weight="Outline" />Sync now</Button>{/if}<a class="text-xs text-[var(--pc-accent-light)] hover:underline" href="/workspace/settings/git">{githubLink ? 'Git settings' : 'Connect GitHub'}</a></div>
+				<div class="flex shrink-0 flex-wrap items-center gap-2">{#if githubLink}<Button size="sm" variant="outline" loading={githubBusy} onclick={syncGithubDocs}><Refresh size={14} weight="Outline" />Sync now</Button>{/if}<Button size="sm" variant="ghost" href="/workspace/settings/git">{githubLink ? 'Git settings' : 'Connect GitHub'}</Button></div>
 			</div>
-			{#if githubLink?.last_error}<p class="mt-3 text-xs text-[var(--pc-danger)]" role="alert">{githubLink.last_error}</p>{/if}
+			{#if githubLink?.last_error}<p class="mt-3 text-xs text-[var(--red-6)]" role="alert">{githubLink.last_error}</p>{/if}
 			{#if githubNote}<p class="mt-3 text-xs text-[var(--pc-text-muted)]" role="status">{githubNote}</p>{/if}
 		</Card>
 	{/if}
 	<div class="relative max-w-[620px] py-5"><Search size={16} weight="Outline" class="pointer-events-none absolute left-3 top-8 opacity-55" /><Input bind:value={query} placeholder="Find a help page or product..." aria-label="Search help docs" class="pl-9 text-base sm:text-sm" /></div>
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Documentation pages">
-			{#each filtered as doc (doc.productSlug + doc.slug)}<div onclick={() => void trackAnalyticsEvent('docs.search_click', { query, path: doc.publicPath })} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void trackAnalyticsEvent('docs.search_click', { query, path: doc.publicPath }); } }} role="button" tabindex="0"><EntityRow href={doc.publicPath} kind="Doc" title={doc.title} subtitle={`${doc.productName} · ${doc.section}`} description={doc.description} status="Published" meta={`Updated ${doc.updatedAt}`} /></div>{/each}
+			{#each filtered as doc (doc.productSlug + doc.slug)}<EntityRow href={doc.publicPath} kind="Doc" title={doc.title} subtitle={`${doc.productName} · ${doc.section}`} description={doc.description} status="Published" meta={`Updated ${doc.updatedAt}`} onclick={() => void trackAnalyticsEvent('docs.search_click', { query, path: doc.publicPath })} />{/each}
 			{#if filtered.length === 0}<StatePanel icon={FileText} title={query.trim() ? 'No help pages found' : 'No published help pages yet'} description={query.trim() ? 'Try a broader search.' : 'The workspace will list real tenant pages after they are published. Placeholder documentation is not shown here.'} />{/if}
 		</section>
 		<aside class="space-y-4">
