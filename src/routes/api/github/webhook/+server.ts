@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getWebhookSecret, verifyWebhookSignatureSync, getRepoTree, fetchFileContent } from '$lib/server/githubApp';
-import { validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
+import { getWebhookSecret, verifyWebhookSignatureSync } from '$lib/server/githubApp';
+import { syncDocsFromGithub } from '$lib/server/githubDocsSync';
 
 type GithubRepository = { full_name: string };
 type GithubInstallation = { id: number; account?: { login?: string; type?: string; id?: number } };
@@ -75,24 +75,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			for (const link of (links ?? []) as Array<Record<string, unknown>>) {
 				const productId = String(link.product_id);
 				try {
-					const tree = await getRepoTree(Number(link.installation_id), repository.full_name, branch, String(link.docs_path ?? '/'));
-					let imported: DocsDocument | null = null;
-					const cleanPath = String(link.docs_path ?? '/').replace(/^\/+|\/+$/g, '');
-					const manifestPath = cleanPath ? `${cleanPath}/productclient.docs.json` : 'productclient.docs.json';
-					const manifest = tree.files.find((file) => file.path === manifestPath);
-					if (manifest) {
-						try {
-							const parsed = JSON.parse(await fetchFileContent(Number(link.installation_id), repository.full_name, manifest.path, branch)) as DocsDocument;
-							if (!validateDocsDocument(parsed).length) imported = parsed;
-						} catch {}
-					}
-					const product = await admin.from('products').select('tenant_id').eq('id', productId).maybeSingle();
-					if (imported && product.data?.tenant_id) {
-						const current = await admin.from('docs_documents').select('draft_version').eq('tenant_id', product.data.tenant_id).maybeSingle();
-						await admin.from('docs_documents').update({ draft: imported, draft_version: Number(current.data?.draft_version ?? 0) + 1, publication_state: 'unpublished', publication_error: null, updated_at: new Date().toISOString() }).eq('tenant_id', product.data.tenant_id);
-					}
-					await admin.from('github_repo_links').update({ last_sha: after, last_synced_at: new Date().toISOString(), last_error: null, sync_status: imported ? 'synced' : 'tracked', sync_error_code: null }).eq('id', link.id);
-					await logRun(admin, productId, delivery, 'push', after, true, null, { branch, docsFiles: tree.files.length, imported: Boolean(imported) });
+					const sync = await syncDocsFromGithub(admin, link as Parameters<typeof syncDocsFromGithub>[1], branch, after);
+					await logRun(admin, productId, delivery, 'push', after, sync.ok, sync.ok ? null : sync.message, { branch, docsFiles: sync.files, imported: sync.imported, code: sync.ok ? null : sync.code });
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
 					await admin.from('github_repo_links').update({ last_error: message, sync_status: 'failed', sync_error_code: 'PUSH_SYNC_FAILED' }).eq('id', link.id);
@@ -120,9 +104,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (event === 'pull_request') {
 			const pull = payload.pull_request as { number?: number; title?: string; state?: string; merged?: boolean; merged_at?: string | null } | undefined;
 			if (!pull?.number) return response({ ok: true, ignored: 'missing pull request' });
-			const { data: links } = await admin.from('incident_github_links').select('id').eq('repo_full_name', repository.full_name).eq('number', pull.number).eq('kind', 'pull_request');
+			const { data: links } = await admin.from('incident_github_links').select('id, product_id').eq('repo_full_name', repository.full_name).eq('number', pull.number).eq('kind', 'pull_request');
 			for (const link of links ?? []) await admin.from('incident_github_links').update({ title: pull.title ?? null, state: pull.state ?? null, merged: pull.merged ?? false, closed_at: pull.merged_at ?? null, updated_at: new Date().toISOString() }).eq('id', link.id);
-			return response({ ok: true, incidents: links?.length ?? 0 });
+			const { data: sourceLinks } = await admin.from('github_repo_links').select('product_id').eq('repo_full_name', repository.full_name).eq('role', 'source');
+			for (const source of sourceLinks ?? []) await logRun(admin, source.product_id, delivery, 'pull_request', null, true, null, { action: String(payload.action ?? ''), number: pull.number, incidentLinks: links?.length ?? 0, ignored: !(links?.length), merged: Boolean(pull.merged) });
+			if (!(sourceLinks?.length ?? 0)) console.info('[github/webhook] pull_request ignored: repository has no ProductClient source link', { repository: repository.full_name, number: pull.number, action: payload.action });
+			return response({ ok: true, incidents: links?.length ?? 0, logged: sourceLinks?.length ?? 0 });
 		}
 
 		if (event === 'release') {
@@ -130,8 +117,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			if (!release?.id) return response({ ok: true, ignored: 'missing release' });
 			const { data: sourceLinks } = await admin.from('github_repo_links').select('product_id').eq('repo_full_name', repository.full_name).eq('role', 'source');
 			for (const link of sourceLinks ?? []) {
-				await admin.from('releases').upsert({ product_id: link.product_id, slug: `github-${release.id}-${releaseSlug(release.tag_name ?? release.name ?? 'release')}`, title: release.name ?? release.tag_name ?? 'GitHub release', body: release.body ?? '', version: release.tag_name ?? null, status: release.draft ? 'draft' : 'published', published_at: release.published_at ?? null, github_release_id: release.id, github_release_url: release.html_url ?? null, github_repo_full_name: repository.full_name }, { onConflict: 'product_id,slug' });
-				await logRun(admin, link.product_id, delivery, 'release', null, true, null, { releaseId: release.id, url: release.html_url ?? null });
+				await admin.from('releases').upsert({ product_id: link.product_id, slug: `github-${release.id}-${releaseSlug(release.tag_name ?? release.name ?? 'release')}`, title: release.name ?? release.tag_name ?? 'GitHub release', body: release.body ?? '', version: release.tag_name ?? null, status: 'draft', published_at: null, github_release_id: release.id, github_release_url: release.html_url ?? null, github_repo_full_name: repository.full_name }, { onConflict: 'product_id,slug' });
+				await logRun(admin, link.product_id, delivery, 'release', null, true, null, { releaseId: release.id, url: release.html_url ?? null, status: 'draft', pendingMakerConfirmation: true });
 			}
 			return response({ ok: true, products: sourceLinks?.length ?? 0 });
 		}

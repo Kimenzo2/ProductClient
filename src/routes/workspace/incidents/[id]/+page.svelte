@@ -6,6 +6,7 @@
 	import { type PublicIncidentStatus, type StatusIncident } from '$lib/data/status';
 	import { appendIncidentUpdate, hydrateStatusEditor, incidentRecordsForWorkspace, saveStatusEditor, statusEditorPreview } from '$lib/data/statusEditor.svelte';
 	import { supabase } from '$lib/supabaseClient';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let id = $derived(page.params.id);
 	let incident = $derived(incidentRecordsForWorkspace().find((record) => record.id === id));
@@ -19,6 +20,7 @@
 	let githubReference = $state('');
 	let githubLinks = $state<Array<{ id: string; kind: string; url: string; title: string | null; state: string | null; merged: boolean | null }>>([]);
 	let githubBusy = $state(false);
+	let githubCreateBusy = $state(false);
 	let githubMessage = $state('');
 	let updatePanel = $state<HTMLElement | null>(null);
 	let updateTrigger = $state<HTMLElement | null>(null);
@@ -31,7 +33,7 @@
 
 	 onMount(() => {
 		void hydrateStatusEditor();
-		void loadGithubLinks();
+		void hydrateActiveProduct().then(() => void loadGithubLinks());
 		const handleDialogKeydown = (event: KeyboardEvent) => {
 			if (!updateDialogOpen) return;
 			if (event.key === 'Escape') {
@@ -75,7 +77,7 @@
 			const { data } = await supabase.auth.getSession();
 			const token = data.session?.access_token;
 			if (!token) throw new Error('Sign in again to attach GitHub work.');
-			const response = await fetch('/api/github/incidents', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ incident_id: id, reference: githubReference }) });
+			const response = await fetch('/api/github/incidents', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ incident_id: id, product_id: activeProductStore.activeProduct?.id, reference: githubReference, action: 'attach' }) });
 			const result = await response.json().catch(() => null);
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not attach GitHub work.');
 			githubReference = '';
@@ -86,6 +88,25 @@
 		} finally {
 			githubBusy = false;
 		}
+	}
+
+	async function createGithubIssue() {
+		if (!id || !supabase || !activeProductStore.activeProduct?.id) {
+			githubMessage = 'Choose the affected product before creating a GitHub issue.';
+			return;
+		}
+		githubCreateBusy = true;
+		githubMessage = '';
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) throw new Error('Sign in again to create the GitHub issue.');
+			const response = await fetch('/api/github/incidents', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ incident_id: id, product_id: activeProductStore.activeProduct.id, action: 'create' }) });
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not create GitHub issue.');
+			githubMessage = 'GitHub issue created and attached.';
+			await loadGithubLinks();
+		} catch (error) { githubMessage = error instanceof Error ? error.message : String(error); } finally { githubCreateBusy = false; }
 	}
 
 	function stageUpdate() {
@@ -169,7 +190,7 @@
 
 		<section class="github-links" aria-labelledby="incident-github-title">
 			<div class="section-heading"><div><h2 id="incident-github-title">GitHub work</h2><p class="detail-lede">Attach the pull request or issue carrying this response work.</p></div></div>
-			<div class="github-link-form"><Input bind:value={githubReference} placeholder="https://github.com/org/repo/pull/123" aria-label="GitHub pull request or issue URL" /><Button size="sm" variant="outline" loading={githubBusy} onclick={attachGithubLink}>Attach</Button></div>
+			<div class="github-link-form"><Input bind:value={githubReference} placeholder="https://github.com/org/repo/pull/123" aria-label="GitHub pull request or issue URL" /><Button size="sm" variant="outline" loading={githubBusy} onclick={attachGithubLink}>Attach</Button><Button size="sm" loading={githubCreateBusy} onclick={createGithubIssue}>Create issue</Button></div>
 			{#if githubMessage}<p class="github-message" role="status">{githubMessage}</p>{/if}
 			{#if githubLinks.length}<div class="github-link-list">{#each githubLinks as link}<a href={link.url} target="_blank" rel="noreferrer"><span>{link.kind === 'pull_request' ? 'Pull request' : 'Issue'}</span><strong>{link.title ?? link.url}</strong><small>{link.state ?? 'linked'}{link.merged ? ' · merged' : ''}</small></a>{/each}</div>{/if}
 		</section>

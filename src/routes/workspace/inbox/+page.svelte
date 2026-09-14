@@ -43,6 +43,8 @@
 		meta: string;
 		order: number;
 		productSlug: string;
+		githubIssueUrl?: string | null;
+		githubIssueNumber?: number | null;
 	};
 
 	let queue = $derived.by(() => {		const threadItems: QueueItem[] = threads.map((thread) => ({
@@ -56,7 +58,9 @@
 			href: thread.href,
 			meta: thread.lastMessageAt,
 			order: thread.unread ? 0 : 1,
-			productSlug: thread.productSlug
+			productSlug: thread.productSlug,
+			githubIssueUrl: thread.githubIssueUrl,
+			githubIssueNumber: thread.githubIssueNumber
 		}));
 		const incidentItems: QueueItem[] = incidentRows.map((incident) => ({
 			id: incident.id,
@@ -110,7 +114,7 @@
 			{:else if loadError}
 				<StatePanel icon={Inbox} title="Could not load inbox" description={loadError} actionLabel="Retry" onAction={() => void load()} />
 			{:else}
-				{#each filtered as item (item.kind + item.id)}<EntityRow {...item} />{/each}
+				{#each filtered as item (item.kind + item.id)}<div><EntityRow href={item.href} kind={item.kind} title={item.title} subtitle={item.subtitle} description={item.description} status={item.status} meta={item.meta} />{#if item.githubIssueUrl}<a class="ml-14 mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--pc-accent-light)] hover:underline" href={item.githubIssueUrl} target="_blank" rel="noreferrer">GitHub issue{#if item.githubIssueNumber} #{item.githubIssueNumber}{/if} ↗</a>{/if}</div>{/each}
 				{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
 			{/if}
 		</section>

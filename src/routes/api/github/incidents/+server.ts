@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getGithubIssue } from '$lib/server/githubApp';
+import { createIssue, getGithubIssue } from '$lib/server/githubApp';
 import { parseGithubReference, recordGithubAudit } from '$lib/server/githubCanonical';
 import type { RequestHandler } from './$types';
 
@@ -12,7 +12,7 @@ async function getUserId(request: Request, admin: ReturnType<typeof createAdminC
 	return data.user?.id ?? null;
 }
 
-type IncidentLookup = { id: string; tenant_id: string; title?: string | null };
+type IncidentLookup = { id: string; tenant_id: string; title?: string | null; summary?: string | null };
 
 async function findIncident(admin: ReturnType<typeof createAdminClient>, identifier: string, fields: string) {
 	const normalized = identifier.trim();
@@ -41,30 +41,37 @@ export const POST: RequestHandler = async ({ request }) => {
 	const admin = createAdminClient();
 	const userId = await getUserId(request, admin);
 	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
-	let body: { incident_id?: string; reference?: string };
+	let body: { incident_id?: string; product_id?: string; reference?: string; action?: 'attach' | 'create' };
 	try {
 		body = await request.json();
 	} catch {
 		return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	}
 	const reference = body.reference?.trim();
-	if (!body.incident_id || !reference) return json({ ok: false, code: 'MISSING_FIELDS' }, { status: 400 });
-	const parsed = parseGithubReference(reference);
-	if (!parsed) return json({ ok: false, code: 'INVALID_GITHUB_REFERENCE', message: 'Use a GitHub pull request or issue URL.' }, { status: 422 });
-	const { data: incident } = await findIncident(admin, body.incident_id, 'id, tenant_id, title');
+	if (!body.incident_id || !body.product_id || (body.action !== 'create' && !reference)) return json({ ok: false, code: 'MISSING_FIELDS' }, { status: 400 });
+	const parsed = reference ? parseGithubReference(reference) : null;
+	if (body.action !== 'create' && !parsed) return json({ ok: false, code: 'INVALID_GITHUB_REFERENCE', message: 'Use a GitHub pull request or issue URL.' }, { status: 422 });
+	const { data: incident } = await findIncident(admin, body.incident_id, 'id, tenant_id, title, summary');
 	if (!incident) return json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
 	const { data: tenant } = await admin.from('tenants').select('owner_id').eq('id', incident.tenant_id).maybeSingle();
 	if (!tenant || tenant.owner_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
-	const { data: products } = await admin.from('products').select('id, name').eq('tenant_id', incident.tenant_id).eq('maker_id', userId).is('deleted_at', null);
-	const product = products?.[0];
+	const { data: product } = await admin.from('products').select('id, name, tenant_id').eq('id', body.product_id).eq('maker_id', userId).is('deleted_at', null).maybeSingle();
+	if (product && product.tenant_id !== incident.tenant_id) return json({ ok: false, code: 'PRODUCT_TENANT_MISMATCH' }, { status: 422 });
 	if (!product) return json({ ok: false, code: 'PRODUCT_NOT_FOUND' }, { status: 404 });
-	const { data: repoLink } = await admin.from('github_repo_links').select('installation_id, repo_full_name').eq('product_id', product.id).eq('repo_full_name', parsed.repo).maybeSingle();
+	const repoQuery = admin.from('github_repo_links').select('installation_id, repo_full_name, role').eq('product_id', product.id);
+	const { data: repoLink } = body.action === 'create'
+		? await repoQuery.eq('role', 'source').maybeSingle()
+		: await repoQuery.eq('repo_full_name', parsed?.repo ?? '').in('role', ['source', 'context']).limit(1).maybeSingle();
 	if (!repoLink) return json({ ok: false, code: 'WRONG_GITHUB_REPOSITORY', message: 'Attach a PR or issue from the product source/context repository.' }, { status: 422 });
 	try {
-		const githubItem = await getGithubIssue(repoLink.installation_id, parsed.repo, parsed.number);
-		const { data, error } = await admin.from('incident_github_links').upsert({ incident_id: incident.id, kind: parsed.kind, url: parsed.url, repo_full_name: parsed.repo, number: parsed.number, title: githubItem.title, state: githubItem.state, closed_at: githubItem.closed_at, created_by: userId, updated_at: new Date().toISOString() }, { onConflict: 'incident_id,url' }).select('*').maybeSingle();
+		const created = body.action === 'create'
+			? await createIssue(repoLink.installation_id, repoLink.repo_full_name, `Incident: ${incident.title ?? 'Service incident'}`, `Track the engineering work for this incident.\n\n${incident.summary ?? ''}`)
+			: null;
+		const resolved = created ? { kind: 'issue' as const, repo: repoLink.repo_full_name, number: created.number, url: created.html_url } : parsed!;
+		const githubItem = created ? { title: `Incident: ${incident.title ?? 'Service incident'}`, state: 'open', closed_at: null } : await getGithubIssue(repoLink.installation_id, resolved.repo, resolved.number);
+		const { data, error } = await admin.from('incident_github_links').upsert({ product_id: product.id, incident_id: incident.id, kind: resolved.kind, url: resolved.url, repo_full_name: resolved.repo, number: resolved.number, title: githubItem.title, state: githubItem.state, closed_at: githubItem.closed_at, created_by: userId, updated_at: new Date().toISOString() }, { onConflict: 'incident_id,url' }).select('*').maybeSingle();
 		if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
-		await recordGithubAudit(admin, product.id, 'incident.github_linked', { incidentId: incident.id, kind: parsed.kind, url: parsed.url }, userId, parsed.repo);
+		await recordGithubAudit(admin, product.id, body.action === 'create' ? 'incident.github_issue_created' : 'incident.github_linked', { incidentId: incident.id, kind: resolved.kind, url: resolved.url }, userId, resolved.repo);
 		return json({ ok: true, link: data });
 	} catch (error) {
 		return json({ ok: false, code: 'GITHUB_ERROR', message: error instanceof Error ? error.message : String(error) }, { status: 502 });

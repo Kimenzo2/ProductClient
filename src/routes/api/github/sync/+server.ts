@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getInstallationToken, getRepoTree, fetchFileContent } from '$lib/server/githubApp';
+import { getRepositoryBranch } from '$lib/server/githubApp';
+import { syncDocsFromGithub } from '$lib/server/githubDocsSync';
 import type { RequestHandler } from './$types';
 
 async function getUserId(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -33,39 +34,17 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const repoFullName = (link as { repo_full_name: string }).repo_full_name;
 	const branch = (link as { branch: string }).branch;
-	const docsPath = (link as { docs_path: string }).docs_path;
 	const installationId = (link as { installation_id: number }).installation_id;
 
 	try {
-		const token = await getInstallationToken(installationId);
-		// verify branch sha
-		const brRes = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`, {
-			headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
-		});
-		if (!brRes.ok) {
-			const t = await brRes.text().catch(() => '');
-			throw new Error(`Branch ${branch} ${brRes.status}: ${t.slice(0, 300)}`);
-		}
-		const brData = (await brRes.json()) as { object: { sha: string } };
-		const sha = brData.object.sha;
-
-		const { files } = await getRepoTree(installationId, repoFullName, branch, docsPath);
-
-		// Optionally fetch a sample file to validate content
-		let sample: string | null = null;
-		if (files[0]) {
-			try {
-				sample = await fetchFileContent(installationId, repoFullName, files[0].path, branch);
-			} catch {}
-		}
-
-		await admin.from('github_repo_links').update({ last_sha: sha, last_synced_at: new Date().toISOString(), last_error: null }).eq('product_id', productId);
-		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'manual_sync', sha, ok: true, error: sample ? `found ${files.length} files, sample ${files[0].path.slice(0, 80)}` : `found ${files.length} files` });
-
-		return json({ ok: true, sha, files: files.slice(0, 20), total: files.length });
+		const branchInfo = await getRepositoryBranch(installationId, repoFullName, branch);
+		const result = await syncDocsFromGithub(admin, link as Parameters<typeof syncDocsFromGithub>[1], branch, branchInfo.sha);
+		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'manual_sync', sha: branchInfo.sha, ok: result.ok, error: result.ok ? null : result.message, details: { files: result.files, imported: result.imported, code: result.ok ? null : result.code } });
+		if (!result.ok) return json({ ok: false, code: result.code, message: result.message, sha: result.sha, total: result.files }, { status: 422 });
+		return json({ ok: true, sha: result.sha, total: result.files, imported: result.imported });
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		await admin.from('github_repo_links').update({ last_error: msg }).eq('product_id', productId);
+		await admin.from('github_repo_links').update({ last_error: msg, sync_status: 'failed', sync_error_code: 'SYNC_FAILED' }).eq('product_id', productId);
 		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'manual_sync', ok: false, error: msg });
 		return json({ ok: false, code: 'SYNC_FAILED', message: msg }, { status: 502 });
 	}

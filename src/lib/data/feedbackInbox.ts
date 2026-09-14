@@ -31,6 +31,8 @@ export type InboxThreadView = {
 	productName: string;
 	lastMessageAt: string;
 	href: string;
+	githubIssueUrl: string | null;
+	githubIssueNumber: number | null;
 };
 
 // DB pipeline vocabulary (feedback_items.status CHECK) mapped onto the five
@@ -197,8 +199,15 @@ export async function loadInboxThreads(
 	if (activeProductId) query = query.eq('product_id', activeProductId);
 	const { data, error } = await query;
 	if (error) return { threads: [], error: error.message };
+	const feedbackIds = ((data ?? []) as ThreadRow[]).filter((row) => row.subject_type === 'feedback' && row.subject_id).map((row) => row.subject_id as string);
+	const issueByFeedback = new Map<string, { url: string | null; number: number | null }>();
+	if (feedbackIds.length) {
+		const { data: feedbackRows } = await supabase.from('feedback_items').select('id, github_issue_url, github_issue_number').in('id', feedbackIds);
+		for (const row of (feedbackRows ?? []) as Array<{ id: string; github_issue_url?: string | null; github_issue_number?: number | null }>) issueByFeedback.set(row.id, { url: row.github_issue_url ?? null, number: row.github_issue_number ?? null });
+	}
 	const threads = ((data ?? []) as ThreadRow[]).map((row) => {
 		const preview = row.last_preview?.trim() ?? '';
+		const issue = row.subject_id ? issueByFeedback.get(row.subject_id) : undefined;
 		return {
 			id: row.id,
 			title: row.title?.trim() || firstLine(preview) || 'Feedback message',
@@ -210,10 +219,12 @@ export async function loadInboxThreads(
 			lastMessageAt: timeAgo(row.last_message_at),
 			// Only feedback subjects have a workspace detail page today; the
 			// visitor-reply flow and other subject types arrive with the widget.
-			href:
-				row.subject_type === 'feedback' && row.subject_id
-					? `/workspace/feedback/${row.subject_id}`
-					: '/workspace/feedback'
+				href:
+					row.subject_type === 'feedback' && row.subject_id
+						? `/workspace/feedback/${row.subject_id}`
+						: '/workspace/feedback',
+				githubIssueUrl: issue?.url ?? null,
+				githubIssueNumber: issue?.number ?? null
 		} satisfies InboxThreadView;
 	});
 	return { threads, error: null };

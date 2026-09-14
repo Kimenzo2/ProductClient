@@ -35,6 +35,7 @@ export type ReleaseRecord = {
 	status: LifecycleStatus;
 	publicPath: string;
 	workspacePath: string;
+	githubReleaseUrl?: string | null;
 };
 
 export type FeedbackRecord = {

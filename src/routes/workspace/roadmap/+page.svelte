@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { CheckCircle, Globe, Map, Plus } from 'reicon-svelte';
+	import { CheckCircle, Globe, Link2, Map, Plus } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { Button, Card, Chip } from '$lib/components/ui';
+	import { Button, Card, Chip, Input } from '$lib/components/ui';
 	import { roadmapItems } from '$lib/data/workspace';
 	import { supabase } from '$lib/supabaseClient';
 	import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
@@ -18,8 +18,52 @@
 	let laneCounts = $derived(
 		Object.fromEntries(lanes.map((l) => [l, scopedItems.filter((i) => i.status === l).length])) as Record<(typeof lanes)[number], number>
 	);
+	let githubLinks = $state<Record<string, { url: string; number: number; title: string | null; state: string | null }>>({});
+	let githubItemEditing = $state<string | null>(null);
+	let githubReference = $state('');
+	let githubBusy = $state(false);
+	let githubMessage = $state('');
+	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
+	async function loadGithubLinks() {
+		if (!activeId || !supabase) return;
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) return;
+			const res = await fetch(`/api/github/roadmap?product_id=${encodeURIComponent(activeId)}`, { headers: { authorization: `Bearer ${token}` } });
+			const result = await res.json().catch(() => null);
+			if (!result?.ok) return;
+			githubLinks = Object.fromEntries((result.links ?? []).map((link: { item_key: string; url: string; number: number; title: string | null; state: string | null }) => [link.item_key, link]));
+		} catch {}
+	}
+	async function saveGithubLink(itemKey: string) {
+		if (!activeId || !githubReference.trim() || !supabase) return;
+		githubBusy = true;
+		githubMessage = '';
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) throw new Error('Sign in again to link GitHub work.');
+			const res = await fetch('/api/github/roadmap', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: activeId, item_key: itemKey, reference: githubReference }) });
+			const result = await res.json().catch(() => null);
+			if (!res.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not link GitHub issue.');
+			githubReference = '';
+			githubItemEditing = null;
+			githubMessage = 'GitHub issue linked.';
+			await loadGithubLinks();
+		} catch (error) { githubMessage = error instanceof Error ? error.message : String(error); } finally { githubBusy = false; }
+	}
+	async function removeGithubLink(itemKey: string) {
+		if (!activeId || !supabase) return;
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		if (!token) return;
+		await fetch(`/api/github/roadmap?product_id=${encodeURIComponent(activeId)}&item_key=${encodeURIComponent(itemKey)}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+		await loadGithubLinks();
+	}
 	onMount(async () => {
-		void hydrateActiveProduct();
+		await hydrateActiveProduct();
+		await loadGithubLinks();
 		try {
 			tenant = await ensureMyTenant();
 			if (!tenant || !supabase) return;
@@ -31,6 +75,7 @@
 			if (j?.ok && j.doc) roadmapDoc = j.doc as RoadmapDoc;
 		} catch {}
 	});
+	$effect(() => { if (activeProductStore.hydrated && activeId) void loadGithubLinks(); });
 </script>
 
 <svelte:head><title>Roadmap | Product Client</title></svelte:head>
@@ -49,6 +94,9 @@
 						<Card padding="md" class="group" id={item.id}>
 							<div class="flex items-start gap-2"><span class="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)]">{#if lane === 'Shipped'}<CheckCircle size={14} weight="Outline" />{:else}<Map size={14} weight="Outline" />{/if}</span><div class="min-w-0"><h3 class="text-[13px] font-medium leading-snug">{item.title}</h3><p class="mt-1 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-70">{item.description}</p></div></div>
 							<div class="mt-4 flex items-center gap-2"><Chip size="xs" variant="accent">{item.productName}</Chip></div>
+							{#if githubLinks[item.id]}<div class="mt-3 flex items-center justify-between gap-2 border-t border-[var(--pc-border)]/60 pt-3"><a href={githubLinks[item.id].url} target="_blank" rel="noreferrer" class="inline-flex min-w-0 items-center gap-1.5 truncate text-[11px] text-[var(--pc-accent-light)] hover:underline"><Link2 size={12} weight="Outline" />Issue #{githubLinks[item.id].number}</a><button type="button" class="shrink-0 text-[11px] text-[var(--pc-text-faint)] hover:text-[var(--pc-text)]" onclick={() => void removeGithubLink(item.id)}>Unlink</button></div>
+							{:else if githubItemEditing === item.id}<div class="mt-3 flex gap-2 border-t border-[var(--pc-border)]/60 pt-3"><Input bind:value={githubReference} placeholder="owner/repo#123" aria-label={`GitHub issue for ${item.title}`} /><Button size="sm" loading={githubBusy} onclick={() => void saveGithubLink(item.id)}>Link</Button><Button size="sm" variant="outline" onclick={() => (githubItemEditing = null)}>Cancel</Button></div>
+							{:else}<button type="button" class="mt-3 inline-flex items-center gap-1.5 border-t border-[var(--pc-border)]/60 pt-3 text-[11px] text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]" onclick={() => (githubItemEditing = item.id)}><Link2 size={12} weight="Outline" />Link GitHub issue</button>{/if}
 						</Card>
 					{/each}
 					{#if scopedItems.filter((item) => item.status === lane).length === 0}<div class="rounded-[16px] bg-[var(--pc-surface)] px-3 py-8 text-center text-xs text-[var(--pc-text-faint)]">Nothing here yet</div>{/if}
@@ -56,4 +104,5 @@
 			</section>
 		{/each}
 	</div>
+	{#if githubMessage}<p class="pb-8 text-xs text-[var(--pc-text-muted)]" role="status">{githubMessage}</p>{/if}
 </div>

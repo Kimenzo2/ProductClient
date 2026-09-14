@@ -3,6 +3,8 @@ import { createAdminClient } from '$lib/server/supabaseAdmin';
 import { findTenantForUser } from '$lib/server/tenantAccess';
 import { validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
 import { deployDocsToGithub, getOwnedProductGithubLink, recordGithubAudit } from '$lib/server/githubCanonical';
+import { GithubApiError } from '$lib/server/githubApp';
+import { syncDocsFromGithub } from '$lib/server/githubDocsSync';
 import type { RequestHandler } from './$types';
 
 async function userIdFromRequest(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -40,6 +42,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 	try {
 		const productClientUrl = `${url.origin}/workspace/docs/editor`;
 		const result = await deployDocsToGithub({ link: owned.link, document, tenantSlug: tenant.slug, version, productName: owned.product.name, productClientUrl });
+		if (result.mode === 'commit') {
+			const sync = await syncDocsFromGithub(admin, owned.link, result.branch, result.sha);
+			if (!sync.ok) throw new Error(`GitHub commit completed but the canonical Docs sync failed: ${sync.message}`);
+		}
 		const now = new Date().toISOString();
 		await admin.from('github_repo_links').update({ last_sha: result.sha, last_synced_at: now, last_error: null, sync_status: result.mode === 'commit' ? 'synced' : 'awaiting_pull_request', sync_error_code: null }).eq('id', owned.link.id);
 		await admin.from('github_sync_runs').insert({ product_id: productId, event: result.mode === 'commit' ? 'docs_deploy' : 'docs_pull_request', sha: result.sha, ok: true, details: { branch: result.branch, pullRequestUrl: result.pullRequestUrl ?? null, pullRequestNumber: result.pullRequestNumber ?? null } });
@@ -47,9 +53,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		return json({ ok: true, ...result, version });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		await admin.from('github_repo_links').update({ last_error: message, sync_status: 'failed', sync_error_code: 'DEPLOY_FAILED' }).eq('id', owned.link.id);
-		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'docs_deploy', ok: false, error: message, details: {} });
-		await recordGithubAudit(admin, productId, 'docs.deploy_failed', { message, version }, userId, owned.link.repo_full_name);
-		return json({ ok: false, code: 'DEPLOY_FAILED', message }, { status: 502 });
+		const permissionDenied = error instanceof GithubApiError && error.status === 403;
+		const code = permissionDenied ? 'GITHUB_CONTENTS_WRITE_REQUIRED' : 'DEPLOY_FAILED';
+		const userMessage = permissionDenied ? 'This GitHub App cannot write repository contents. Grant the App Contents permission “Read and write”, then reinstall or approve the permission change.' : message;
+		await admin.from('github_repo_links').update({ last_error: userMessage, sync_status: 'failed', sync_error_code: code }).eq('id', owned.link.id);
+		await admin.from('github_sync_runs').insert({ product_id: productId, event: 'docs_deploy', ok: false, error: userMessage, details: { code } });
+		await recordGithubAudit(admin, productId, 'docs.deploy_failed', { message: userMessage, code, version }, userId, owned.link.repo_full_name);
+		return json({ ok: false, code, message: userMessage }, { status: 502 });
 	}
 };

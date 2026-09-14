@@ -7,6 +7,7 @@ import { onMount } from 'svelte';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 import { releases, products } from '$lib/data/workspace';
 import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { supabase } from '$lib/supabaseClient';
 
 	type InternalStatus = 'Draft' | 'In review' | 'Ready' | 'Published';
 	type Visibility = 'Internal' | 'Preview' | 'Public';
@@ -24,6 +25,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	// Workspace scope: this workspace owns all 12 products (Lorenze). In production this is workspace_id via RLS.
 	// Product switcher: when a product is selected, default filter to that product; still allow “All” for overview.
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
 	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Releases` : 'Internal releases');
 	let productFilter = $state('all');
 	// Keep filter in sync with active product when it changes (unless user explicitly chose another product)
@@ -35,7 +37,39 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		...products.map((p) => ({ value: p.slug, label: p.name }))
 	]);
 
-	onMount(() => { void hydrateActiveProduct(); });
+	type GithubReleaseView = { id: string; title: string; version: string | null; status: string; github_release_url: string; github_repo_full_name: string | null; created_at: string };
+	let githubReleases = $state<GithubReleaseView[]>([]);
+	let githubReleaseError = $state('');
+	let githubReleaseLoadedFor = $state<string | null>(null);
+	let confirmingRelease = $state<string | null>(null);
+	async function loadGithubReleases() {
+		if (!activeId || !supabase) return;
+		githubReleaseLoadedFor = activeId;
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) return;
+			const response = await fetch(`/api/github/releases?product_id=${encodeURIComponent(activeId)}`, { headers: { authorization: `Bearer ${token}` } });
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not load GitHub releases.');
+			githubReleases = result.releases ?? [];
+		} catch (error) { githubReleaseError = error instanceof Error ? error.message : String(error); }
+	}
+	async function confirmGithubRelease(releaseId: string) {
+		if (!activeId || !supabase) return;
+		confirmingRelease = releaseId;
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) throw new Error('Sign in again to confirm this release.');
+			const response = await fetch('/api/github/releases', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: activeId, release_id: releaseId }) });
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not confirm release.');
+			await loadGithubReleases();
+		} catch (error) { githubReleaseError = error instanceof Error ? error.message : String(error); } finally { confirmingRelease = null; }
+	}
+	onMount(async () => { await hydrateActiveProduct(); await loadGithubReleases(); });
+	$effect(() => { if (activeProductStore.hydrated && githubReleaseLoadedFor !== activeId) void loadGithubReleases(); });
 
 	let filter = $state<'All' | InternalStatus>('All');
 	let internalReleases = $derived(
@@ -98,4 +132,10 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		</section>
 		<aside class="space-y-4"><div class="min-h-[180px] py-4" aria-hidden="true"></div><div class="min-h-[180px] py-4" aria-hidden="true"></div></aside>
 	</div>
+	{#if activeId}
+		<Card padding="md" class="mb-10">
+			<div class="flex items-center justify-between gap-3"><div><h2 class="text-[14px] font-medium">GitHub releases</h2><p class="mt-1 text-xs text-[var(--pc-text-muted)]">GitHub releases enter as drafts here until you confirm them for ProductClient.</p></div><span class="text-xs text-[var(--pc-text-faint)]">{githubReleases.length}</span></div>
+			{#if githubReleaseError}<p class="mt-3 text-xs text-[var(--pc-danger)]" role="alert">{githubReleaseError}</p>{:else if githubReleases.length === 0}<p class="mt-4 text-xs text-[var(--pc-text-faint)]">No GitHub releases have been ingested for this product.</p>{:else}<div class="mt-4 divide-y divide-[var(--pc-border)]/60">{#each githubReleases as release (release.id)}<div class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate text-sm font-medium">{release.title}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)]">{release.version ?? 'Unversioned'} · {release.status === 'published' ? 'Published in ProductClient' : 'Awaiting maker confirmation'}</p></div><div class="flex shrink-0 items-center gap-3"><a class="inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)] hover:underline" href={release.github_release_url} target="_blank" rel="noreferrer">Open GitHub release <ArrowRight size={12} weight="Outline" /></a>{#if release.status !== 'published'}<Button size="sm" loading={confirmingRelease === release.id} onclick={() => void confirmGithubRelease(release.id)}>Confirm</Button>{/if}</div></div>{/each}</div>{/if}
+		</Card>
+	{/if}
 </div>
