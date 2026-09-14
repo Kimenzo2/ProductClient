@@ -167,20 +167,19 @@
 
 	async function saveDraft(showHint = true) {
 		if (!supabase) {
-			mediaError = 'Service unavailable — try again.';
+			if (showHint) mediaError = 'Service unavailable — try again.';
 			return false;
 		}
 		const { data: session } = await supabase.auth.getSession();
 		if (!session.session) {
-			mediaError = 'Sign in to save — your draft stays here until you sign in.';
 			if (showHint) {
-				// keep hint visible as error, not success
+				mediaError = 'Sign in to save — your draft stays here until you sign in.';
 				savedHint = '';
 			}
 			return false;
 		}
 		saving = true;
-		mediaError = '';
+		if (showHint) mediaError = '';
 		try {
 			const payload: any = {
 				maker_id: session.session.user.id,
@@ -218,9 +217,13 @@
 				setTimeout(() => (savedHint = ''), 900);
 			}
 			return true;
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : 'Could not save draft';
-			mediaError = msg.includes('duplicate') || msg.includes('slug') ? 'That address is taken — try another.' : msg;
+		} catch (e: any) {
+			const raw = e?.message ?? e?.details ?? e?.hint ?? String(e);
+			const msg = typeof raw === 'string' && raw.trim() ? raw : 'Could not save draft';
+			console.warn('[pad] saveDraft', e);
+			if (showHint) {
+				mediaError = msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('slug') ? 'That address is taken — try another.' : msg;
+			}
 			return false;
 		} finally {
 			saving = false;
@@ -262,9 +265,9 @@
 		publishing = true;
 		mediaError = '';
 		try {
-			const saved = await saveDraft(false);
+			const saved = await saveDraft(true);
 			if (!saved) {
-				// saveDraft already set mediaError (e.g., sign in, slug taken)
+				if (!mediaError) mediaError = 'Could not save draft — check your connection.';
 				return;
 			}
 			// After saveDraft, draftId must exist — if still null, insert failed silently,
