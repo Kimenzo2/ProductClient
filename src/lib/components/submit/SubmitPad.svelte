@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { CloseCircle, Add, ImagePlus, Link2, Check, Globe } from 'reicon-svelte';
 	import { supabase } from '$lib/supabaseClient';
+	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
 	import { activeProductStore, setActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	type Tab = 'product' | 'media' | 'launch' | 'review';
@@ -184,19 +185,6 @@
 			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
 			if (!slug) slug = finalSlug;
 			// PostgREST cache is stale for new columns (tagline etc. also 42703) — use only columns known to be in cache: slug, name, category
-			if (draftId) {
-				const { error } = await supabase.from('products').update({ slug: finalSlug, name: name || 'Untitled product', category: categories[0] || null }).eq('id', draftId);
-				if (error) throw error;
-			} else {
-				const { data, error } = await supabase
-					.from('products')
-					.insert({ maker_id: session.session.user.id, slug: finalSlug, name: name || 'Untitled product', category: categories[0] || null })
-					.select('id')
-					.single();
-				if (error) throw error;
-				draftId = (data as any).id;
-			}
-			// Stash full pad payload for SQL-side apply (bypasses PostgREST cache for new columns)
 			const fullPayload: any = {
 				name: name || 'Untitled product',
 				slug: finalSlug,
@@ -215,6 +203,28 @@
 				you_built_this: youBuiltThis,
 				draft: true
 			};
+			// profiles + set_active_product bypass PostgREST column cache (availability etc.) and handles email-split auth DB
+			const vEmail = session.session.user.email as string;
+			let profileId: string | null = session.session.user.id;
+			try {
+				const { data: prof } = await supabase.from('profiles').select('id').eq('email', vEmail).maybeSingle();
+				if (prof?.id) profileId = prof.id;
+			} catch {}
+			try {
+				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('id', profileId as string);
+			} catch {}
+			// Also try email fallback if id was wrong
+			try {
+				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('email', vEmail);
+			} catch {}
+			const { data: rpcData, error: rpcErr } = await supabase.rpc('set_active_product', { p_product_id: draftId });
+			if (rpcErr) throw rpcErr;
+			if (rpcData && !draftId) {
+				const pid = (rpcData as any)?.id || (Array.isArray(rpcData) ? (rpcData as any)[0]?.id : null);
+				if (pid) draftId = pid;
+			} else if (rpcData && draftId) {
+				// draftId already set, keep it
+			}
 			try {
 				await supabase.from('profiles').update({ gamification_data: fullPayload as any }).eq('id', session.session.user.id);
 			} catch {

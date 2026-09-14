@@ -1,19 +1,39 @@
 <script lang="ts">
-	import { ArrowRight, Inbox, Search, Sparkles } from 'reicon-svelte';
+	import { Inbox, Search } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Button, Card, Input, StatePanel } from '$lib/components/ui';
-	import { feedback } from '$lib/data/workspace';
+	import { Input, StatePanel } from '$lib/components/ui';
+	import { loadFeedbackItems, type FeedbackBucket, type FeedbackItemView } from '$lib/data/feedbackInbox';
+	import { requireSession } from '$lib/auth/guard';
 	import { onMount } from 'svelte';
 	import { trackAnalyticsEvent } from '$lib/data/analytics';
 	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let query = $state('');
-	let filter = $state<'All' | 'New' | 'Reviewed' | 'Planned' | 'Resolved'>('All');
+	let filter = $state<'All' | FeedbackBucket>('All');
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
 	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Feedback` : 'Feedback');
+
+	let items = $state<FeedbackItemView[]>([]);
+	let loading = $state(true);
+	let loadError = $state<string | null>(null);
+	let lastLoadedFor = $state<string | undefined>(undefined);
+
+	async function load(): Promise<void> {
+		const allowed = await requireSession('/workspace/feedback');
+		if (!allowed) return;
+		loading = true;
+		loadError = null;
+		const result = await loadFeedbackItems(activeId);
+		items = result.items;
+		loadError = result.error;
+		lastLoadedFor = activeId ?? undefined;
+		loading = false;
+	}
+
 	let filtered = $derived(
-		feedback.filter((item) => {
+		items.filter((item) => {
 			const haystack = `${item.title} ${item.body} ${item.productName} ${item.from}`.toLowerCase();
 			const matchesProduct = !activeSlug || item.productSlug === activeSlug;
 			return matchesProduct && (filter === 'All' || item.status === filter) && haystack.includes(query.trim().toLowerCase());
@@ -23,6 +43,14 @@
 		void hydrateActiveProduct();
 		void trackAnalyticsEvent('feedback.new', { path: '/workspace/feedback', productId: activeProductStore.activeProduct?.id });
 	});
+
+	$effect(() => {
+		// Reload when the active product changes after hydration (picker switch).
+		void activeId;
+		if (!activeProductStore.hydrated) return;
+		if (lastLoadedFor !== activeId) void load();
+	});
+
 	$effect(() => { void filter; void trackAnalyticsEvent('feedback.shipped', { value: filter }); });
 </script>
 
@@ -44,11 +72,19 @@
 
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_300px]">
 		<section class="space-y-2" aria-label="Feedback records">
-			{#each filtered as item (item.id)}
-				<EntityRow href={item.workspacePath} kind="Feedback" title={item.title} subtitle={`${item.productName} · ${item.type} · ${item.priority} priority`} description={item.body} status={item.status} meta={`${item.from} · ${item.postedAt}`} />
-			{/each}
-			{#if filtered.length === 0}
-				<StatePanel icon={Inbox} title="No feedback matches" description="Try a product, person, or broader state." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} />
+			{#if loading}
+				{#each Array(4) as _, i (i)}
+					<div class="h-[74px] animate-pulse rounded-[16px] bg-[var(--pc-surface-2)]" aria-hidden="true"></div>
+				{/each}
+			{:else if loadError}
+				<StatePanel icon={Inbox} title="Could not load feedback" description={loadError} actionLabel="Retry" onAction={() => void load()} />
+			{:else}
+				{#each filtered as item (item.id)}
+					<EntityRow href={`/workspace/feedback/${item.id}`} kind="Feedback" title={item.title} subtitle={`${item.productName} · ${item.typeLabel}`} description={item.body} status={item.status} meta={`${item.from} · ${item.postedAt}`} />
+				{/each}
+				{#if filtered.length === 0}
+					<StatePanel icon={Inbox} title="No feedback matches" description="Try a product, person, or broader state." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} />
+				{/if}
 			{/if}
 		</section>
 

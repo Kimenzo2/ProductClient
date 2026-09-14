@@ -2,21 +2,93 @@
 	import { AlertTriangle, Inbox, Sparkles } from 'reicon-svelte';
 	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Card, Chip, StatePanel } from '$lib/components/ui';
-	import { feedback, incidents } from '$lib/data/workspace';
+	import { StatePanel } from '$lib/components/ui';
+	import { loadInboxIncidents, loadInboxThreads, type InboxThreadView, type IncidentRowView } from '$lib/data/feedbackInbox';
+	import { requireSession } from '$lib/auth/guard';
 	import { onMount } from 'svelte';
 	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	let filter = $state<'All' | 'Feedback' | 'Incident'>('All');
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
 	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Inbox` : 'Inbox');
-	const queueBase = [
-		...feedback.map((item) => ({ kind: 'Feedback' as const, title: item.title, subtitle: `${item.productName} · ${item.type} · ${item.priority} priority`, description: item.body, status: item.status, href: item.workspacePath, meta: `${item.from} · ${item.postedAt}`, order: item.status === 'New' ? 0 : 1, productSlug: item.productSlug })),
-		...incidents.map((item) => ({ kind: 'Incident' as const, title: item.title, subtitle: `${item.productName} · ${item.severity}`, description: item.summary, status: item.status, href: item.workspacePath, meta: `${item.owner} · ${item.startedAt}`, order: item.status === 'Resolved' ? 2 : 0, productSlug: item.productSlug }))
-	];
-	let queue = $derived(activeSlug ? queueBase.filter((i) => i.productSlug === activeSlug) : queueBase);
-	let filtered = $derived(queue.filter((item) => filter === 'All' || item.kind === filter).sort((a, b) => a.order - b.order));
-	onMount(() => { void hydrateActiveProduct(); });
+
+	let threads = $state<InboxThreadView[]>([]);
+	let incidentRows = $state<IncidentRowView[]>([]);
+	let loading = $state(true);
+	let loadError = $state<string | null>(null);
+	let lastLoadedFor = $state<string | undefined>(undefined);
+
+	async function load(): Promise<void> {
+		const allowed = await requireSession('/workspace/inbox');
+		if (!allowed) return;
+		loading = true;
+		loadError = null;
+		const [threadResult, incidentResult] = await Promise.all([loadInboxThreads(activeId), loadInboxIncidents()]);
+		threads = threadResult.threads;
+		incidentRows = incidentResult.rows;
+		loadError = threadResult.error ?? incidentResult.error;
+		lastLoadedFor = activeId ?? undefined;
+		loading = false;
+	}
+
+	type QueueItem = {
+		id: string;
+		kind: 'Feedback' | 'Incident';
+		title: string;
+		subtitle: string;
+		description: string;
+		status: string;
+		href: string;
+		meta: string;
+		order: number;
+		productSlug: string;
+	};
+
+	let queue = $derived.by(() => {		const threadItems: QueueItem[] = threads.map((thread) => ({
+			id: thread.id,
+			kind: 'Feedback',
+			title: thread.title,
+			subtitle: `${thread.productName} · feedback thread`,
+			description: thread.preview,
+			status: thread.unread ? 'Needs reply' : thread.status,
+			// Only feedback subjects have a workspace detail page today.
+			href: thread.href,
+			meta: thread.lastMessageAt,
+			order: thread.unread ? 0 : 1,
+			productSlug: thread.productSlug
+		}));
+		const incidentItems: QueueItem[] = incidentRows.map((incident) => ({
+			id: incident.id,
+			kind: 'Incident',
+			title: incident.title,
+			subtitle: incident.severity,
+			description: incident.summary,
+			status: incident.status,
+			href: '/workspace/status',
+			meta: `${incident.owner} · ${incident.startedAt}`,
+			order: incident.status === 'Resolved' ? 2 : 0,
+			productSlug: ''
+		}));
+		// Incidents are tenant-scoped; keep them visible even when an active
+		// product filter is on — only feedback threads narrow by product.
+		const visibleThreads = activeSlug ? threadItems.filter((t) => t.productSlug === activeSlug) : threadItems;
+		return [...visibleThreads, ...incidentItems].sort((a, b) => a.order - b.order);
+	});
+
+	let filtered = $derived(queue.filter((item) => filter === 'All' || item.kind === filter));
+
+	$effect(() => {
+		void activeId;
+		if (!activeProductStore.hydrated) return;
+		if (lastLoadedFor !== activeId) void load();
+	});
+
+	onMount(() => {
+		void hydrateActiveProduct().then(() => {
+			if (lastLoadedFor === undefined) void load();
+		});
+	});
 </script>
 
 <svelte:head><title>Inbox | Product Client</title></svelte:head>
@@ -31,8 +103,16 @@
 	</div>
 	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Inbox records">
-			{#each filtered as item (item.kind + item.title)}<EntityRow {...item} />{/each}
-			{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
+			{#if loading}
+				{#each Array(4) as _, i (i)}
+					<div class="h-[74px] animate-pulse rounded-[16px] bg-[var(--pc-surface-2)]" aria-hidden="true"></div>
+				{/each}
+			{:else if loadError}
+				<StatePanel icon={Inbox} title="Could not load inbox" description={loadError} actionLabel="Retry" onAction={() => void load()} />
+			{:else}
+				{#each filtered as item (item.kind + item.id)}<EntityRow {...item} />{/each}
+				{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
+			{/if}
 		</section>
 		<aside><div class="min-h-[180px] py-4" aria-hidden="true"></div></aside>
 	</div>
