@@ -11,6 +11,7 @@ export type ActiveProduct = {
 	name: string;
 	logo_url: string | null;
 	avatar: string | null;
+	github_url: string | null;
 	category: string | null;
 	tagline: string | null;
 	status: string;
@@ -25,6 +26,7 @@ function toActiveProduct(row: any): ActiveProduct {
 		name: row.name,
 		logo_url: row.logo_url ?? row.avatar ?? null,
 		avatar: row.avatar ?? row.logo_url ?? null,
+		github_url: row.github_url ?? null,
 		category: row.category ?? null,
 		tagline: row.tagline ?? null,
 		status: row.status ?? 'Live'
@@ -38,6 +40,7 @@ function mockToActive(mock: ProductRecord): ActiveProduct {
 		name: mock.name,
 		logo_url: mock.avatar,
 		avatar: mock.avatar,
+		github_url: null,
 		category: mock.category ?? null,
 		tagline: mock.tagline ?? null,
 		status: mock.status
@@ -129,7 +132,7 @@ export async function hydrateActiveProduct(): Promise<void> {
 						} else {
 							const { data: sel, error: selErr } = await supabase
 								.from('products')
-								.select('id, slug, name, logo_url, avatar, category, tagline, status')
+								.select('id, slug, name, logo_url, avatar, github_url, category, tagline, status')
 								.is('deleted_at', null)
 								.order('created_at', { ascending: true });
 							if (!selErr && Array.isArray(sel)) rows = (sel as any[]).map(toActiveProduct);

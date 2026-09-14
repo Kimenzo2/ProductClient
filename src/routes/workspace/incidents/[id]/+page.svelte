@@ -5,6 +5,7 @@
 	import { Button, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
 	import { type PublicIncidentStatus, type StatusIncident } from '$lib/data/status';
 	import { appendIncidentUpdate, hydrateStatusEditor, incidentRecordsForWorkspace, saveStatusEditor, statusEditorPreview } from '$lib/data/statusEditor.svelte';
+	import { supabase } from '$lib/supabaseClient';
 
 	let id = $derived(page.params.id);
 	let incident = $derived(incidentRecordsForWorkspace().find((record) => record.id === id));
@@ -15,6 +16,10 @@
 	let updateTimestamp = $state('');
 	let visibleUpdates = $derived(incident?.updates ?? []);
 	let updateDialogOpen = $state(false);
+	let githubReference = $state('');
+	let githubLinks = $state<Array<{ id: string; kind: string; url: string; title: string | null; state: string | null; merged: boolean | null }>>([]);
+	let githubBusy = $state(false);
+	let githubMessage = $state('');
 	let updatePanel = $state<HTMLElement | null>(null);
 	let updateTrigger = $state<HTMLElement | null>(null);
 	const updateStatusOptions = [
@@ -24,8 +29,9 @@
 		{ value: 'Resolved', label: 'Resolved' }
 	];
 
-	onMount(() => {
+	 onMount(() => {
 		void hydrateStatusEditor();
+		void loadGithubLinks();
 		const handleDialogKeydown = (event: KeyboardEvent) => {
 			if (!updateDialogOpen) return;
 			if (event.key === 'Escape') {
@@ -50,6 +56,37 @@
 		window.addEventListener('keydown', handleDialogKeydown);
 		return () => window.removeEventListener('keydown', handleDialogKeydown);
 	});
+
+	async function loadGithubLinks() {
+		if (!id || !supabase) return;
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		if (!token) return;
+		const response = await fetch(`/api/github/incidents?incident_id=${encodeURIComponent(id)}`, { headers: { authorization: `Bearer ${token}` } });
+		const result = await response.json().catch(() => null);
+		if (result?.ok) githubLinks = result.links ?? [];
+	}
+
+	async function attachGithubLink() {
+		if (!id || !githubReference.trim() || !supabase) return;
+		githubBusy = true;
+		githubMessage = '';
+		try {
+			const { data } = await supabase.auth.getSession();
+			const token = data.session?.access_token;
+			if (!token) throw new Error('Sign in again to attach GitHub work.');
+			const response = await fetch('/api/github/incidents', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ incident_id: id, reference: githubReference }) });
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not attach GitHub work.');
+			githubReference = '';
+			githubMessage = 'GitHub work attached.';
+			await loadGithubLinks();
+		} catch (error) {
+			githubMessage = error instanceof Error ? error.message : String(error);
+		} finally {
+			githubBusy = false;
+		}
+	}
 
 	function stageUpdate() {
 		updateError = '';
@@ -130,6 +167,13 @@
 			</nav>
 		</section>
 
+		<section class="github-links" aria-labelledby="incident-github-title">
+			<div class="section-heading"><div><h2 id="incident-github-title">GitHub work</h2><p class="detail-lede">Attach the pull request or issue carrying this response work.</p></div></div>
+			<div class="github-link-form"><Input bind:value={githubReference} placeholder="https://github.com/org/repo/pull/123" aria-label="GitHub pull request or issue URL" /><Button size="sm" variant="outline" loading={githubBusy} onclick={attachGithubLink}>Attach</Button></div>
+			{#if githubMessage}<p class="github-message" role="status">{githubMessage}</p>{/if}
+			{#if githubLinks.length}<div class="github-link-list">{#each githubLinks as link}<a href={link.url} target="_blank" rel="noreferrer"><span>{link.kind === 'pull_request' ? 'Pull request' : 'Issue'}</span><strong>{link.title ?? link.url}</strong><small>{link.state ?? 'linked'}{link.merged ? ' · merged' : ''}</small></a>{/each}</div>{/if}
+		</section>
+
 		<div class="detail-layout">
 			<main>
 				<section class="response-section" aria-labelledby="timeline-title">
@@ -198,6 +242,18 @@
 	.command-actions a { color: var(--pc-text-muted); font-size: 12px; text-underline-offset: 4px; }
 	.command-actions a:hover { color: var(--pc-text); }
 	.command-actions a:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 4px; }
+	.github-links { padding: 28px 0 30px; border-bottom: 1px solid var(--pc-border-strong); }
+	.github-links .section-heading { margin-bottom: 14px; }
+	.github-links .section-heading h2 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.04em; }
+	.github-links .detail-lede { margin: 6px 0 0; font-size: 13px; }
+	.github-link-form { display: flex; max-width: 680px; gap: 10px; }
+	.github-link-form :global(input) { flex: 1; min-width: 0; }
+	.github-message { margin: 10px 0 0; color: var(--pc-text-muted); font-size: 12px; }
+	.github-link-list { display: grid; max-width: 680px; gap: 8px; margin-top: 14px; }
+	.github-link-list a { display: grid; gap: 3px; padding: 11px 13px; border: 1px solid var(--pc-border-strong); border-radius: 12px; color: var(--pc-text); text-decoration: none; }
+	.github-link-list a:hover { border-color: var(--pc-focus-ring); }
+	.github-link-list span, .github-link-list small { color: var(--pc-text-faint); font-size: 11px; }
+	.github-link-list strong { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 	.detail-layout { display: grid; grid-template-columns: minmax(0, 1fr); padding-top: 38px; }
 	main { min-width: 0; }
 	.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -239,6 +295,6 @@
 	.form-error { color: var(--pc-status-outage) !important; }
 	.missing-detail { width: min(100% - 32px, 960px); margin: 0 auto; padding-top: 48px; }
 	@media (max-width: 760px) { .incident-detail { width: min(100% - 24px, 1080px); padding-top: 28px; } .command-heading { align-items: start; flex-direction: column; gap: 12px; } .command-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .command-facts div:nth-child(3) { padding-inline-start: 0; border-inline-start: 0; border-top: 1px solid var(--pc-border); } .command-facts div:nth-child(4) { border-top: 1px solid var(--pc-border); } .detail-layout { padding-top: 34px; } }
-	@media (max-width: 540px) { .section-heading { align-items: start; flex-direction: column; } .section-heading-actions { justify-content: space-between; width: 100%; } .form-grid { grid-template-columns: 1fr; } .update-dialog { width: min(100% - 12px, 640px); padding: 28px 22px max(24px, env(safe-area-inset-bottom)); border-start-start-radius: 24px; border-end-start-radius: 24px; } .dialog-header h2 { font-size: 23px; } .dialog-actions { align-items: stretch; flex-direction: column; } .dialog-actions > div { justify-content: space-between; } }
+	@media (max-width: 540px) { .section-heading { align-items: start; flex-direction: column; } .section-heading-actions { justify-content: space-between; width: 100%; } .form-grid { grid-template-columns: 1fr; } .github-link-form { align-items: stretch; flex-direction: column; } .update-dialog { width: min(100% - 12px, 640px); padding: 28px 22px max(24px, env(safe-area-inset-bottom)); border-start-start-radius: 24px; border-end-start-radius: 24px; } .dialog-header h2 { font-size: 23px; } .dialog-actions { align-items: stretch; flex-direction: column; } .dialog-actions > div { justify-content: space-between; } }
 	@media (prefers-reduced-motion: reduce) { .dialog-close { transition: none; } }
 </style>

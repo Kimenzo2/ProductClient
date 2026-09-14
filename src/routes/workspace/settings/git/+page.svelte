@@ -7,12 +7,13 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 import { supabase } from '$lib/supabaseClient';
 
 	type Product = { id: string; name: string; slug: string };
-	type Link = { product_id: string; repo_full_name: string; branch: string; docs_path: string; last_sha: string | null; last_synced_at: string | null; last_error: string | null; installation_id: number };
+	type Link = { product_id: string; repo_full_name: string; branch: string; deploy_branch?: string | null; docs_path: string; last_sha: string | null; last_synced_at: string | null; last_error: string | null; installation_id: number };
 	type Repo = { full_name: string; default_branch: string; private: boolean };
 
 	let products = $state<Product[]>([]);
 	let activeProductId = $state<string | null>(null);
 	let link = $state<Link | null>(null);
+	let contextLinks = $state<Link[]>([]);
 	let repos = $state<Repo[]>([]);
 	let loading = $state(true);
 	let error = $state('');
@@ -21,7 +22,9 @@ import { supabase } from '$lib/supabaseClient';
 
 	let selectedRepo = $state('');
 	let branch = $state('main');
+	let deployBranch = $state('');
 	let docsPath = $state('/');
+	let contextRepo = $state('');
 	let busy = $state(false);
 	let installPending = $state(false);
 	let installPoll: ReturnType<typeof setInterval> | undefined;
@@ -57,7 +60,7 @@ import { supabase } from '$lib/supabaseClient';
 	}
 
 	async function loadLink() {
-		if (!activeProductId) { link = null; return; }
+		if (!activeProductId) { link = null; contextLinks = []; return; }
 		const token = await authToken();
 		if (!token) return;
 		const res = await fetch(`/api/github/link?product_id=${activeProductId}`, { headers: { authorization: `Bearer ${token}` } });
@@ -67,6 +70,7 @@ import { supabase } from '$lib/supabaseClient';
 			installationId = link.installation_id;
 			selectedRepo = link.repo_full_name;
 			branch = link.branch;
+			deployBranch = link.deploy_branch ?? '';
 			docsPath = link.docs_path;
 		} else {
 			link = null;
@@ -74,6 +78,9 @@ import { supabase } from '$lib/supabaseClient';
 			const qInst = page.url.searchParams.get('installation_id') ?? (j?.installation_id ? String(j.installation_id) : null);
 			if (qInst) installationId = Number(qInst);
 		}
+		const contextRes = await fetch(`/api/github/link?product_id=${activeProductId}&role=context`, { headers: { authorization: `Bearer ${token}` } });
+		const contextResult = await contextRes.json().catch(() => null);
+		contextLinks = contextResult?.ok ? (contextResult.links as Link[]) ?? [] : [];
 	}
 
 	async function loadRepos() {
@@ -177,7 +184,7 @@ import { supabase } from '$lib/supabaseClient';
 			const res = await fetch('/api/github/link', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-				body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: selectedRepo, branch, docs_path: docsPath })
+				body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: selectedRepo, branch, deploy_branch: deployBranch || null, docs_path: docsPath })
 			});
 			const j = await res.json().catch(() => null);
 			if (!j?.ok) throw new Error(j?.message ?? j?.code ?? 'Could not save');
@@ -188,6 +195,35 @@ import { supabase } from '$lib/supabaseClient';
 		} finally {
 			busy = false;
 		}
+	}
+
+	async function saveContextRepo() {
+		if (!activeProductId || !installationId || !contextRepo) { error = 'Pick a context repository'; return; }
+		busy = true;
+		error = '';
+		try {
+			const token = await authToken();
+			if (!token) throw new Error('Not signed in');
+			const contextBranch = repos.find((repo) => repo.full_name === contextRepo)?.default_branch ?? 'main';
+			const res = await fetch('/api/github/link', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: activeProductId, installation_id: installationId, repo_full_name: contextRepo, role: 'context', branch: contextBranch, docs_path: '/' }) });
+			const result = await res.json().catch(() => null);
+			if (!res.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save context repository');
+			contextRepo = '';
+			await loadLink();
+			notice = 'Context repository added. It is read-only in ProductClient.';
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			busy = false;
+		}
+	}
+
+	async function removeContextRepo(repo: string) {
+		if (!activeProductId) return;
+		const token = await authToken();
+		if (!token) return;
+		await fetch(`/api/github/link?product_id=${activeProductId}&role=context&repo_full_name=${encodeURIComponent(repo)}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+		await loadLink();
 	}
 
 	async function disconnect() {
@@ -271,6 +307,12 @@ import { supabase } from '$lib/supabaseClient';
 							<Button size="sm" variant="outline" onclick={disconnect}>Disconnect</Button>
 						</div>
 						{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
+						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
+							<div class="text-sm font-medium">Context repositories</div>
+							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Read-only product code context for future links and release context. Docs deploy only uses the source repository above.</p>
+							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-mono">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
+							<div class="mt-3 flex gap-2"><Select bind:value={contextRepo} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
+						</div>
 					</div>
 				{:else if !installationId}
 					<div class="flex items-center gap-3 p-4">
@@ -294,8 +336,9 @@ import { supabase } from '$lib/supabaseClient';
 							</div>
 							<div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
 								<div class="grid gap-1.5"><Label for="gh-branch">Branch</Label><Input id="gh-branch" bind:value={branch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
-								<div class="grid gap-1.5"><Label for="gh-path">Folder</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+								<div class="grid gap-1.5"><Label for="gh-deploy-branch">Deploy into</Label><Input id="gh-deploy-branch" bind:value={deployBranch} placeholder="Optional PR base" class="font-mono max-sm:text-base!" /></div>
 							</div>
+							<div class="grid gap-1.5"><Label for="gh-path">Docs folder</Label><Input id="gh-path" bind:value={docsPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
 							<div class="flex gap-2">
 								<Button size="sm" loading={busy} onclick={saveLink}>Save</Button>
 								<Button size="sm" variant="outline" onclick={connect}>Change install</Button>

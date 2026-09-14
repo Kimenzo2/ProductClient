@@ -6,8 +6,9 @@
 	import { Tree, TreeFolder, TreeFile } from 'components-svelte';
 	import EditorBlockSurface from '$lib/components/docs/EditorBlockSurface.svelte';
 	import { docsBlocksToMarkdown, markdownToDocsBlocks, normalizeDocsSiteConfig, starterDocsDocument, starterSiteConfig, type DocsBlock, type DocsDocument, type DocsPage, type DocsSiteConfig } from '$lib/data/docsEditor';
-	import { supabase } from '$lib/supabaseClient';
+import { supabase } from '$lib/supabaseClient';
 import { tooltip } from '$lib/components/Tooltip.svelte';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
 	type EditorResponse = {
 		ok?: boolean;
@@ -37,6 +38,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	let loading = $state(true);
 	let saving = $state(false);
 	let publishing = $state(false);
+	let deploying = $state(false);
+	let deployMessage = $state('');
+	let githubLink = $state<{ repo_full_name: string; branch: string; deploy_branch?: string | null; last_sha: string | null; last_error: string | null } | null>(null);
 	let errorMessage = $state('');
 	// Loop 2: removed expandedViews/expandedGroups — mature TreeFolder owns open state internally
 	// via defaultOpen (uncontrolled). Keeping duplicate mirrors caused drift + dead writes.
@@ -311,6 +315,16 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		// TreeFolder defaultOpen handles initial expansion; no mirror state needed.
 	}
 
+	async function readGithubLink() {
+		const productId = activeProductStore.activeProduct?.id;
+		if (!productId || productId.startsWith('mock-')) return;
+		const token = await sessionToken();
+		if (!token) return;
+		const response = await fetch(`/api/github/link?product_id=${encodeURIComponent(productId)}`, { headers: { authorization: `Bearer ${token}` } });
+		const result = await response.json().catch(() => null);
+		githubLink = result?.ok && result.link ? result.link : null;
+	}
+
 	async function saveDraft(): Promise<boolean> {
 		const token = await sessionToken();
 		if (!token) {
@@ -363,6 +377,31 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		}
 	}
 
+	async function deployToGithub() {
+		const productId = activeProductStore.activeProduct?.id;
+		if (!productId || productId.startsWith('mock-')) {
+			errorMessage = 'Choose a real product before deploying documentation.';
+			return;
+		}
+		deploying = true;
+		deployMessage = '';
+		errorMessage = '';
+		try {
+			if ((dirty || version === 0) && !(await saveDraft())) return;
+			const token = await sessionToken();
+			if (!token) throw new Error('Sign in again to deploy the documentation.');
+			const response = await fetch('/api/github/deploy', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ product_id: productId }) });
+			const result = await response.json().catch(() => null);
+			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not deploy to GitHub.');
+			deployMessage = result.mode === 'pull_request' ? `Pull request opened · ${result.branch}` : `Committed ${result.sha?.slice(0, 7) ?? ''} to ${result.branch}`;
+			await readGithubLink();
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : 'Could not deploy to GitHub.';
+		} finally {
+			deploying = false;
+		}
+	}
+
 	$effect(() => {
 		if (currentPage && currentPage.id !== editorBlockPageId) {
 			editorBlocks = cloneSnapshot(blocksForPage(currentPage));
@@ -399,7 +438,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		window.addEventListener('click', handleWindowClick);
 		if (new URLSearchParams(window.location.search).get('tab') === 'settings') editorSurface = 'site-config';
 		try {
+			await hydrateActiveProduct();
 			await readEditor();
+			await readGithubLink();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : 'Could not load the documentation draft.';
 		} finally {
@@ -422,11 +463,11 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		<div class="command-leading">
 			<a class="command-back" href="/workspace/docs" aria-label="Back to Docs"><ArrowLeft size={15} weight="Outline" aria-hidden="true" /></a>
 			<div class="menu-anchor">
-				<button class="branch-switch" type="button" aria-label="Current branch" aria-expanded={branchMenuOpen} onclick={() => (branchMenuOpen = !branchMenuOpen)}><span class="branch-mark" aria-hidden="true"></span><span>main</span><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
+				<button class="branch-switch" type="button" aria-label="Current branch" aria-expanded={branchMenuOpen} onclick={() => (branchMenuOpen = !branchMenuOpen)}><span class="branch-mark" aria-hidden="true"></span><span>{githubLink?.branch ?? 'main'}</span><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
 				{#if branchMenuOpen}
 					<div class="editor-menu branch-menu" role="menu">
-						<button class="menu-item selected" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}><span class="branch-mark" aria-hidden="true"></span><span>main</span><span class="menu-check">Current</span></button>
-						<button class="menu-item" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}>+ Create branch</button>
+						<button class="menu-item selected" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}><span class="branch-mark" aria-hidden="true"></span><span>{githubLink?.branch ?? 'main'}</span><span class="menu-check">Configured</span></button>
+						<a class="menu-item" href="/workspace/settings/git" role="menuitem" onclick={() => (branchMenuOpen = false)}>Change in Git settings</a>
 					</div>
 				{/if}
 			</div>
@@ -441,6 +482,8 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				{#if currentPage}<button class="canvas-icon-action danger" type="button" aria-label="Remove page" onclick={deleteSelectedPage}><span use:tooltip={{ text: 'Remove page', island: true }}><Trash size={14} weight="Outline" aria-hidden="true" /></span></button>{/if}
 			{/if}
 			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
+			{#if deployMessage}<span class="save-state" role="status">{deployMessage}</span>{/if}
+			{#if githubLink}<Button class="toolbar-button" variant="outline" size="sm" disabled={deploying || loading} loading={deploying} onclick={() => void deployToGithub()}>Deploy</Button>{/if}
 			<Button class="toolbar-button" variant="outline" size="sm" disabled={!dirty || saving} loading={saving} onclick={() => void saveDraft()}><Save size={13} weight="Outline" /> Save</Button>
 			<div class="publish-control menu-anchor">
 				<Button class="toolbar-button toolbar-button-primary" size="sm" disabled={publishing || loading || doc.pages.length === 0} loading={publishing} onclick={() => void publish()}>Publish</Button>

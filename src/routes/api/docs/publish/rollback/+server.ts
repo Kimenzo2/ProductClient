@@ -3,6 +3,7 @@ import { createAdminClient } from '$lib/server/supabaseAdmin';
 import { findTenantForUser } from '$lib/server/tenantAccess';
 import { pagePath, validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
 import { docsContentHash, mirrorDocsToD1, type DocsRedirect } from '$lib/server/docsPublish';
+import { buildDocsArtifacts } from '$lib/server/docsArtifacts';
 import type { RequestHandler } from './$types';
 
 function redirectsBetween(previous: DocsDocument | null, next: DocsDocument): DocsRedirect[] {
@@ -101,6 +102,22 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (release.error) {
 		await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Release history could not be recorded.' }).eq('tenant_id', tenant.id);
 		return json({ ok: false, code: 'RELEASE_RECORD_FAILED', message: 'The rollback was not recorded. Retry it.' }, { status: 503, headers: { 'retry-after': '5' } });
+	}
+	const artifacts = buildDocsArtifacts(document, tenant.slug, publishedVersion, contentHash);
+	const artifactWrite = await admin.from('docs_release_artifacts').insert({
+		release_id: releaseId,
+		tenant_id: tenant.id,
+		schema_version: document.schemaVersion,
+		content_digest: contentHash,
+		markdown: artifacts.markdown,
+		llms_txt: artifacts.llmsTxt,
+		skill_md: artifacts.skillMd,
+		mcp_json: artifacts.mcpJson,
+		sitemap_xml: artifacts.sitemapXml
+	});
+	if (artifactWrite.error) {
+		await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Generated release artifacts could not be recorded.' }).eq('tenant_id', tenant.id);
+		return json({ ok: false, code: 'ARTIFACT_RECORD_FAILED', message: 'The rollback artifacts could not be recorded. Retry it.' }, { status: 503, headers: { 'retry-after': '5' } });
 	}
 	await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.rollback_started', release_id: releaseId, version: publishedVersion, details: { rolledBackFrom: sourceVersion, contentHash, redirectCount: redirects.length } });
 	if (redirects.length) {

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
 import { getInstallationToken } from '$lib/server/githubApp';
+import { githubRepositoryUrl, type GithubLinkRole } from '$lib/server/githubCanonical';
 import type { RequestHandler } from './$types';
 
 async function getUserId(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -16,11 +17,17 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	const userId = await getUserId(request, admin);
 	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const productId = url.searchParams.get('product_id');
+	const role = url.searchParams.get('role') === 'context' ? 'context' : 'source';
 	if (productId) {
 		// verify ownership via product
 		const { data: prod } = await admin.from('products').select('maker_id').eq('id', productId).maybeSingle();
 		if (!prod || (prod as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
-		const { data } = await admin.from('github_repo_links').select('*').eq('product_id', productId).maybeSingle();
+		if (role === 'context') {
+			const { data: contextLinks, error: contextError } = await admin.from('github_repo_links').select('*').eq('product_id', productId).eq('role', 'context').order('repo_full_name', { ascending: true });
+			if (contextError) return json({ ok: false, code: 'DB_ERROR', message: contextError.message }, { status: 500 });
+			return json({ ok: true, links: contextLinks ?? [] });
+		}
+		const { data } = await admin.from('github_repo_links').select('*').eq('product_id', productId).eq('role', role).maybeSingle();
 		if (!data) {
 			// Installing the GitHub App and linking a repository are separate steps.
 			// Recover the maker's latest installation when the callback query was lost.
@@ -48,20 +55,24 @@ export const POST: RequestHandler = async ({ request }) => {
 	const userId = await getUserId(request, admin);
 	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
-	let body: { product_id?: string; installation_id?: number; repo_full_name?: string; branch?: string; docs_path?: string };
+	let body: { product_id?: string; installation_id?: number; repo_full_name?: string; branch?: string; deploy_branch?: string; docs_path?: string; role?: GithubLinkRole };
 	try {
 		body = await request.json();
 	} catch {
 		return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	}
 	const productId = body.product_id?.trim();
+	const role: GithubLinkRole = body.role === 'context' ? 'context' : 'source';
 	const installationId = body.installation_id ? Number(body.installation_id) : null;
 	const repoFullName = body.repo_full_name?.trim();
 	const branch = (body.branch?.trim() || 'main').trim();
+	const deployBranch = body.deploy_branch?.trim() || null;
 	let docsPath = (body.docs_path?.trim() || '/').trim();
 	if (!docsPath.startsWith('/')) docsPath = '/' + docsPath;
 
 	if (!productId || !installationId || !repoFullName) return json({ ok: false, code: 'MISSING_FIELDS', message: 'product_id, installation_id, repo_full_name required' }, { status: 400 });
+	if (!/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repoFullName)) return json({ ok: false, code: 'INVALID_REPOSITORY' }, { status: 422 });
+	if (!/^[^\s]+$/.test(branch) || (deployBranch !== null && !/^[^\s]+$/.test(deployBranch))) return json({ ok: false, code: 'INVALID_BRANCH' }, { status: 422 });
 
 	const { data: product } = await admin.from('products').select('id, maker_id').eq('id', productId).maybeSingle();
 	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
@@ -80,37 +91,44 @@ export const POST: RequestHandler = async ({ request }) => {
 			const t = await repoRes.text().catch(() => '');
 			return json({ ok: false, code: 'REPO_NOT_ACCESSIBLE', message: t.slice(0, 500) }, { status: 400 });
 		}
-		// branch check optionally
-		if (branch !== 'main') {
-			const br = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`, {
+		const br = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`, {
+			headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+		});
+		if (!br.ok) return json({ ok: false, code: 'BRANCH_NOT_FOUND', message: `Branch ${branch} not found` }, { status: 400 });
+		if (deployBranch && deployBranch !== branch) {
+			const deployRef = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(deployBranch)}`, {
 				headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
 			});
-			if (!br.ok) return json({ ok: false, code: 'BRANCH_NOT_FOUND', message: `Branch ${branch} not found` }, { status: 400 });
+			if (!deployRef.ok) return json({ ok: false, code: 'DEPLOY_BRANCH_NOT_FOUND', message: `Deploy branch ${deployBranch} not found` }, { status: 400 });
 		}
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
 		return json({ ok: false, code: 'GITHUB_ERROR', message: msg }, { status: 502 });
 	}
 
-	// upsert link (one source per product)
-	const { data, error } = await admin
-		.from('github_repo_links')
-		.upsert(
-			{
-				product_id: productId,
-				installation_id: installationId,
-				repo_full_name: repoFullName,
-				role: 'source',
-				branch,
-				docs_path: docsPath,
-				updated_at: new Date().toISOString()
-			},
-			{ onConflict: 'product_id,role' }
-		)
-		.select('*')
-		.maybeSingle();
+	// Source is one per product; context repos may be listed. Avoid relying on
+	// a partial Postgres index as an upsert conflict target.
+	const existingQuery = admin.from('github_repo_links').select('id').eq('product_id', productId).eq('role', role);
+	if (role === 'context') existingQuery.eq('repo_full_name', repoFullName);
+	const { data: existing } = await existingQuery.maybeSingle();
+	const payload = {
+		product_id: productId,
+		installation_id: installationId,
+		repo_full_name: repoFullName,
+		role,
+		branch,
+		deploy_branch: deployBranch,
+		docs_path: docsPath,
+		updated_at: new Date().toISOString()
+	};
+	const write = existing?.id
+		? await admin.from('github_repo_links').update(payload).eq('id', existing.id).select('*').maybeSingle()
+		: await admin.from('github_repo_links').insert(payload).select('*').maybeSingle();
+	const data = write.data;
+	const error = write.error;
 
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (role === 'source') await admin.from('products').update({ github_url: githubRepositoryUrl(repoFullName) }).eq('id', productId);
 	return json({ ok: true, link: data });
 };
 
@@ -123,7 +141,12 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 	const { data: product } = await admin.from('products').select('maker_id').eq('id', productId).maybeSingle();
 	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
 
-	const { error } = await admin.from('github_repo_links').delete().eq('product_id', productId).eq('role', 'source');
+	const role = url.searchParams.get('role') === 'context' ? 'context' : 'source';
+	const repo = url.searchParams.get('repo_full_name');
+	let query = admin.from('github_repo_links').delete().eq('product_id', productId).eq('role', role);
+	if (repo) query = query.eq('repo_full_name', repo);
+	const { error } = await query;
 	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (role === 'source') await admin.from('products').update({ github_url: null }).eq('id', productId);
 	return json({ ok: true });
 };

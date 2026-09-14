@@ -234,3 +234,121 @@ export async function fetchFileContent(installationId: bigint | number, repoFull
 	}
 	return await res.text();
 }
+
+export class GithubApiError extends Error {
+	status: number;
+	constructor(status: number, message: string) {
+		super(message);
+		this.name = 'GithubApiError';
+		this.status = status;
+	}
+}
+
+function githubHeaders(token: string, accept = 'application/vnd.github+json'): HeadersInit {
+	return { Authorization: `Bearer ${token}`, Accept: accept, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' };
+}
+
+async function githubRequest<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
+	const response = await fetch(`https://api.github.com${path}`, {
+		...init,
+		headers: { ...githubHeaders(token), ...(init.headers ?? {}) }
+	});
+	const text = await response.text().catch(() => '');
+	let body: unknown = null;
+	try {
+		body = text ? JSON.parse(text) : null;
+	} catch {
+		body = text;
+	}
+	if (!response.ok) {
+		const message = typeof body === 'object' && body && 'message' in body ? String((body as { message?: unknown }).message) : text.slice(0, 500);
+		throw new GithubApiError(response.status, message || `GitHub request failed (${response.status})`);
+	}
+	return body as T;
+}
+
+export async function getRepositoryBranch(installationId: bigint | number, repoFullName: string, branch: string): Promise<{ sha: string; protected: boolean }> {
+	const token = await getInstallationToken(installationId);
+	const data = await githubRequest<{ commit: { sha: string }; protected?: boolean }>(token, `/repos/${repoFullName}/branches/${encodeURIComponent(branch)}`);
+	return { sha: data.commit.sha, protected: Boolean(data.protected) };
+}
+
+export async function createBranch(installationId: bigint | number, repoFullName: string, branch: string, sha: string): Promise<void> {
+	const token = await getInstallationToken(installationId);
+	await githubRequest(token, `/repos/${repoFullName}/git/refs`, {
+		method: 'POST',
+		body: JSON.stringify({ ref: `refs/heads/${branch}`, sha })
+	});
+}
+
+export async function commitFiles(
+	installationId: bigint | number,
+	repoFullName: string,
+	branch: string,
+	message: string,
+	files: Array<{ path: string; content: string }>
+): Promise<{ sha: string }> {
+	if (!files.length) throw new Error('No files to commit');
+	const token = await getInstallationToken(installationId);
+	const ref = await githubRequest<{ object: { sha: string } }>(token, `/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`);
+	const commit = await githubRequest<{ tree: { sha: string } }>(token, `/repos/${repoFullName}/git/commits/${ref.object.sha}`);
+	const tree = [] as Array<{ path: string; mode: '100644'; type: 'blob'; sha: string }>;
+	for (const file of files) {
+		const blob = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/blobs`, {
+			method: 'POST',
+			body: JSON.stringify({ content: Buffer.from(file.content, 'utf8').toString('base64'), encoding: 'base64' })
+		});
+		tree.push({ path: file.path.replace(/^\/+/, ''), mode: '100644', type: 'blob', sha: blob.sha });
+	}
+	const nextTree = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/trees`, {
+		method: 'POST',
+		body: JSON.stringify({ base_tree: commit.tree.sha, tree })
+	});
+	const nextCommit = await githubRequest<{ sha: string }>(token, `/repos/${repoFullName}/git/commits`, {
+		method: 'POST',
+		body: JSON.stringify({ message, tree: nextTree.sha, parents: [ref.object.sha] })
+	});
+	await githubRequest(token, `/repos/${repoFullName}/git/refs/heads/${encodeURIComponent(branch)}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ sha: nextCommit.sha, force: false })
+	});
+	return { sha: nextCommit.sha };
+}
+
+export async function createPullRequest(
+	installationId: bigint | number,
+	repoFullName: string,
+	base: string,
+	head: string,
+	title: string,
+	body: string
+): Promise<{ number: number; html_url: string }> {
+	const token = await getInstallationToken(installationId);
+	return githubRequest<{ number: number; html_url: string }>(token, `/repos/${repoFullName}/pulls`, {
+		method: 'POST',
+		body: JSON.stringify({ title, body, base, head })
+	});
+}
+
+export async function createIssue(
+	installationId: bigint | number,
+	repoFullName: string,
+	title: string,
+	body: string
+): Promise<{ number: number; html_url: string }> {
+	const token = await getInstallationToken(installationId);
+	return githubRequest<{ number: number; html_url: string }>(token, `/repos/${repoFullName}/issues`, {
+		method: 'POST',
+		body: JSON.stringify({ title, body })
+	});
+}
+
+export async function commentOnIssue(installationId: bigint | number, repoFullName: string, number: number, body: string): Promise<void> {
+	const token = await getInstallationToken(installationId);
+	await githubRequest(token, `/repos/${repoFullName}/issues/${number}/comments`, { method: 'POST', body: JSON.stringify({ body }) });
+}
+
+export async function getGithubIssue(installationId: bigint | number, repoFullName: string, number: number): Promise<{ title: string; html_url: string; state: string; closed_at: string | null }> {
+	const token = await getInstallationToken(installationId);
+	return githubRequest<{ title: string; html_url: string; state: string; closed_at: string | null }>(token, `/repos/${repoFullName}/issues/${number}`);
+}

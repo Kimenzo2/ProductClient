@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { createHash, randomUUID } from 'node:crypto';
 import type { DocsDocument } from '$lib/data/docsEditor';
+import { buildDocsArtifacts, type DocsArtifacts } from '$lib/server/docsArtifacts';
 
 function canonicalize(value: unknown): unknown {
 	if (Array.isArray(value)) return value.map(canonicalize);
@@ -41,7 +42,8 @@ export async function mirrorDocsToD1(
 	contentHash = docsContentHash(document),
 	releaseId: string = randomUUID(),
 	rollbackOfVersion: number | null = null,
-	redirects: DocsRedirect[] = []
+	redirects: DocsRedirect[] = [],
+	artifacts: DocsArtifacts = buildDocsArtifacts(document, slug, version, contentHash)
 ): Promise<{ ok: boolean; message?: string; contentHash: string; releaseId: string }> {
 	const accountId = env.CLOUDFLARE_ACCOUNT_ID;
 	const databaseId = env.CLOUDFLARE_D1_DATABASE_ID;
@@ -66,6 +68,14 @@ export async function mirrorDocsToD1(
 		[slug, JSON.stringify(document), version, contentHash, releaseId, publishedAt]
 	);
 	if (!current.ok) return failed(current.message ?? 'Cloudflare D1 publish failed');
+	const artifactResult = await runD1Query(
+		accountId,
+		databaseId,
+		token,
+		`INSERT INTO published_doc_artifacts (tenant_slug, version, release_id, content_digest, markdown, llms_txt, skill_md, mcp_json, sitemap_xml, published_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10) ON CONFLICT(tenant_slug, version) DO UPDATE SET release_id=excluded.release_id, content_digest=excluded.content_digest, markdown=excluded.markdown, llms_txt=excluded.llms_txt, skill_md=excluded.skill_md, mcp_json=excluded.mcp_json, sitemap_xml=excluded.sitemap_xml, published_at=excluded.published_at`,
+		[slug, version, releaseId, contentHash, artifacts.markdown, artifacts.llmsTxt, artifacts.skillMd, JSON.stringify(artifacts.mcpJson), artifacts.sitemapXml, publishedAt]
+	);
+	if (!artifactResult.ok) return failed(artifactResult.message ?? 'Cloudflare D1 artifact write failed');
 	for (const redirect of redirects) {
 		const redirectResult = await runD1Query(
 			accountId,

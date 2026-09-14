@@ -1,122 +1,144 @@
 import type { RequestHandler } from './$types';
 import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getWebhookSecret, verifyWebhookSignatureSync, getInstallationToken } from '$lib/server/githubApp';
+import { getWebhookSecret, verifyWebhookSignatureSync, getRepoTree, fetchFileContent } from '$lib/server/githubApp';
+import { validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
+
+type GithubRepository = { full_name: string };
+type GithubInstallation = { id: number; account?: { login?: string; type?: string; id?: number } };
+
+function response(body: Record<string, unknown>, status = 200) {
+	return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+}
+
+async function logRun(admin: ReturnType<typeof createAdminClient>, productId: string, delivery: string, event: string, sha: string | null, ok: boolean, error: string | null, details: Record<string, unknown> = {}) {
+	await admin.from('github_sync_runs').insert({ product_id: productId, delivery_id: `${delivery}:${productId}`, event, sha, ok, error, details });
+}
+
+function releaseSlug(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 160) || 'github-release';
+}
 
 export const POST: RequestHandler = async ({ request }) => {
-	const rawBody = await request.text(); // keep raw for HMAC
+	const rawBody = await request.text();
 	const signature = request.headers.get('x-hub-signature-256');
 	const event = request.headers.get('x-github-event') ?? '';
-	const delivery = request.headers.get('x-github-delivery') ?? '';
-
+	const delivery = request.headers.get('x-github-delivery') ?? crypto.randomUUID();
 	let secret: string;
 	try {
 		secret = getWebhookSecret();
 	} catch {
-		return new Response(JSON.stringify({ ok: false, code: 'NOT_CONFIGURED' }), { status: 503, headers: { 'content-type': 'application/json' } });
+		return response({ ok: false, code: 'NOT_CONFIGURED' }, 503);
 	}
-
-	if (!verifyWebhookSignatureSync(rawBody, signature, secret)) {
-		return new Response(JSON.stringify({ ok: false, code: 'INVALID_SIGNATURE' }), { status: 401, headers: { 'content-type': 'application/json' } });
-	}
-
+	if (!verifyWebhookSignatureSync(rawBody, signature, secret)) return response({ ok: false, code: 'INVALID_SIGNATURE' }, 401);
 	let payload: Record<string, unknown>;
 	try {
 		payload = JSON.parse(rawBody) as Record<string, unknown>;
 	} catch {
-		return new Response(JSON.stringify({ ok: false, code: 'BAD_JSON' }), { status: 400, headers: { 'content-type': 'application/json' } });
+		return response({ ok: false, code: 'BAD_JSON' }, 400);
 	}
 
-	// idempotency: if delivery already processed, return 200
 	const admin = createAdminClient();
-
-	// handle events
 	try {
+		const { data: seenDelivery } = await admin.from('github_sync_runs').select('id').like('delivery_id', `${delivery}:%`).limit(1).maybeSingle();
+		if (seenDelivery) return response({ ok: true, duplicate: true });
 		if (event === 'installation') {
-			const action = (payload.action as string) ?? '';
-			const inst = payload.installation as { id: number; account: { login: string; type: string; id: number } } | undefined;
-			if (inst) {
-				if (action === 'deleted') {
-					await admin.from('github_installations').update({ suspended_at: new Date().toISOString() }).eq('installation_id', inst.id);
-					// optionally delete links? keep but disable
-				} else if (action === 'created' || action === 'unsuspend') {
-					await admin.from('github_installations').update({ suspended_at: null, account_login: inst.account.login, account_type: inst.account.type as 'User' | 'Organization' }).eq('installation_id', inst.id);
-				}
+			const installation = payload.installation as GithubInstallation | undefined;
+			if (!installation?.id) return response({ ok: true, ignored: 'missing installation' });
+			const action = String(payload.action ?? '');
+			if (action === 'deleted') {
+				await admin.from('github_repo_links').delete().eq('installation_id', installation.id);
+				await admin.from('github_installations').update({ suspended_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('installation_id', installation.id);
+			} else if (action === 'created' || action === 'unsuspend') {
+				await admin.from('github_installations').update({ suspended_at: null, account_login: installation.account?.login ?? 'unknown', account_type: installation.account?.type === 'Organization' ? 'Organization' : 'User', account_id: installation.account?.id ?? null, updated_at: new Date().toISOString() }).eq('installation_id', installation.id);
 			}
-			return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
+			return response({ ok: true });
 		}
 
 		if (event === 'installation_repositories') {
-			const action = payload.action as string;
-			const inst = payload.installation as { id: number } | undefined;
-			const reposRemoved = (payload.repositories_removed as Array<{ full_name: string }>) ?? [];
-			if (action === 'removed' && inst && reposRemoved.length) {
-				for (const r of reposRemoved) {
-					await admin.from('github_repo_links').delete().eq('repo_full_name', r.full_name).eq('installation_id', inst.id);
-				}
+			const installation = payload.installation as GithubInstallation | undefined;
+			const removed = (payload.repositories_removed as Array<{ full_name?: string }> | undefined) ?? [];
+			if (installation?.id && removed.length) {
+				for (const repo of removed) if (repo.full_name) await admin.from('github_repo_links').delete().eq('installation_id', installation.id).eq('repo_full_name', repo.full_name);
 			}
-			return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
+			return response({ ok: true });
 		}
 
+		const repository = payload.repository as GithubRepository | undefined;
+		const installation = payload.installation as GithubInstallation | undefined;
+		if (!repository?.full_name || !installation?.id) return response({ ok: true, ignored: 'missing repository or installation' });
+
 		if (event === 'push') {
-			const repo = payload.repository as { full_name: string } | undefined;
-			const ref = payload.ref as string | undefined; // refs/heads/main
-			const after = payload.after as string | undefined;
-			if (!repo?.full_name || !ref || !after) {
-				return new Response(JSON.stringify({ ok: true, ignored: 'missing repo/ref/after' }), { status: 200, headers: { 'content-type': 'application/json' } });
-			}
-			const branch = ref.replace(/^refs\/heads\//, '');
-			// find links that match repo + branch
-			const { data: links } = await admin.from('github_repo_links').select('product_id, installation_id, docs_path, branch, repo_full_name').eq('repo_full_name', repo.full_name).eq('branch', branch);
-			if (!links?.length) {
-				return new Response(JSON.stringify({ ok: true, ignored: 'no matching source link' }), { status: 200, headers: { 'content-type': 'application/json' } });
-			}
-			for (const link of links as Array<{ product_id: string; installation_id: number; docs_path: string; branch: string; repo_full_name: string }>) {
+			const branch = String(payload.ref ?? '').replace(/^refs\/heads\//, '');
+			const after = String(payload.after ?? '');
+			if (!branch || !after) return response({ ok: true, ignored: 'missing ref or sha' });
+			const { data: links } = await admin.from('github_repo_links').select('*').eq('repo_full_name', repository.full_name).eq('branch', branch).eq('role', 'source');
+			for (const link of (links ?? []) as Array<Record<string, unknown>>) {
+				const productId = String(link.product_id);
 				try {
-					// trigger sync — fetch tree and write into existing docs storage
-					// For now, update last_sha and log sync run; docs file sync is stubbed to docs_documents if exists
-					// Attempt to fetch docs files count (lightweight)
-					let filesCount = 0;
-					let error: string | null = null;
-					try {
-						const instId = link.installation_id as number;
-						// Use helper to get tree
-						const { getRepoTree } = await import('$lib/server/githubApp');
-						const { files } = await getRepoTree(instId, link.repo_full_name, link.branch, link.docs_path);
-						filesCount = files.length;
-						// TODO: write files into existing docs storage — for solo v1, we update last_sha and create sync run
-						// If docs_documents exists for product/tenant, update it here
-					} catch (e) {
-						error = e instanceof Error ? e.message : String(e);
+					const tree = await getRepoTree(Number(link.installation_id), repository.full_name, branch, String(link.docs_path ?? '/'));
+					let imported: DocsDocument | null = null;
+					const cleanPath = String(link.docs_path ?? '/').replace(/^\/+|\/+$/g, '');
+					const manifestPath = cleanPath ? `${cleanPath}/productclient.docs.json` : 'productclient.docs.json';
+					const manifest = tree.files.find((file) => file.path === manifestPath);
+					if (manifest) {
+						try {
+							const parsed = JSON.parse(await fetchFileContent(Number(link.installation_id), repository.full_name, manifest.path, branch)) as DocsDocument;
+							if (!validateDocsDocument(parsed).length) imported = parsed;
+						} catch {}
 					}
-
-					await admin.from('github_repo_links').update({ last_sha: after, last_synced_at: new Date().toISOString(), last_error: error }).eq('product_id', link.product_id);
-					await admin.from('github_sync_runs').insert({ product_id: link.product_id, event: 'push', sha: after, ok: !error, error: error ?? (filesCount ? `synced ${filesCount} files` : null) });
-
-					// fire-and-forget sync to docs_documents if tenant mapping exists (best effort)
-					if (!error) {
-						// If a tenant exists matching product? Not in this schema, skip. Update last_synced_at is success.
+					const product = await admin.from('products').select('tenant_id').eq('id', productId).maybeSingle();
+					if (imported && product.data?.tenant_id) {
+						const current = await admin.from('docs_documents').select('draft_version').eq('tenant_id', product.data.tenant_id).maybeSingle();
+						await admin.from('docs_documents').update({ draft: imported, draft_version: Number(current.data?.draft_version ?? 0) + 1, publication_state: 'unpublished', publication_error: null, updated_at: new Date().toISOString() }).eq('tenant_id', product.data.tenant_id);
 					}
-				} catch (e) {
-					const msg = e instanceof Error ? e.message : String(e);
-					await admin.from('github_sync_runs').insert({ product_id: link.product_id, event: 'push', sha: after, ok: false, error: msg });
-					await admin.from('github_repo_links').update({ last_error: msg }).eq('product_id', link.product_id);
+					await admin.from('github_repo_links').update({ last_sha: after, last_synced_at: new Date().toISOString(), last_error: null, sync_status: imported ? 'synced' : 'tracked', sync_error_code: null }).eq('id', link.id);
+					await logRun(admin, productId, delivery, 'push', after, true, null, { branch, docsFiles: tree.files.length, imported: Boolean(imported) });
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					await admin.from('github_repo_links').update({ last_error: message, sync_status: 'failed', sync_error_code: 'PUSH_SYNC_FAILED' }).eq('id', link.id);
+					await logRun(admin, productId, delivery, 'push', after, false, message, { branch });
 				}
 			}
-			return new Response(JSON.stringify({ ok: true, synced: (links as unknown[]).length }), { status: 200, headers: { 'content-type': 'application/json' } });
+			return response({ ok: true, synced: links?.length ?? 0 });
+		}
+
+		if (event === 'issues') {
+			const issue = payload.issue as { number?: number; html_url?: string; state?: string; closed_at?: string | null } | undefined;
+			if (!issue?.number) return response({ ok: true, ignored: 'missing issue' });
+			const action = String(payload.action ?? '');
+			const { data: feedback } = await admin.from('feedback_items').select('id, product_id').eq('github_repo_full_name', repository.full_name).eq('github_issue_number', issue.number);
+			for (const item of feedback ?? []) {
+				const nextStatus = issue.state === 'closed' || action === 'closed' ? 'shipped' : action === 'reopened' ? 'in_progress' : undefined;
+				await admin.from('feedback_items').update({ ...(nextStatus ? { status: nextStatus } : {}), ...(issue.html_url ? { github_issue_url: issue.html_url } : {}) }).eq('id', item.id);
+				await logRun(admin, item.product_id, delivery, 'issue', null, true, null, { action, feedbackId: item.id, number: issue.number });
+			}
+			const { data: incidentLinks } = await admin.from('incident_github_links').select('id').eq('repo_full_name', repository.full_name).eq('number', issue.number);
+			for (const link of incidentLinks ?? []) await admin.from('incident_github_links').update({ state: issue.state ?? null, closed_at: issue.closed_at ?? null, updated_at: new Date().toISOString() }).eq('id', link.id);
+			return response({ ok: true, feedback: feedback?.length ?? 0, incidents: incidentLinks?.length ?? 0 });
 		}
 
 		if (event === 'pull_request') {
-			// preview only if Checks implemented; acknowledge
-			return new Response(JSON.stringify({ ok: true, ignored: 'pull_request not yet handled' }), { status: 200, headers: { 'content-type': 'application/json' } });
+			const pull = payload.pull_request as { number?: number; title?: string; state?: string; merged?: boolean; merged_at?: string | null } | undefined;
+			if (!pull?.number) return response({ ok: true, ignored: 'missing pull request' });
+			const { data: links } = await admin.from('incident_github_links').select('id').eq('repo_full_name', repository.full_name).eq('number', pull.number).eq('kind', 'pull_request');
+			for (const link of links ?? []) await admin.from('incident_github_links').update({ title: pull.title ?? null, state: pull.state ?? null, merged: pull.merged ?? false, closed_at: pull.merged_at ?? null, updated_at: new Date().toISOString() }).eq('id', link.id);
+			return response({ ok: true, incidents: links?.length ?? 0 });
 		}
 
-		// other events: 200
-		return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
-	} catch (e) {
-		const msg = e instanceof Error ? e.message : String(e);
-		console.error('webhook handler error', msg);
-		return new Response(JSON.stringify({ ok: false, code: 'HANDLER_ERROR', message: msg }), { status: 500, headers: { 'content-type': 'application/json' } });
+		if (event === 'release') {
+			const release = payload.release as { id?: number; html_url?: string; name?: string; tag_name?: string; body?: string; draft?: boolean; published_at?: string | null } | undefined;
+			if (!release?.id) return response({ ok: true, ignored: 'missing release' });
+			const { data: sourceLinks } = await admin.from('github_repo_links').select('product_id').eq('repo_full_name', repository.full_name).eq('role', 'source');
+			for (const link of sourceLinks ?? []) {
+				await admin.from('releases').upsert({ product_id: link.product_id, slug: `github-${release.id}-${releaseSlug(release.tag_name ?? release.name ?? 'release')}`, title: release.name ?? release.tag_name ?? 'GitHub release', body: release.body ?? '', version: release.tag_name ?? null, status: release.draft ? 'draft' : 'published', published_at: release.published_at ?? null, github_release_id: release.id, github_release_url: release.html_url ?? null, github_repo_full_name: repository.full_name }, { onConflict: 'product_id,slug' });
+				await logRun(admin, link.product_id, delivery, 'release', null, true, null, { releaseId: release.id, url: release.html_url ?? null });
+			}
+			return response({ ok: true, products: sourceLinks?.length ?? 0 });
+		}
+
+		return response({ ok: true, ignored: event || 'unknown_event' });
+	} catch (error) {
+		console.error('[github/webhook] handler error', error);
+		return response({ ok: false, code: 'HANDLER_ERROR' }, 500);
 	}
 };
-
-// Ensure raw body is not parsed by SvelteKit JSON handling — we read text() manually
