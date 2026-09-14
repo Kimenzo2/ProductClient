@@ -23,6 +23,8 @@ import { supabase } from '$lib/supabaseClient';
 	let branch = $state('main');
 	let docsPath = $state('/');
 	let busy = $state(false);
+	let installPending = $state(false);
+	let installPoll: ReturnType<typeof setInterval> | undefined;
 
 	// sync
 	let syncBusy = $state(false);
@@ -93,7 +95,29 @@ import { supabase } from '$lib/supabaseClient';
 		}
 	}
 
+	function stopInstallMonitor() {
+		if (installPoll) clearInterval(installPoll);
+		installPoll = undefined;
+		installPending = false;
+		busy = false;
+	}
+
+	async function handleGitHubMessage(event: MessageEvent) {
+		if (event.origin !== window.location.origin || event.data?.source !== 'productclient-github') return;
+		if (event.data?.type !== 'connected') return;
+		stopInstallMonitor();
+		notice = 'GitHub app installed — choose a repository to finish connecting.';
+		await loadLink();
+		if (installationId) await loadRepos();
+	}
+
 	onMount(async () => {
+		const callbackWindow = page.url.searchParams.get('github_callback') === '1';
+		if (callbackWindow && window.opener && window.opener !== window) {
+			window.opener.postMessage({ source: 'productclient-github', type: 'connected' }, window.location.origin);
+			window.close();
+			return;
+		}
 		try {
 			await loadProducts();
 			await loadLink();
@@ -113,17 +137,32 @@ import { supabase } from '$lib/supabaseClient';
 		if (!activeProductId) { error = 'Create a product first'; return; }
 		busy = true;
 		error = '';
+		const installWindow = window.open('', 'productclient-github-install', 'popup,width=760,height=820,left=120,top=80');
+		if (!installWindow) {
+			busy = false;
+			error = 'Allow pop-ups for ProductClient to install the GitHub App.';
+			return;
+		}
+		installPending = true;
+		if (installPoll) clearInterval(installPoll);
+		installPoll = setInterval(() => {
+			if (installWindow.closed) {
+				stopInstallMonitor();
+				notice = 'GitHub installation window closed before the connection was completed.';
+			}
+		}, 500);
 		try {
 			const token = await authToken();
 			if (!token) throw new Error('Not signed in');
 			const res = await fetch(`/api/github/install?product_id=${activeProductId}`, { headers: { authorization: `Bearer ${token}` } });
 			const j = await res.json().catch(() => null);
 			if (!j?.ok || !j.installUrl) throw new Error(j?.message ?? 'Could not create install URL');
-			window.location.href = j.installUrl as string;
+			installWindow.location.href = j.installUrl as string;
+			installWindow.focus();
 		} catch (e) {
+			installWindow.close();
+			stopInstallMonitor();
 			error = e instanceof Error ? e.message : String(e);
-		} finally {
-			busy = false;
 		}
 	}
 
@@ -190,6 +229,8 @@ import { supabase } from '$lib/supabaseClient';
 	}
 </script>
 
+<svelte:window onmessage={handleGitHubMessage} />
+
 <svelte:head><title>Git · Settings</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[880px]">
@@ -237,7 +278,7 @@ import { supabase } from '$lib/supabaseClient';
 							<div class="truncate text-sm font-medium">Connect GitHub</div>
 							<p class="mt-0.5 text-[13px]/[18px] text-[var(--pc-text-muted)]">Install the app to pick a repo.</p>
 						</div>
-						<span class="shrink-0"><Button size="sm" loading={busy} onclick={connect}><Plug size={14} weight="Outline" aria-hidden="true" /> Connect</Button></span>
+						<span class="shrink-0"><Button size="sm" loading={busy} onclick={connect}>{installPending ? 'Waiting for GitHub…' : 'Connect'}{#if !installPending}<Plug size={14} weight="Outline" aria-hidden="true" />{/if}</Button></span>
 					</div>
 				{:else}
 					<div class="p-4">

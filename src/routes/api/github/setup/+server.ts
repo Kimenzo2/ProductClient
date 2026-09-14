@@ -100,5 +100,5 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	}
 
 	// Redirect to git settings for this product
-	throw redirect(302, `/workspace/settings/git?product_id=${productId}&installation_id=${installationId}&connected=1`);
+	throw redirect(302, `/workspace/settings/git?product_id=${productId}&installation_id=${installationId}&connected=1&github_callback=1`);
 };
