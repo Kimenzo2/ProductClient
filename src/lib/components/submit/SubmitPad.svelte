@@ -75,11 +75,28 @@
 		if (!slug) return;
 		const normalized = normalizeSlug(slug);
 		if (normalized !== slug) slug = normalized;
+		if (!slug) return;
 		if (!supabase) return;
 		const { data: session } = await supabase.auth.getSession();
 		if (!session.session) return;
-		const { data } = await supabase.from('products').select('id').ilike('slug', slug).neq('id', draftId ?? '00000000-0000-0000-0000-000000000000').limit(1).maybeSingle();
-		if (data) slugError = 'That address is taken — try another.';
+		try {
+			// Use eq lower to avoid ilike pattern quirks and PostgREST 400 on edge cases
+			const { data, error } = await supabase
+				.from('products')
+				.select('id')
+				.eq('slug', slug)
+				.neq('id', draftId ?? '00000000-0000-0000-0000-000000000000')
+				.limit(1)
+				.maybeSingle();
+			if (error && (error as any).code !== 'PGRST116') {
+				// 400s here were silent; log for debug but don't block
+				console.warn('[pad] slug check', error);
+				return;
+			}
+			if (data) slugError = 'That address is taken — try another.';
+		} catch (e) {
+			console.warn('[pad] slug check threw', e);
+		}
 	}
 	function handleNameInput(value: string) {
 		name = value;
