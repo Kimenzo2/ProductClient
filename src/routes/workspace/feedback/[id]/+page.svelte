@@ -8,6 +8,7 @@
 	import { loadFeedbackItemById } from '$lib/data/feedbackInbox';
 	import { supabase } from '$lib/supabaseClient';
 	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
 
 	let id = $derived(page.params.id);
 	// Mock records first (dev fixtures / legacy ids); live rows load by id when
@@ -87,7 +88,7 @@
 					<div class="min-h-[180px] py-4" aria-hidden="true"></div><div class="min-h-[180px] py-4" aria-hidden="true"></div>
 				{/if}
 			</main>
-			<aside class="space-y-4"><Card padding="md"><div class="flex items-center gap-2"><UserSquare size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Who sent it</h2></div><p class="mt-3 text-sm font-medium">{item.from}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">Customer feedback · {item.postedAt}</p><a href={item.publicPath} class="mt-4 inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)]">Public view <ArrowRight size={13} weight="Outline" /></a></Card><Card padding="md"><div class="flex items-center gap-2"><Inbox size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Related product</h2></div>{#if product}<a href={product.workspacePath} class="mt-3 flex items-center gap-2.5 rounded-[11px] bg-[var(--pc-surface)] p-2"><img src={product.avatar} alt="" class="size-8 rounded-[9px] object-cover" /><span class="text-xs font-medium">{product.name}</span></a>{/if}</Card></aside>
+			<aside class="space-y-4"><Card padding="md"><div class="flex items-center gap-2"><UserSquare size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Who sent it</h2></div><p class="mt-3 text-sm font-medium">{item.from}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">Customer feedback · {item.postedAt}</p><a href={item.publicPath} class="mt-4 inline-flex items-center gap-1 text-xs text-[var(--pc-accent-light)]">Public view <ArrowRight size={13} weight="Outline" /></a></Card><Card padding="md"><div class="flex items-center gap-2"><Inbox size={15} weight="Outline" class="opacity-55" /><h2 class="text-[13px] font-medium">Related product</h2></div>{#if product}<a href={product.workspacePath} class="mt-3 flex items-center gap-2.5 rounded-[11px] bg-[var(--pc-surface)] p-2"><ProductLogo src={product.avatar} size={32} shape="square" /><span class="text-xs font-medium">{product.name}</span></a>{/if}</Card></aside>
 		</div>
 	</div>
 {:else if !liveChecked}

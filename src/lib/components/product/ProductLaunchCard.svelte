@@ -2,6 +2,7 @@
 	import type { MockState } from '$lib/data/mockStates';
 	import { ArrowUp, Verified } from 'reicon-svelte';
 	import { Avatar, Badge, Button, Card, Chip } from '$lib/components/ui';
+import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let {
@@ -55,7 +56,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	<!-- Logo — frameless per industry: no border, 8px inner = 24 outer -16 pad, hairline only for light washout -->
 	<a href="/p/{item.product.slug}" class="shrink-0 self-start rounded-[8px] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">
-		<Avatar src={item.product.avatar} alt={item.product.name} size="lg" shape="square" class="!ring-0 ring-0 border-0" />
+		<ProductLogo src={item.product.avatar} alt={item.product.name} size={48} shape="square" class="!ring-0 ring-0 border-0" />
 	</a>
 
 	<!-- Middle — hierarchy: 15px 600 product → 14px 400 title fragment; wrapping balanced, truncation with title -->

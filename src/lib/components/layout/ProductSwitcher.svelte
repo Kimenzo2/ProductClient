@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { Box, ChevronDown, Add, Check } from 'reicon-svelte';
-	import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import { page } from '$app/state';
+import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { page } from '$app/state';
+import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
 
 	let open = $state(false);
 	let triggerEl: HTMLButtonElement | undefined = $state(undefined);
@@ -133,11 +134,7 @@
 		style:min-height="36px"
 	>
 		<span class="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]" aria-hidden="true">
-			{#if active?.avatar || active?.logo_url}
-				<img src={active.avatar ?? active.logo_url ?? ''} alt="" class="size-7 rounded-full object-cover" />
-			{:else}
-				<Box size={14} weight="Outline" />
-			{/if}
+			<ProductLogo src={active?.logo_url ?? active?.avatar} size={28} shape="circle" />
 		</span>
 		<span class="hidden min-w-0 flex-col items-start leading-none sm:flex" aria-hidden="true">
 			<span class="max-w-[14ch] truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">{label}</span>
@@ -182,11 +179,7 @@
 								class="flex w-full items-center gap-3 rounded-[12px] px-2.5 py-2.5 text-left transition-[background-color,color] duration-100 focus-visible:outline-[0.5px] focus-visible:outline-offset-[-0.5px] focus-visible:outline-[var(--pc-focus-ring)] {isActive ? 'bg-[var(--pc-surface)] text-[var(--pc-text)]' : 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)]'}"
 							>
 								<span class="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--pc-surface-2)]">
-									{#if product.avatar || product.logo_url}
-										<img src={product.avatar ?? product.logo_url ?? ''} alt="" class="size-8 rounded-full object-cover outline outline-1 -outline-offset-1 outline-white/10" />
-									{:else}
-										<Box size={14} weight="Outline" aria-hidden="true" />
-									{/if}
+									<ProductLogo src={product.logo_url ?? product.avatar} size={32} shape="circle" class="outline outline-1 -outline-offset-1 outline-white/10" />
 								</span>
 								<span class="min-w-0 flex-1">
 									<span class="block truncate text-[13px] font-medium leading-[1.3] tracking-[-0.01em] {isActive ? 'text-[var(--pc-text)]' : ''}">{product.name}</span>

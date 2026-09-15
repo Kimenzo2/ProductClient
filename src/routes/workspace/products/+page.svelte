@@ -4,6 +4,7 @@ import { Box } from 'reicon-svelte';
 import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
 import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
 import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
 
 let products = $derived(activeProductStore.products);
 let filtered = $derived(products);
@@ -20,9 +21,7 @@ let filtered = $derived(products);
 			{@const workspacePath = `/workspace/products/${product.slug}`}
 			<Card padding="md" class="group flex min-h-[184px] flex-col">
 				<div class="flex items-start gap-3">
-					<span class="grid size-11 shrink-0 place-items-center overflow-hidden rounded-[13px] bg-[var(--pc-surface-2)] outline outline-1 -outline-offset-1 outline-white/10">
-						{#if product.avatar || product.logo_url}<img src={product.avatar ?? product.logo_url ?? ''} alt="" class="size-11 rounded-[13px] object-cover" />{:else}<Box size={16} weight="Outline" class="text-[var(--pc-text-muted)]" aria-hidden="true" />{/if}
-					</span>
+					<ProductLogo src={product.logo_url ?? product.avatar} size={44} shape="square" class="outline outline-1 -outline-offset-1 outline-white/10" />
 					<div class="min-w-0 flex-1">
 						<div class="flex items-center gap-2"><h2 class="truncate text-[14px] font-medium">{product.name}</h2>{#if product.status}<Chip size="xs">{product.status}</Chip>{/if}</div>
 						{#if product.category}<p class="mt-1 text-xs text-[var(--pc-text-muted)] opacity-70">{product.category}</p>{/if}
