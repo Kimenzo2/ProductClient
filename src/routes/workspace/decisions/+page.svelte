@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { ArrowRight, CheckCircle, Map, Search } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import DecisionThread from '$lib/components/workspace/DecisionThread.svelte';
-	import { Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
-	import { decisionThreads } from '$lib/data/workspace';
+import { ArrowRight, CheckCircle, Map } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import DecisionThread from '$lib/components/workspace/DecisionThread.svelte';
+import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
+import { decisionThreads } from '$lib/data/workspace';
+import { browser } from '$app/environment';
+import { onMount } from 'svelte';
 
-	let query = $state('');
-	let filter = $state<'All' | 'In decision' | 'Planned' | 'Shipped'>('All');
-	let filtered = $derived(
-		decisionThreads.filter((thread) => {
-			const matchesFilter = filter === 'All' || thread.status === filter;
-			const haystack = `${thread.title} ${thread.problem} ${thread.productName} ${thread.owner}`.toLowerCase();
-			return matchesFilter && haystack.includes(query.trim().toLowerCase());
-		})
-	);
+let filter = $state<'All' | 'In decision' | 'Planned' | 'Shipped'>('All');
+let isPreview = $state(false);
+onMount(() => {
+	isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+});
+let sourceThreads = $derived(isPreview ? decisionThreads : []);
+let filtered = $derived(sourceThreads.filter((thread) => filter === 'All' || thread.status === filter));
 </script>
 
 <svelte:head>
@@ -38,20 +38,13 @@
 		</div>
 	</section>
 
-	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
-		<div class="relative w-full sm:max-w-[360px]">
-			<Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" />
-			<label for="decision-filter" class="sr-only">Filter product decisions</label>
-			<Input id="decision-filter" bind:value={query} placeholder="Find a problem, product, or owner" class="pl-9 text-base sm:text-sm" />
-		</div>
-		<div class="flex items-center gap-1.5 overflow-x-auto" role="group" aria-label="Product decision states">
-			{#each ['All', 'In decision', 'Planned', 'Shipped'] as item}
-				<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">
-					{#if item === 'Shipped'}<CheckCircle size={13} weight="Outline" aria-hidden="true" />{:else}<Map size={13} weight="Outline" aria-hidden="true" />{/if}
-					{item === 'All' ? 'Everything' : item === 'In decision' ? 'Choosing now' : item}
-				</button>
-			{/each}
-		</div>
+	<div class="flex items-center gap-1.5 overflow-x-auto py-5" role="group" aria-label="Product decision states">
+		{#each ['All', 'In decision', 'Planned', 'Shipped'] as item}
+			<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">
+				{#if item === 'Shipped'}<CheckCircle size={13} weight="Outline" aria-hidden="true" />{:else}<Map size={13} weight="Outline" aria-hidden="true" />{/if}
+				{item === 'All' ? 'Everything' : item === 'In decision' ? 'Choosing now' : item}
+			</button>
+		{/each}
 	</div>
 
 	<section class="space-y-3 pb-10" aria-label="Product decisions">
@@ -59,7 +52,7 @@
 			<DecisionThread {thread} />
 		{/each}
 		{#if filtered.length === 0}
-			<StatePanel icon={Map} title="No product decisions match" description="Try a product, owner, or a different status." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} />
+			<StatePanel icon={Map} title="No decisions found" description="No decisions match the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} />
 		{/if}
 	</section>
 </div>

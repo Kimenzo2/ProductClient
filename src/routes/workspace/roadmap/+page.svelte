@@ -1,20 +1,25 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { CheckCircle, Globe, Link2, Map, Plus } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { Button, Card, Chip, Input } from '$lib/components/ui';
-	import { roadmapItems } from '$lib/data/workspace';
-	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
-	import type { RoadmapDoc } from '$lib/data/roadmapEditor';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { onMount } from 'svelte';
+import { CheckCircle, Globe, Link2, Map, Plus } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import { Button, Card, Chip, Input } from '$lib/components/ui';
+import { roadmapItems } from '$lib/data/workspace';
+import { supabase } from '$lib/supabaseClient';
+import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
+import type { RoadmapDoc } from '$lib/data/roadmapEditor';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { browser } from '$app/environment';
 
-	const lanes = ['Now', 'Next', 'Later', 'Shipped'] as const;
-	let tenant = $state<Tenant | null>(null);
-	let roadmapDoc = $state<RoadmapDoc | null>(null);
-	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
-	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Roadmap` : 'Roadmap');
-	let scopedItems = $derived(activeSlug ? roadmapItems.filter((i) => i.productSlug === activeSlug) : roadmapItems);
+const lanes = ['Now', 'Next', 'Later', 'Shipped'] as const;
+let tenant = $state<Tenant | null>(null);
+let roadmapDoc = $state<RoadmapDoc | null>(null);
+let isPreview = $state(false);
+onMount(() => {
+	isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+});
+let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Roadmap` : 'Roadmap');
+let scopedItems = $derived(isPreview ? (activeSlug ? roadmapItems.filter((i) => i.productSlug === activeSlug) : roadmapItems) : []);
 	let laneCounts = $derived(
 		Object.fromEntries(lanes.map((l) => [l, scopedItems.filter((i) => i.status === l).length])) as Record<(typeof lanes)[number], number>
 	);

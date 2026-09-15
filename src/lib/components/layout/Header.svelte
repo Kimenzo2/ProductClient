@@ -72,7 +72,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				aria-label="Open search"
 				aria-keyshortcuts="Control+K Meta+K"
 				onclick={() => onOpenSearch()}
-				class="grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]"
+				class="hidden lg:grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]"
 			>
 				<Search size={18} weight="Outline" aria-hidden="true" />
 			</button>

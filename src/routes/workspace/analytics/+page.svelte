@@ -111,11 +111,20 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 			void trackAnalyticsEvent('status.view' as any, { path: '/workspace/analytics', productId: activeProductStore.activeProductId ?? undefined });
 		} catch (e) { error = e instanceof Error ? e.message : 'Could not load analytics'; } finally { loading = false; }
 	}
-	onMount(load);
+	onMount(() => { void load(); });
 	// Reload when active product changes without leaving the page (switcher stays on /analytics)
+	// FIX: previous version read `analytics` inside effect -> infinite load loop -> flicker (loading skeleton flash every ms)
+	let prevActiveId: string | null | undefined = $state(undefined);
 	$effect(() => {
-		void activeId;
-		if (analytics) void load();
+		const current = activeId;
+		if (prevActiveId === undefined) {
+			prevActiveId = current;
+			return;
+		}
+		if (current !== prevActiveId) {
+			prevActiveId = current;
+			void load();
+		}
 	});
 </script>
 

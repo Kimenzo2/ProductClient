@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { AlertTriangle, ArrowRight, CheckCircle, Clock } from 'reicon-svelte';
-	import { Button, StatePanel } from '$lib/components/ui';
-	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
-	import type { PublicIncidentStatus, StatusIncident } from '$lib/data/status';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
+import { onMount } from 'svelte';
+import { AlertTriangle, ArrowRight, CheckCircle, Clock } from 'reicon-svelte';
+import { Button, StatePanel } from '$lib/components/ui';
+import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+import type { PublicIncidentStatus, StatusIncident } from '$lib/data/status';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
+import { browser } from '$app/environment';
 
-	type QueueFilter = 'Open' | 'Resolved' | 'All';
+type QueueFilter = 'Open' | 'Resolved' | 'All';
 
-	let baseQueue = $derived(incidentRecordsForWorkspace());
+let isPreview = $state(false);
+let baseQueue = $derived(isPreview ? incidentRecordsForWorkspace() : []);
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
 	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Incidents` : 'Incidents');
 	let queue = $derived(activeSlug ? baseQueue.filter((incident) => incident.productSlug === activeSlug) : baseQueue);
@@ -35,6 +37,7 @@
 	let sparkIncMax = $derived(Math.max(...sparkOpen, ...sparkAll, ...sparkResolved, 1));
 
 	onMount(() => {
+		isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
 		void hydrateActiveProduct();
 		void hydrateStatusEditor();
 	});

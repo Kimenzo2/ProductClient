@@ -1,44 +1,42 @@
 <script lang="ts">
-	import { Inbox, Search } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Input, StatePanel } from '$lib/components/ui';
-	import { loadFeedbackItems, type FeedbackBucket, type FeedbackItemView } from '$lib/data/feedbackInbox';
-	import { requireSession } from '$lib/auth/guard';
-	import { onMount } from 'svelte';
-	import { trackAnalyticsEvent } from '$lib/data/analytics';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { Inbox } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import EntityRow from '$lib/components/workspace/EntityRow.svelte';
+import { StatePanel } from '$lib/components/ui';
+import { loadFeedbackItems, type FeedbackBucket, type FeedbackItemView } from '$lib/data/feedbackInbox';
+import { requireSession } from '$lib/auth/guard';
+import { onMount } from 'svelte';
+import { trackAnalyticsEvent } from '$lib/data/analytics';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
-	let query = $state('');
-	let filter = $state<'All' | FeedbackBucket>('All');
-	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
-	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
-	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Feedback` : 'Feedback');
+let filter = $state<'All' | FeedbackBucket>('All');
+let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
+let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Feedback` : 'Feedback');
 
-	let items = $state<FeedbackItemView[]>([]);
-	let loading = $state(true);
-	let loadError = $state<string | null>(null);
-	let lastLoadedFor = $state<string | undefined>(undefined);
+let items = $state<FeedbackItemView[]>([]);
+let loading = $state(true);
+let loadError = $state<string | null>(null);
+let lastLoadedFor = $state<string | undefined>(undefined);
 
-	async function load(): Promise<void> {
-		const allowed = await requireSession('/workspace/feedback');
-		if (!allowed) return;
-		loading = true;
-		loadError = null;
-		const result = await loadFeedbackItems(activeId);
-		items = result.items;
-		loadError = result.error;
-		lastLoadedFor = activeId ?? undefined;
-		loading = false;
-	}
+async function load(): Promise<void> {
+	const allowed = await requireSession('/workspace/feedback');
+	if (!allowed) return;
+	loading = true;
+	loadError = null;
+	const result = await loadFeedbackItems(activeId);
+	items = result.items;
+	loadError = result.error;
+	lastLoadedFor = activeId ?? undefined;
+	loading = false;
+}
 
-	let filtered = $derived(
-		items.filter((item) => {
-			const haystack = `${item.title} ${item.body} ${item.productName} ${item.from}`.toLowerCase();
-			const matchesProduct = !activeSlug || item.productSlug === activeSlug;
-			return matchesProduct && (filter === 'All' || item.status === filter) && haystack.includes(query.trim().toLowerCase());
-		})
-	);
+let filtered = $derived(
+	items.filter((item) => {
+		const matchesProduct = !activeSlug || item.productSlug === activeSlug;
+		return matchesProduct && (filter === 'All' || item.status === filter);
+	})
+);
 	onMount(() => {
 		void hydrateActiveProduct();
 		void trackAnalyticsEvent('feedback.new', { path: '/workspace/feedback', productId: activeProductStore.activeProduct?.id });
@@ -56,11 +54,10 @@
 
 <svelte:head><title>Feedback | Product Client</title></svelte:head>
 
-<div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
+<div class="mx-auto w-full max-w-[960px] px-6 max-sm:px-4">
 	<WorkspaceHeader title={headerTitle} description="Keep the customer's own words while you turn them into a clear problem, a choice, and a follow-up." actionLabel="Add feedback" actionHref="/feedback/new" />
 
-	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
-		<div class="relative w-full sm:max-w-[380px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="feedback-filter" class="sr-only">Filter feedback</label><Input id="feedback-filter" bind:value={query} placeholder="Find a request, person, or product" class="pl-9 text-base sm:text-sm" /></div>
+	<div class="flex justify-end py-5">
 		<span class="text-xs text-[var(--pc-text-faint)]">{filtered.length} item{filtered.length === 1 ? '' : 's'}</span>
 	</div>
 
@@ -70,7 +67,7 @@
 		{/each}
 	</div>
 
-	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_300px]">
+	<div class="grid gap-6 pb-10">
 		<section class="space-y-2" aria-label="Feedback records">
 			{#if loading}
 				{#each Array(4) as _, i (i)}
@@ -83,14 +80,9 @@
 					<EntityRow href={`/workspace/feedback/${item.id}`} kind="Feedback" title={item.title} subtitle={`${item.productName} · ${item.typeLabel}`} description={item.body} status={item.status} meta={`${item.from} · ${item.postedAt}`} />
 				{/each}
 				{#if filtered.length === 0}
-					<StatePanel icon={Inbox} title="No feedback matches" description="Try a product, person, or broader state." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} />
+					<StatePanel icon={Inbox} title="No feedback found" description="No feedback matches the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} />
 				{/if}
 			{/if}
 		</section>
-
-		<aside class="space-y-4">
-			<div class="min-h-[180px] py-4" aria-hidden="true"></div>
-			<div class="min-h-[200px] py-4" aria-hidden="true"></div>
-		</aside>
 	</div>
 </div>

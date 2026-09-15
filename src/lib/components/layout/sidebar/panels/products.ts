@@ -9,8 +9,7 @@ export const productsPanel: PanelDef = {
 	links: [
 		{ label: 'All products', href: '/workspace/products' },
 		{ label: 'Live', href: '/workspace/products?status=Live' },
-		{ label: 'Beta', href: '/workspace/products?status=Beta' },
-		{ label: 'Roadmap', href: '/workspace/roadmap' }
+		{ label: 'Beta', href: '/workspace/products?status=Beta' }
 	],
 	recent: products.slice(0, 4).map((p) => ({ label: p.name, subtitle: `${p.makerName} · ${p.category ?? 'Product'}`, href: p.workspacePath })),
 	action: { label: 'Add product', href: '/submit' }

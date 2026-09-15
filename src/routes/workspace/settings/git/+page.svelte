@@ -438,7 +438,7 @@ import { supabase } from '$lib/supabaseClient';
 						{#if link}
 							<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
 								<div class="text-sm font-medium">Documentation source</div>
-								<div class="mt-2 flex flex-wrap items-center gap-2 text-[13px]"><Check size={14} weight="Outline" aria-hidden="true" /> <span class="font-mono">{link.repo_full_name}</span><span class="text-[var(--pc-text-muted)]">· {link.branch}</span><span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
+								<div class="mt-2 flex flex-wrap items-center gap-2 text-[13px]"><Check size={14} weight="Outline" aria-hidden="true" /> <span class="font-medium tracking-[-0.01em]">{link.repo_full_name}</span><span class="text-[var(--pc-text-muted)]">· {link.branch}</span><span use:tooltip={{ text: link.last_sha ? `Last synced ${link.last_synced_at ? new Date(link.last_synced_at).toLocaleString() : ''} · ${link.last_sha.slice(0,7)}` : 'Not yet synced', island: true }} class="cursor-help text-[var(--pc-text-faint)]"><Search size={12} weight="Outline" aria-hidden="true" /></span></div>
 								{#if link.last_error}<p class="mt-2 text-[12px] text-[#fca5a5]" use:tooltip={{ text: link.last_error, island: true }}>Sync failed — check connection</p>{/if}
 								<div class="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" loading={syncBusy} onclick={syncNow}>Sync now</Button><Button size="sm" variant="outline" onclick={disconnect}>Disconnect GitHub</Button></div>
 								{#if syncMessage}<p class="mt-2 text-[12px] text-[var(--pc-text-muted)]">{syncMessage}</p>{/if}
@@ -450,7 +450,7 @@ import { supabase } from '$lib/supabaseClient';
 							<div class="mt-3 grid gap-2">
 								{#each starterKits as kit}
 									<div class="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-3">
-										<div class="min-w-0"><div class="text-[13px] font-medium">{kit.label}</div><div class="mt-1 max-w-[42ch] truncate font-mono text-[12px] text-[var(--pc-text-muted)]">{kitStatus(kitRepositories[kit.value])}</div></div>
+										<div class="min-w-0"><div class="text-[13px] font-medium">{kit.label}</div><div class="mt-1 max-w-[42ch] truncate text-[12px] text-[var(--pc-text-muted)]">{kitStatus(kitRepositories[kit.value])}</div></div>
 										<Button size="sm" variant="outline" onclick={() => openKitSetup(kit.value)}>{kitRepositories[kit.value]?.repo_full_name ? 'Edit connection' : 'Connect repository'}</Button>
 									</div>
 								{/each}
@@ -460,7 +460,7 @@ import { supabase } from '$lib/supabaseClient';
 						<div class="mt-5 border-t border-[var(--pc-border-strong)] pt-4">
 							<div class="text-sm font-medium">Context repositories</div>
 							<p class="mt-1 text-[13px]/[18px] text-[var(--pc-text-muted)]">Optional repositories for links and release details.</p>
-							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-mono">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
+							{#if contextLinks.length}<div class="mt-3 grid gap-2">{#each contextLinks as context}<div class="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--pc-border-strong)] px-3 py-2 text-[13px]"><span class="font-medium tracking-[-0.01em]">{context.repo_full_name}</span><Button size="sm" variant="outline" onclick={() => void removeContextRepo(context.repo_full_name)}>Remove</Button></div>{/each}</div>{/if}
 							<div class="mt-3 flex gap-2"><Select value={contextRepo} onValueChange={(value) => { contextRepo = value; contextError = ''; }} options={[{ value: '', label: 'Choose a repository' }, ...repos.filter((repo) => repo.full_name !== link?.repo_full_name && !contextLinks.some((context) => context.repo_full_name === repo.full_name)).map((repo) => ({ value: repo.full_name, label: repo.full_name }))]} /><Button size="sm" variant="outline" loading={busy} onclick={saveContextRepo}>Add context</Button></div>
 							{#if contextError}<p class="mt-2 text-[12px] text-[#fca5a5]" role="alert">{contextError}</p>{/if}
 						</div>
@@ -471,8 +471,8 @@ import { supabase } from '$lib/supabaseClient';
 								<div class="mt-4 grid gap-3">
 									<div class="grid gap-1.5"><Label>Starter kit</Label><Select value={targetKit} onValueChange={chooseTargetKit} options={starterKits.map((kit) => ({ value: kit.value, label: kit.label }))} /></div>
 									<div class="grid gap-1.5"><Label>Repository</Label><Select value={targetRepo} onValueChange={(value) => (targetRepo = value)} options={[{ value: '', label: 'Choose a repository' }, ...repos.map((repo) => ({ value: repo.full_name, label: repo.full_name + (repo.private ? ' · private' : '') }))]} /></div>
-									<div class="grid gap-1.5"><Label for="target-branch">Branch</Label><Input id="target-branch" bind:value={targetBranch} placeholder="main" class="font-mono max-sm:text-base!" /></div>
-									<div class="grid gap-1.5"><Label for="target-path">Content path</Label><Input id="target-path" bind:value={targetPath} placeholder="/" class="font-mono max-sm:text-base!" /></div>
+									<div class="grid gap-1.5"><Label for="target-branch">Branch</Label><Input id="target-branch" bind:value={targetBranch} placeholder="main" class="max-sm:text-base!" /></div>
+									<div class="grid gap-1.5"><Label for="target-path">Content path</Label><Input id="target-path" bind:value={targetPath} placeholder="/" class="max-sm:text-base!" /></div>
 									<div class="flex flex-wrap gap-2"><Button size="sm" loading={targetBusy} onclick={saveKitRepository}>{kitRepositories[targetKit] ? 'Save connection' : 'Connect repository'}</Button>{#if kitRepositories[targetKit]}<Button size="sm" variant="outline" onclick={() => void removeKitRepository(targetKit)}>Disconnect repository</Button>{/if}</div>
 									{#if targetError}<p class="text-[12px] text-[#fca5a5]" role="alert">{targetError}</p>{/if}
 								</div>

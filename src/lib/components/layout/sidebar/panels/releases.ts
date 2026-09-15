@@ -8,8 +8,7 @@ export const releasesPanel: PanelDef = {
 	description: 'Ship updates and share what changed',
 	links: [
 		{ label: 'All releases', href: '/workspace/releases' },
-		{ label: 'Live updates', href: '/workspace/releases?status=Live' },
-		{ label: 'By product', href: '/workspace/products' }
+		{ label: 'Live updates', href: '/workspace/releases?status=Live' }
 	],
 	recent: releases.slice(0, 3).map((r) => ({ label: r.title, subtitle: `${r.productName} · ${r.type}`, href: r.workspacePath })),
 	action: { label: 'New release', href: '/submit' }

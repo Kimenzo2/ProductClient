@@ -10,7 +10,6 @@
 		Download,
 		Globe,
 		Refresh,
-		Search,
 		Trash,
 		Upload,
 		Warning
@@ -110,7 +109,6 @@
 		input.value = '';
 	}
 	let selection = $state<Selection>({ area: 'site' });
-	let query = $state('');
 	let notice = $state('');
 	let dialog = $state<ItemDraft | null>(null);
 	let dialogPanel = $state<HTMLElement | null>(null);
@@ -152,7 +150,6 @@
 	});
 	let chapterCount = $derived(doc.chapters.length);
 	let itemCount = $derived(doc.chapters.reduce((n, c) => n + c.items.length, 0));
-	let normalizedQuery = $derived(query.trim().toLowerCase());
 	let selectedChapterId = $derived(selection.area === 'chapter' ? selection.chapterId : null);
 	let activeChapter = $derived(selectedChapterId ? (doc.chapters.find((c) => c.id === selectedChapterId) ?? null) : null);
 
@@ -186,13 +183,7 @@
 		return issues.filter((i) => i.path === `chapters.${index}` || i.path.startsWith(`chapters.${index}.`)).length;
 	}
 
-	let visibleChapters = $derived(
-		doc.chapters.filter((chapter) => {
-			if (!normalizedQuery) return true;
-			const haystack = [chapter.label, chapter.hint, ...chapter.items.flatMap((item) => [item.title, item.outcome, ...item.themes])].join(' ').toLowerCase();
-			return haystack.includes(normalizedQuery);
-		})
-	);
+	let visibleChapters = $derived(doc.chapters);
 
 	let stageOptions = $derived(Object.entries(doc.stages).map(([value, entry]) => ({ value, label: entry.label })));
 	let confidenceOptions = $derived(Object.entries(doc.confidence).map(([value, entry]) => ({ value, label: entry.label })));
@@ -610,11 +601,6 @@
 	</header>
 
 	<div class="toolbar">
-		<div class="search-field">
-			<Search size={15} weight="Outline" aria-hidden="true" />
-			<label for="roadmap-editor-search" class="sr-only">Search chapters and items</label>
-			<Input id="roadmap-editor-search" bind:value={query} placeholder="Search chapters or items" />
-		</div>
 		<div class="toolbar-actions">
 			<Button variant="primary" size="md" disabled={!dirty || issues.length > 0 || publishing} loading={publishing} onclick={publish}><CheckCircle size={15} weight="Outline" aria-hidden="true" />{publishing ? 'Publishing' : 'Publish'}</Button>
 		</div>
@@ -659,7 +645,7 @@
 					</button>
 				{/each}
 				{#if visibleChapters.length === 0}
-					<p class="queue-empty">No chapters match “{query}”. <button type="button" class="quiet-action" onclick={() => (query = '')}>Clear search</button></p>
+					<p class="queue-empty">No chapters yet. Add a chapter to get started.</p>
 				{/if}
 				<button type="button" class="queue-row add-row" onclick={addChapter}><Add size={14} weight="Outline" aria-hidden="true" /><span>Add chapter</span></button>
 				<div class="queue-group-label" aria-hidden="true">System</div>
@@ -872,8 +858,6 @@
 	.validity.invalid { color: var(--pc-status-degraded); }
 	.validity.pending { color: var(--pc-text); }
 	.toolbar { display: flex; align-items: center; gap: 12px; padding: 20px 0 14px; }
-	.search-field { display: flex; align-items: center; width: min(100%, 330px); min-height: 38px; gap: 9px; padding-inline-start: 11px; border-radius: 10px; color: var(--pc-text-faint); background: var(--pc-surface-2); }
-	.search-field :global(input) { min-height: 38px; padding-inline-start: 0; border: 0; background: transparent; }
 	.toolbar-actions { display: flex; align-items: center; gap: 8px; }
 	.reset-button { min-height: 34px; flex: 0 0 auto; margin-inline-start: auto; padding: 0 11px; border: 0; border-radius: 999px; color: var(--pc-text-faint); background: transparent; font: inherit; font-size: 11px; cursor: pointer; transition: background-color 120ms ease, color 120ms ease; display: inline-flex; align-items: center; gap: 6px; }
 	.reset-button:hover { color: var(--pc-text); background: var(--pc-surface-2); }
@@ -944,7 +928,7 @@
 	.dialog-row { display: flex; align-items: center; gap: 14px; }
 	.editor-actions { display: flex; align-items: center; gap: 16px; margin-top: auto; padding-top: 24px; border-top: 1px solid var(--pc-border-strong); }
 	@media (max-width: 1020px) { .briefing-layout { grid-template-columns: minmax(0, 1fr); } }
-	@media (max-width: 720px) { .briefing-page { width: min(100% - 24px, 1160px); padding-top: 28px; } .page-header { align-items: start; flex-direction: column; gap: 14px; } .toolbar { align-items: stretch; flex-wrap: wrap; } .toolbar-actions { width: 100%; } .toolbar-actions :global(a), .toolbar-actions :global(button) { flex: 1; } .search-field { width: 100%; } .reset-button { margin-inline-start: auto; } .form-grid, .form-grid-dialog { grid-template-columns: minmax(0, 1fr); } .link-row { grid-template-columns: minmax(0, 1fr); } }
+	@media (max-width: 720px) { .briefing-page { width: min(100% - 24px, 1160px); padding-top: 28px; } .page-header { align-items: start; flex-direction: column; gap: 14px; } .toolbar { align-items: stretch; flex-wrap: wrap; } .toolbar-actions { width: 100%; } .toolbar-actions :global(a), .toolbar-actions :global(button) { flex: 1; } .reset-button { margin-inline-start: auto; } .form-grid, .form-grid-dialog { grid-template-columns: minmax(0, 1fr); } .link-row { grid-template-columns: minmax(0, 1fr); } }
 	@media (max-width: 460px) { .item-editor { width: min(100% - 16px, 520px); padding: 24px 20px max(22px, env(safe-area-inset-bottom)); border-start-start-radius: 22px; border-end-start-radius: 22px; } .editor-actions { align-items: stretch; flex-direction: column; gap: 10px; } .editor-actions :global(button) { width: 100%; } }
 	@media (prefers-reduced-motion: reduce) { .queue-row, .item-row, .icon-button, .reset-button { transition: none; } }
 </style>

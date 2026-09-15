@@ -8,8 +8,8 @@ export const inboxPanel: PanelDef = {
 	description: 'Triage incoming items',
 	links: [
 		{ label: 'Inbox', href: '/workspace/inbox', signalKey: 'inbox' },
-		{ label: 'Feedback', href: '/workspace/feedback' },
-		{ label: 'Incidents', href: '/workspace/incidents' }
+		{ label: 'Feedback', href: '/workspace/inbox?filter=Feedback' },
+		{ label: 'Service problems', href: '/workspace/inbox?filter=Incident' }
 	],
 	recent: feedback.slice(0, 3).map((f) => ({ label: f.title, subtitle: f.productName, href: f.workspacePath })),
 	action: { label: 'Open inbox', href: '/workspace/inbox' }

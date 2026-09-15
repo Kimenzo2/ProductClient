@@ -10,7 +10,6 @@ export const docsPanel: PanelDef = {
 		{ label: 'Overview', href: '/workspace/docs' },
 		{ label: 'All help pages', href: '/workspace/docs?view=all' },
 		{ label: 'Unanswered searches', href: '/workspace/docs?filter=unanswered' },
-		{ label: 'Product guides', href: '/workspace/products' },
 		{ label: 'Open docs', href: hostedDocsPage.href, external: true }
 	],
 	recent: [],

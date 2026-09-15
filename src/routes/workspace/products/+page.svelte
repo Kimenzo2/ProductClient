@@ -1,15 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Box, Search } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { onMount } from 'svelte';
+import { Box } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
-	let query = $state('');
-	let products = $derived(activeProductStore.products);
-	let filtered = $derived(
-		products.filter((product) => `${product.name} ${product.category ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()))
-	);
+let products = $derived(activeProductStore.products);
+let filtered = $derived(products);
 
 	onMount(() => { void hydrateActiveProduct(); });
 </script>
@@ -18,8 +15,7 @@
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
 	<WorkspaceHeader title="Products" description="Each product has one place for its public page, feedback, updates, help docs, and team decisions." actionLabel="Add product" actionHref="/submit" />
-	<div class="flex items-center gap-2 py-5"><Search size={16} weight="Outline" class="ml-1 opacity-55" aria-hidden="true" /><Input bind:value={query} placeholder="Find a product..." class="max-w-[360px]" /><span class="ml-auto text-xs text-[var(--pc-text-faint)] tabular-nums">{filtered.length} product{filtered.length === 1 ? '' : 's'}</span></div>
-	<div class="grid gap-3 pb-10 sm:grid-cols-2 xl:grid-cols-3">
+	<div class="grid gap-3 pt-5 pb-10 sm:grid-cols-2 xl:grid-cols-3">
 		{#each filtered as product (product.id)}
 			{@const workspacePath = `/workspace/products/${product.slug}`}
 			<Card padding="md" class="group flex min-h-[184px] flex-col">
@@ -40,11 +36,10 @@
 	{#if filtered.length === 0}
 		<StatePanel
 			icon={Box}
-			title={query.trim() ? 'No products match that filter' : products.length === 0 ? 'No products yet' : 'No products match that filter'}
-			description={query.trim() ? 'Try a name or category.' : products.length === 0 ? 'Add your first product to get started.' : 'Try a name or category.'}
-			actionLabel={products.length === 0 && !query.trim() ? 'Add product' : undefined}
-			actionHref={products.length === 0 && !query.trim() ? '/submit' : undefined}
-			onAction={query.trim() ? () => (query = '') : undefined}
+			title={products.length === 0 ? 'No products yet' : 'No products found'}
+			description={products.length === 0 ? 'Add your first product to get started.' : 'No products to display.'}
+			actionLabel={products.length === 0 ? 'Add product' : undefined}
+			actionHref={products.length === 0 ? '/submit' : undefined}
 			class="sm:col-span-2 xl:col-span-3"
 		/>
 	{/if}

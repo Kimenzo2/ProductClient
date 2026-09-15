@@ -97,7 +97,7 @@
 
 <svelte:head><title>Inbox | Product Client</title></svelte:head>
 
-<div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
+<div class="mx-auto w-full max-w-[960px] px-6 max-sm:px-4">
 	<WorkspaceHeader title={headerTitle} description="One list for new customer feedback and service problems that need attention." actionLabel="Add feedback" actionHref="/feedback/new" />
 	<div class="flex flex-wrap items-center gap-2 py-5" role="group" aria-label="Inbox filters">
 		{#each ['All', 'Feedback', 'Incident'] as item}
@@ -105,7 +105,7 @@
 		{/each}
 		<span class="ml-auto text-xs text-[var(--pc-text-faint)]">{filtered.length} records</span>
 	</div>
-	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+	<div class="grid gap-6 pb-10">
 		<section class="space-y-2" aria-label="Inbox records">
 			{#if loading}
 				{#each Array(4) as _, i (i)}
@@ -118,6 +118,5 @@
 				{#if filtered.length === 0}<StatePanel icon={Inbox} title="No records in this view" description="Try another filter." />{/if}
 			{/if}
 		</section>
-		<aside><div class="min-h-[180px] py-4" aria-hidden="true"></div></aside>
 	</div>
 </div>

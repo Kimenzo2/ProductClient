@@ -104,7 +104,7 @@
 					<div class="flex items-center gap-2 text-sm font-medium"><label for="ws-slug">Subdomain</label><span use:tooltip={{ text: 'This is your URL. Used for docs, roadmap and status.', island: true }} class="text-[var(--pc-text-faint)]"><Globe size={12} weight="Outline" aria-hidden="true" /></span></div>
 				</div>
 				<div class="flex shrink-0 items-center gap-2">
-					<Input id="ws-slug" bind:value={slugDraft} placeholder="acme" class="w-48 font-mono max-sm:text-base!" error={slugError} aria-describedby="ws-slug-error" />
+					<Input id="ws-slug" bind:value={slugDraft} placeholder="acme" class="w-48 max-sm:text-base!" error={slugError} aria-describedby="ws-slug-error" />
 					<Button size="sm" loading={saving} onclick={save}>Save</Button>
 				</div>
 			</div>

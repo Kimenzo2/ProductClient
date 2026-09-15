@@ -1,15 +1,18 @@
 <script lang="ts">
-	import { ArrowRight, Compass, Inbox, Search, Users2 } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
-	import { problems } from '$lib/data/workspace';
+import { ArrowRight, Compass, Inbox, Users2 } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
+import { problems } from '$lib/data/workspace';
+import { browser } from '$app/environment';
+import { onMount } from 'svelte';
 
-	let query = $state('');
-	let filter = $state<'All' | 'Needs context' | 'Ready for decision' | 'Planned' | 'Resolved'>('All');
-	let filtered = $derived(problems.filter((problem) => {
-		const text = `${problem.title} ${problem.statement} ${problem.productName} ${problem.productArea} ${problem.affectedAudience}`.toLowerCase();
-		return (filter === 'All' || problem.status === filter) && text.includes(query.trim().toLowerCase());
-	}));
+let filter = $state<'All' | 'Needs context' | 'Ready for decision' | 'Planned' | 'Resolved'>('All');
+let isPreview = $state(false);
+onMount(() => {
+	isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+});
+let sourceProblems = $derived(isPreview ? problems : []);
+let filtered = $derived(sourceProblems.filter((problem) => filter === 'All' || problem.status === filter));
 </script>
 
 <svelte:head><title>Problems | Product Client</title></svelte:head>
@@ -17,8 +20,7 @@
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
 	<WorkspaceHeader title="Problems" description="Turn repeated feedback into a clear statement of what people need and why it matters." actionLabel="Describe a problem" actionHref="/workspace/problems/new" />
 
-	<div class="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
-		<div class="relative w-full sm:max-w-[420px]"><Search size={15} weight="Outline" class="pointer-events-none absolute left-3 top-3 opacity-55" aria-hidden="true" /><label for="problem-search" class="sr-only">Search problems</label><Input id="problem-search" bind:value={query} placeholder="Find a problem, product, or audience" class="pl-9 text-base sm:text-sm" /></div>
+	<div class="flex justify-end py-5">
 		<span class="text-xs text-[var(--pc-text-faint)]">{filtered.length} problem{filtered.length === 1 ? '' : 's'}</span>
 	</div>
 
@@ -36,7 +38,7 @@
 					<div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/25 pt-3 text-[11px] text-[var(--pc-text-faint)]"><span class="inline-flex items-center gap-1"><Users2 size={13} weight="Outline" aria-hidden="true" /> {problem.affectedAudience}</span><span class="inline-flex items-center gap-1"><Inbox size={13} weight="Outline" aria-hidden="true" /> {problem.feedbackIds.length} source{problem.feedbackIds.length === 1 ? '' : 's'}</span><span class="ml-auto inline-flex items-center gap-1 text-[var(--pc-accent-light)]">Open problem <ArrowRight size={12} weight="Outline" aria-hidden="true" /></span></div>
 				</a>
 			{/each}
-			{#if filtered.length === 0}<StatePanel icon={Compass} title="No problems match" description="Try a different search or status." actionLabel="Clear filters" onAction={() => { query = ''; filter = 'All'; }} />{/if}
+			{#if filtered.length === 0}<StatePanel icon={Compass} title="No problems found" description="No problems match the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} />{/if}
 		</section>
 
 		<aside class="space-y-4">

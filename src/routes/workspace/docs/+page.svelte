@@ -1,22 +1,24 @@
 <script lang="ts">
-	import { FileText, Lock, Refresh, Search } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
-	import { hostedDocsPage } from '$lib/config/tenant';
-	import { docs } from '$lib/data/workspace';
-	import { supabase } from '$lib/supabaseClient';
-	import { onMount } from 'svelte';
-	import { trackAnalyticsEvent } from '$lib/data/analytics';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { FileText, Lock, Refresh } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import EntityRow from '$lib/components/workspace/EntityRow.svelte';
+import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
+import { hostedDocsPage } from '$lib/config/tenant';
+import { docs } from '$lib/data/workspace';
+import { supabase } from '$lib/supabaseClient';
+import { onMount } from 'svelte';
+import { browser } from '$app/environment';
+import { tooltip } from '$lib/components/Tooltip.svelte';
+import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 
-	let query = $state('');
-	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
-	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Help docs` : 'Help docs');
-	let filtered = $derived(
-		(docs.filter((doc) => !activeSlug || doc.productSlug === activeSlug) as typeof docs).filter((doc) => `${doc.title} ${doc.description} ${doc.productName} ${doc.section}`.toLowerCase().includes(query.toLowerCase()))
-	);
+let isPreview = $state(false);
+onMount(() => {
+	isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+});
+let sourceDocs = $derived(isPreview ? docs : []);
+let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Help docs` : 'Help docs');
+let filtered = $derived(sourceDocs.filter((doc) => !activeSlug || doc.productSlug === activeSlug) as typeof docs);
 	let accessMode = $state<'public' | 'password' | 'private'>('public');
 	let password = $state('');
 	let agentBlurb = $state('');
@@ -30,7 +32,6 @@
 
 	onMount(() => {
 		void hydrateActiveProduct().then(() => void loadGithubStatus());
-		void trackAnalyticsEvent('docs.view', { path: '/workspace/docs', productId: activeProductStore.activeProduct?.id });
 		void loadVisibility();
 	});
 	$effect(() => {
@@ -106,14 +107,7 @@
 			visibilityBusy = false;
 		}
 	}
-	let lastQuery = '';
-	$effect(() => {
-		const q = query.trim();
-		if (!q || q === lastQuery) return;
-		lastQuery = q;
-		void trackAnalyticsEvent('docs.search', { query: q, path: '/workspace/docs' });
-		if (filtered.length === 0) void trackAnalyticsEvent('docs.search_no_results', { query: q, path: '/workspace/docs' });
-	});
+
 </script>
 
 <svelte:head><title>Help docs | Product Client</title></svelte:head>
@@ -132,11 +126,10 @@
 			{#if githubNote}<p class="mt-3 text-xs text-[var(--pc-text-muted)]" role="status">{githubNote}</p>{/if}
 		</Card>
 	{/if}
-	<div class="relative max-w-[620px] py-5"><Search size={16} weight="Outline" class="pointer-events-none absolute left-3 top-8 opacity-55" /><Input bind:value={query} placeholder="Find a help page or product..." aria-label="Search help docs" class="pl-9 text-base sm:text-sm" /></div>
-	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+	<div class="grid gap-6 pt-5 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
 		<section class="space-y-2" aria-label="Documentation pages">
-			{#each filtered as doc (doc.productSlug + doc.slug)}<EntityRow href={doc.publicPath} kind="Doc" title={doc.title} subtitle={`${doc.productName} · ${doc.section}`} description={doc.description} status="Published" meta={`Updated ${doc.updatedAt}`} onclick={() => void trackAnalyticsEvent('docs.search_click', { query, path: doc.publicPath })} />{/each}
-			{#if filtered.length === 0}<StatePanel icon={FileText} title={query.trim() ? 'No help pages found' : 'No published help pages yet'} description={query.trim() ? 'Try a broader search.' : 'The workspace will list real tenant pages after they are published. Placeholder documentation is not shown here.'} />{/if}
+			{#each filtered as doc (doc.productSlug + doc.slug)}<EntityRow href={doc.publicPath} kind="Doc" title={doc.title} subtitle={`${doc.productName} · ${doc.section}`} description={doc.description} status="Published" meta={`Updated ${doc.updatedAt}`} />{/each}
+			{#if filtered.length === 0}<StatePanel icon={FileText} title="No published help pages yet" description="The workspace will list real tenant pages after they are published." />{/if}
 		</section>
 		<aside class="space-y-4">
 			<Card padding="lg">

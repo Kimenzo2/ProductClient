@@ -2,26 +2,25 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, CloseCircle, Export, History, Search, User } from 'reicon-svelte';
-	import { Button, Input, Label, Select } from '$lib/components/ui';
-	import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '$lib/data/postIncidentFlow.svelte';
-	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
-	import type { IncidentRecord, PostIncidentTask } from '$lib/data/workspace';
+import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, CloseCircle, Export, History, Search, User } from 'reicon-svelte';
+import { Button, Input, Label, Select } from '$lib/components/ui';
+import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '$lib/data/postIncidentFlow.svelte';
+import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+import type { IncidentRecord, PostIncidentTask } from '$lib/data/workspace';
 
-	type FlowPhase = PostIncidentTask['phase'];
-	type FlowFilter = 'All flows' | 'Needs action' | 'Complete';
-	type FlowIncident = IncidentRecord & {
-		tasks: PostIncidentTask[];
-		completeCount: number;
-		currentPhase: FlowPhase | 'Complete';
-		flowStatus: 'In progress' | 'Complete';
-	};
+type FlowPhase = PostIncidentTask['phase'];
+type FlowFilter = 'All flows' | 'Needs action' | 'Complete';
+type FlowIncident = IncidentRecord & {
+	tasks: PostIncidentTask[];
+	completeCount: number;
+	currentPhase: FlowPhase | 'Complete';
+	flowStatus: 'In progress' | 'Complete';
+};
 
-	const phases: FlowPhase[] = ['Documenting', 'Reviewing'];
-	const filters: FlowFilter[] = ['All flows', 'Needs action', 'Complete'];
+const phases: FlowPhase[] = ['Documenting', 'Reviewing'];
+const filters: FlowFilter[] = ['All flows', 'Needs action', 'Complete'];
 
-	let query = $state('');
-	let filter = $state<FlowFilter>('All flows');
+let filter = $state<FlowFilter>('All flows');
 	let selectedId = $state('');
 	let editingTaskId = $state('');
 	let editorStatus = $state<PostIncidentTask['status']>('Open');
@@ -58,13 +57,8 @@
 	);
 	let openFlowCount = $derived(flowIncidents.filter((flow) => flow.flowStatus !== 'Complete').length);
 	let completeFlowCount = $derived(flowIncidents.filter((flow) => flow.flowStatus === 'Complete').length);
-	let normalizedQuery = $derived(query.trim().toLowerCase());
 	let filteredFlows = $derived(
-		flowIncidents.filter((flow) => {
-			const matchesFilter = filter === 'All flows' || (filter === 'Complete' ? flow.flowStatus === 'Complete' : flow.flowStatus !== 'Complete');
-			const haystack = [flow.title, flow.productName, flow.owner, flow.severity, ...flow.tasks.flatMap((task) => [task.title, task.description, task.owner, task.kind])].join(' ').toLowerCase();
-			return matchesFilter && (!normalizedQuery || haystack.includes(normalizedQuery));
-		})
+		flowIncidents.filter((flow) => filter === 'All flows' || (filter === 'Complete' ? flow.flowStatus === 'Complete' : flow.flowStatus !== 'Complete'))
 	);
 	let activeFlow = $derived(selectedId ? filteredFlows.find((flow) => flow.id === selectedId) ?? null : null);
 	let activeTasks = $derived(activeFlow?.tasks ?? []);
@@ -159,7 +153,6 @@
 	}
 
 	function clearFilters() {
-		query = '';
 		filter = 'All flows';
 	}
 
@@ -211,11 +204,6 @@
 	</header>
 
 	<div class={activeFlow ? 'toolbar is-hidden' : 'toolbar'}>
-		<div class="search-field">
-			<Search size={15} weight="Outline" aria-hidden="true" />
-			<label for="post-incident-search" class="sr-only">Search post-incident flows</label>
-			<Input id="post-incident-search" bind:value={query} placeholder="Search incidents or review tasks" />
-		</div>
 		<div class="filter-group" role="group" aria-label="Filter post-incident flows">
 			{#each filters as item}<button type="button" class:active={filter === item} aria-pressed={filter === item} onclick={() => (filter = item)}>{item}</button>{/each}
 		</div>

@@ -360,7 +360,7 @@
 								<p class="mt-0.5 truncate text-[13px]/[18px] text-[var(--pc-text-muted)]">{displaySubdomain(tenant.slug)}</p>
 							</div>
 							<div class="flex shrink-0 items-center gap-2">
-								<Input id="you-slug" bind:value={slugDraft} placeholder="gemma" class="w-48 font-mono max-sm:text-base!" error={slugError} aria-describedby="you-slug-error" />
+								<Input id="you-slug" bind:value={slugDraft} placeholder="gemma" class="w-48 max-sm:text-base!" error={slugError} aria-describedby="you-slug-error" />
 								<Button size="sm" loading={savingSlug} onclick={saveSlug}>Save</Button>
 							</div>
 						</div>
@@ -372,7 +372,7 @@
 						<div class="flex items-center gap-3 p-4">
 							<span class="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium"><Icon size={16} weight="Outline" aria-hidden="true" />{row.label}</span>
 							<div class="flex shrink-0 items-center gap-2">
-								<a href={row.href} target="_blank" rel="noopener" class="max-w-[28ch] truncate font-mono text-[13px] text-[var(--pc-accent-light)] hover:underline" use:tooltip={{ text: row.href, island: true }}>{row.href}</a>
+								<a href={row.href} target="_blank" rel="noopener" class="max-w-[28ch] truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-accent-light)] hover:underline" use:tooltip={{ text: row.href, island: true }}>{row.href}</a>
 								<button type="button" class="grid size-8 place-items-center rounded-full bg-[var(--pc-bg)] text-[var(--pc-text-muted)] hover:text-[var(--pc-text)] transition-[color,transform] active:scale-[0.96]" onclick={() => copy(row.href)} aria-label="Copy link" use:tooltip={{ text: 'Copy', island: true }}><Copy size={14} weight="Outline" aria-hidden="true" /></button>
 							</div>
 						</div>

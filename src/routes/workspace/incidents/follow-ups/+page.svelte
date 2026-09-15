@@ -2,19 +2,18 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { AlertTriangle, ArrowRight, Calendar, CheckCircle, Clock, Export, History, Search, User } from 'reicon-svelte';
-	import { Button, Input, Label, Select } from '$lib/components/ui';
-	import { followUpPreview, hydrateFollowUps, resetFollowUps, updateFollowUp } from '$lib/data/followUps.svelte';
-	import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
-	import type { FollowUpRecord, IncidentRecord } from '$lib/data/workspace';
+import { AlertTriangle, ArrowRight, Calendar, CheckCircle, Clock, Export, History, Search, User } from 'reicon-svelte';
+import { Button, Input, Label, Select } from '$lib/components/ui';
+import { followUpPreview, hydrateFollowUps, resetFollowUps, updateFollowUp } from '$lib/data/followUps.svelte';
+import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
+import type { FollowUpRecord, IncidentRecord } from '$lib/data/workspace';
 
-	type FollowUpFilter = 'Everything' | FollowUpRecord['status'];
-	type EnrichedFollowUp = FollowUpRecord & { incident?: IncidentRecord };
+type FollowUpFilter = 'Everything' | FollowUpRecord['status'];
+type EnrichedFollowUp = FollowUpRecord & { incident?: IncidentRecord };
 
-	const filters: FollowUpFilter[] = ['Everything', 'Open', 'In progress', 'Done'];
+const filters: FollowUpFilter[] = ['Everything', 'Open', 'In progress', 'Done'];
 
-	let query = $state('');
-	let filter = $state<FollowUpFilter>('Everything');
+let filter = $state<FollowUpFilter>('Everything');
 	let selectedId = $state('');
 	let editorStatus = $state<FollowUpRecord['status']>('Open');
 	let editorOwner = $state('');
@@ -26,21 +25,7 @@
 		incident: incidentRecordsForWorkspace().find((incident) => incident.id === followUp.incidentId)
 	})));
 	let openCount = $derived(records.filter((followUp) => followUp.status !== 'Done').length);
-	let normalizedQuery = $derived(query.trim().toLowerCase());
-	let filtered = $derived(
-		records.filter((followUp) => {
-			const matchesStatus = filter === 'Everything' || followUp.status === filter;
-			const haystack = [
-				followUp.title,
-				followUp.description,
-				followUp.owner,
-				followUp.kind,
-				followUp.incident?.title ?? '',
-				followUp.incident?.productName ?? ''
-			].join(' ').toLowerCase();
-			return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
-		})
-	);
+	let filtered = $derived(records.filter((followUp) => filter === 'Everything' || followUp.status === filter));
 	let activeFollowUp = $derived(filtered.find((followUp) => followUp.id === selectedId) ?? filtered[0] ?? null);
 	let ownerOptions = $derived(
 		[...new Set(records.map((followUp) => followUp.owner).filter(Boolean))]
@@ -78,7 +63,6 @@
 	}
 
 	function clearFilters() {
-		query = '';
 		filter = 'Everything';
 	}
 
@@ -116,11 +100,6 @@
 	</header>
 
 	<div class="toolbar">
-		<div class="search-field">
-			<Search size={15} weight="Outline" aria-hidden="true" />
-			<label for="follow-up-search" class="sr-only">Search follow-ups</label>
-			<Input id="follow-up-search" bind:value={query} placeholder="Search follow-ups, incidents, or owners" />
-		</div>
 		<div class="filter-group" role="group" aria-label="Filter follow-ups by status">
 			{#each filters as item}
 				<button type="button" class:active={filter === item} aria-pressed={filter === item} onclick={() => (filter = item)}>{item}</button>
@@ -151,8 +130,8 @@
 			{:else if filtered.length === 0}
 				<div class="empty-state compact">
 					<span class="empty-icon" aria-hidden="true"><Search size={22} weight="Outline" /></span>
-					<h3>No follow-ups match</h3>
-					<p>Try a different search or status view.</p>
+					<h3>No follow-ups found</h3>
+					<p>Try a different status.</p>
 					<Button variant="outline" size="sm" onclick={clearFilters}>Clear filters</Button>
 				</div>
 			{:else}

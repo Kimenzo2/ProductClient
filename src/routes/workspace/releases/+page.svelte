@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { ArrowRight, History, InfoCircle, Rocket } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Button, Card, Chip, Select } from '$lib/components/ui';
+import { ArrowRight, History, InfoCircle, Rocket } from 'reicon-svelte';
+import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+import EntityRow from '$lib/components/workspace/EntityRow.svelte';
+import { Button, Card, Chip, Select, StatePanel } from '$lib/components/ui';
 import { onMount } from 'svelte';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 import { releases, products } from '$lib/data/workspace';
 import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
 import { supabase } from '$lib/supabaseClient';
+import { browser } from '$app/environment';
 
 	type InternalStatus = 'Draft' | 'In review' | 'Ready' | 'Published';
 	type Visibility = 'Internal' | 'Preview' | 'Public';
@@ -28,14 +29,19 @@ import { supabase } from '$lib/supabaseClient';
 	let activeId = $derived(activeProductStore.activeProduct?.id ?? null);
 	let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Releases` : 'Internal releases');
 	let productFilter = $state('all');
+	let isPreview = $state(false);
+	onMount(() => {
+		isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+	});
 	// Keep filter in sync with active product when it changes (unless user explicitly chose another product)
 	$effect(() => {
 		if (activeSlug) productFilter = activeSlug;
 	});
 	let productOptions = $derived([
 		{ value: 'all', label: 'All workspace products' },
-		...products.map((p) => ({ value: p.slug, label: p.name }))
+		...(isPreview ? products.map((p) => ({ value: p.slug, label: p.name })) : [])
 	]);
+	let sourceReleases = $derived(isPreview ? releases : []);
 
 	type GithubReleaseView = { id: string; title: string; version: string | null; status: string; github_release_url: string; github_repo_full_name: string | null; created_at: string };
 	let githubReleases = $state<GithubReleaseView[]>([]);
@@ -74,7 +80,7 @@ import { supabase } from '$lib/supabaseClient';
 
 	let filter = $state<'All' | InternalStatus>('All');
 	let internalReleases = $derived(
-		releases.map((r, i) => {
+		sourceReleases.map((r, i) => {
 			const internalStatus = internalStatusFor(r, i);
 			return { ...r, internalStatus, visibility: visibilityFor(internalStatus) };
 		})
@@ -90,7 +96,7 @@ import { supabase } from '$lib/supabaseClient';
 
 <svelte:head><title>Internal releases | Product Client</title></svelte:head>
 
-<div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
+<div class="mx-auto w-full max-w-[960px] px-6 max-sm:px-4">
 	<WorkspaceHeader title={headerTitle} description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
 	<div class="flex flex-wrap items-center gap-3 py-5" role="group" aria-label="Internal release filters">
 		<div class="flex items-center gap-2">
@@ -115,7 +121,7 @@ import { supabase } from '$lib/supabaseClient';
 		</div>
 		<span class="ml-auto text-xs text-[var(--pc-text-faint)] tabular-nums">{filtered.length} internal</span>
 	</div>
-	<div class="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+	<div class="grid gap-6 pb-10">
 		<section class="space-y-2" aria-label="Internal release timeline">
 			{#each filtered as release (release.id)}
 				<EntityRow
@@ -129,12 +135,11 @@ import { supabase } from '$lib/supabaseClient';
 					avatar={release.productAvatar}
 				/>
 			{/each}
-			{#if filtered.length === 0}<div class="min-h-[180px] py-4" aria-hidden="true"></div>{/if}
+			{#if filtered.length === 0}<StatePanel icon={History} title={isPreview ? 'No releases match' : 'No releases yet'} description={isPreview ? 'Try a different filter.' : 'Releases you publish will appear here.'} class="py-6" />{/if}
 		</section>
-		<aside class="space-y-4"><div class="min-h-[180px] py-4" aria-hidden="true"></div><div class="min-h-[180px] py-4" aria-hidden="true"></div></aside>
 	</div>
 	{#if activeId}
-		<Card padding="md" class="mb-10">
+		<Card padding="md" class="mb-10 mx-auto w-full max-w-[960px]">
 			<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 id="github-releases-title" class="text-[14px] font-medium">GitHub releases</h2><p class="mt-1 text-xs text-[var(--pc-text-muted)]">GitHub releases enter as drafts here until you confirm them for ProductClient.</p></div><span class="text-xs text-[var(--pc-text-faint)]">{githubReleases.length}</span></div>
 			{#if githubReleaseError}<p class="mt-3 text-xs text-[var(--red-6)]" role="alert">{githubReleaseError}</p>{:else if githubReleases.length === 0}<p class="mt-4 text-xs text-[var(--pc-text-faint)]">No GitHub releases have been ingested for this product.</p>{:else}<div class="mt-4 divide-y divide-[var(--pc-border)]/60">{#each githubReleases as release (release.id)}<div class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate text-sm font-medium">{release.title}</p><p class="mt-1 text-xs text-[var(--pc-text-muted)]">{release.version ?? 'Unversioned'} · {release.status === 'published' ? 'Published in ProductClient' : 'Awaiting maker confirmation'}</p></div><div class="flex shrink-0 flex-wrap items-center gap-1"><Button size="sm" variant="ghost" href={release.github_release_url} target="_blank">Open GitHub release <ArrowRight size={12} weight="Outline" /></Button>{#if release.status !== 'published'}<Button size="sm" loading={confirmingRelease === release.id} onclick={() => void confirmGithubRelease(release.id)}>Confirm</Button>{/if}</div></div>{/each}</div>{/if}
 		</Card>
