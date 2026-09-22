@@ -24,31 +24,39 @@
 		}
 
 		const next = safeNextPath(page.url.searchParams.get('next'), mode === 'confirm' ? '/reset-password' : '/workspace');
-		let redirected = false;
-		const redirectIfSignedIn = async (session: Session | null) => {
-			if (!session || redirected) return;
-			// Ensure profile + tenant (slug) exists server-side before showing success.
-			// This is idempotent, race-safe, and handles orphaned partial signups and OAuth vs email.
-			try {
-				const tenant = await ensureMyTenant();
-				if (tenant) tenantSlug = tenant.slug;
-			} catch {
-				// non-fatal: still redirect to workspace where a second ensure will run
-			}
-			redirected = true;
-			const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next, session);
-			if (!destination.startsWith('http')) {
-				void goto(destination, { replaceState: true });
-				return;
-			}
-			// Cross-origin handoff: this page loaded from a link, so there is
-			// no click gesture. Wait for the user to move this page to the workspace.
-			appDestination = destination;
-			status = 'ready';
+		let redirectStarted = false;
+		const redirectIfSignedIn = (session: Session | null) => {
+			if (!session || redirectStarted) return;
+			redirectStarted = true;
+
+			// Supabase auth listeners run inside the auth client's event flow. Defer
+			// tenant RPC/navigation work until after the listener returns so it cannot
+			// contend with the sign-in operation that emitted this session event.
+			queueMicrotask(() => {
+				void (async () => {
+					// Ensure profile + tenant (slug) exists before showing success.
+					// This is idempotent and handles partial signups and OAuth/email flows.
+					try {
+						const tenant = await ensureMyTenant();
+						if (tenant) tenantSlug = tenant.slug;
+					} catch {
+						// Non-fatal: workspace runs the same idempotent ensure on entry.
+					}
+
+					const destination = mode === 'confirm' ? authHref('reset-password') : appHref(next, session);
+					if (!destination.startsWith('http')) {
+						void goto(destination, { replaceState: true });
+						return;
+					}
+					// Cross-origin handoff: wait for the user to open the workspace.
+					appDestination = destination;
+					status = 'ready';
+				})();
+			});
 		};
 		const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => redirectIfSignedIn(session));
 		const timeout = window.setTimeout(() => {
-			if (!redirected) {
+			if (!redirectStarted) {
 				status = 'error';
 				message = 'This sign-in link is missing or has expired. Start again.';
 			}

@@ -5,6 +5,7 @@ const appOrigin = 'https://app.productclient.com';
 // Pinned dev ports (vite.config.ts, strictPort). The dashboard always lives
 // on the ProductClient port, even when auth starts on the P-Landing port.
 const DEV_APP_ORIGIN = 'http://localhost:3000';
+const DEV_MARKETING_ORIGIN = 'http://localhost:4100';
 
 export type AuthDestination = 'login' | 'sign-up' | 'forgot-password' | 'reset-password' | 'callback' | 'confirm';
 
@@ -99,7 +100,7 @@ export function openBlankTab(): Window | null {
  * Marketing host where signed-in visitors land after auth handoffs.
  */
 export function feedHref(): string {
-	return import.meta.env.PROD ? 'https://productclient.com/feed' : '/feed';
+	return import.meta.env.PROD ? 'https://productclient.com/feed' : `${DEV_MARKETING_ORIGIN}/feed`;
 }
 
 /**
