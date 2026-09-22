@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Share } from 'reicon-svelte';
 	import { Button } from '$lib/components/ui';
+	import { supportMailto } from '$lib/config/email';
 </script>
 
 <header class="mb-5">
@@ -16,7 +17,7 @@
 		</div>
 		<div class="flex shrink-0 flex-wrap items-center gap-2">
 			<Button size="sm" href="/workspace/settings/billing" target="_blank">Open portal <Share size={14} weight="Outline" aria-hidden="true" /></Button>
-			<Button size="sm" variant="outline" href="mailto:billing@productclient.com">Contact billing</Button>
+			<Button size="sm" variant="outline" href={supportMailto('Billing')}>Contact billing</Button>
 		</div>
 	</div>
 	<div class="flex items-center gap-3 p-4">
