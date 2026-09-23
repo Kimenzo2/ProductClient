@@ -49,7 +49,7 @@ import { supabase } from '$lib/supabaseClient';
 			label: 'Deliver',
 			items: [
 				{ label: 'Releases', href: '/workspace/releases', icon: History },
-				{ label: 'Incidents', href: '/workspace/incidents', icon: AlertTriangle, signalKey: 'incidents' as SignalKey }
+				{ label: 'Incidents', href: '/workspace/incidents', icon: AlertTriangle }
 			]
 		},
 		{
