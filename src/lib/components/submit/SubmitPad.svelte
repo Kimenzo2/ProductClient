@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { CloseCircle, Add, ImagePlus, Link2, Check, Globe } from 'reicon-svelte';
+import { tooltip } from '$lib/components/Tooltip.svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
 	import { activeProductStore, setActiveProduct } from '$lib/stores/activeProduct.svelte';
@@ -444,27 +445,15 @@
 					launchTitle = row.launch_title ?? '';
 					launchNote = row.launch_note ?? '';
 					youBuiltThis = row.you_built_this ?? true;
-					// Hydrate rich /p fields — keep 3-4 slots, pad empty
-					if (Array.isArray(row.capabilities) && row.capabilities.length) {
-						const caps = row.capabilities as any[];
-						capabilities = [0,1,2,3].map((i) => ({ name: caps[i]?.name ?? '', description: caps[i]?.description ?? '' }));
-					}
-					if (Array.isArray(row.differentiators) && row.differentiators.length) {
-						const diffs = row.differentiators as any[];
-						differentiators = [0,1,2].map((i) => ({ name: diffs[i]?.name ?? '', description: diffs[i]?.description ?? '' }));
-					}
-					if (Array.isArray(row.audience_for)) audienceFor = [...(row.audience_for as string[]), '', '', ''].slice(0, 3);
-					if (Array.isArray(row.how_it_works)) howItWorks = [...(row.how_it_works as string[]), '', '', ''].slice(0, 3);
+					// Hydrate rich /p fields — freely servable, respect DB length (default 3-4 kept if empty)
+					if (Array.isArray(row.capabilities) && row.capabilities.length) capabilities = row.capabilities as any[];
+					if (Array.isArray(row.differentiators) && row.differentiators.length) differentiators = row.differentiators as any[];
+					if (Array.isArray(row.audience_for) && row.audience_for.length) audienceFor = row.audience_for as string[];
+					if (Array.isArray(row.how_it_works) && row.how_it_works.length) howItWorks = row.how_it_works as string[];
 					if (typeof row.pricing_summary === 'string') pricingSummary = row.pricing_summary ?? '';
-					if (Array.isArray(row.pricing_plans) && row.pricing_plans.length) {
-						const plans = row.pricing_plans as any[];
-						pricingPlans = [0,1,2].map((i) => ({ name: plans[i]?.name ?? '', price: plans[i]?.price ?? '', detail: plans[i]?.detail ?? '' }));
-					}
+					if (Array.isArray(row.pricing_plans) && row.pricing_plans.length) pricingPlans = row.pricing_plans as any[];
 					if (Array.isArray(row.platforms)) platforms = row.platforms as string[];
-					if (Array.isArray(row.faqs) && row.faqs.length) {
-						const fqs = row.faqs as any[];
-						faqs = [0,1,2].map((i) => ({ question: fqs[i]?.question ?? '', answer: fqs[i]?.answer ?? '' }));
-					}
+					if (Array.isArray(row.faqs) && row.faqs.length) faqs = row.faqs as any[];
 					slugTouched = true;
 				}
 			})();
@@ -587,59 +576,167 @@
 					</div>
 
 					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing plans — 3 tiers for /p Pricing</p>
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing plans — {pricingPlans.length} tiers</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{pricingPlans.length} blocks</span>
+						</div>
 						{#each pricingPlans as plan, i}
-							<div class="grid gap-2 rounded-[12px] border border-[var(--pc-border-strong)]/30 bg-[var(--pc-surface)] p-3">
-								<input bind:value={plan.name} placeholder="Free" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
-								<input bind:value={plan.price} placeholder="$0" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm tabular-nums text-[var(--pc-text)] outline-none" />
-								<input bind:value={plan.detail} placeholder="Core search and 50 AI actions a month." class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm text-[var(--pc-text-muted)] outline-none" />
+							<div class="flex gap-2">
+								<div class="grid flex-1 gap-2 rounded-[12px] border border-[var(--pc-border-strong)]/30 bg-[var(--pc-surface)] p-3">
+									<input bind:value={plan.name} placeholder="Free" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
+									<input bind:value={plan.price} placeholder="$0" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm tabular-nums text-[var(--pc-text)] outline-none" />
+									<input bind:value={plan.detail} placeholder="Core search and 50 AI actions a month." class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm text-[var(--pc-text-muted)] outline-none" />
+								</div>
+								{#if pricingPlans.length > 1}
+									<button type="button" onclick={() => (pricingPlans = pricingPlans.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove pricing plan">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
 							</div>
 						{/each}
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another pricing tier to your recipe', island: true }}
+							onclick={() => (pricingPlans = [...pricingPlans, { name: '', price: '', detail: '' }])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
 					</div>
 
 					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What it does — 4 capabilities for /p</p>
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What it does — {capabilities.length} capabilities</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{capabilities.length} blocks</span>
+						</div>
 						{#each capabilities as cap, i}
-							<div class="grid gap-2 sm:grid-cols-[1fr_1.6fr]">
-								<input bind:value={cap.name} placeholder="Universal search" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
-								<input bind:value={cap.description} placeholder="One query across apps, notes, and recent files." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+							<div class="flex gap-2">
+								<div class="grid flex-1 gap-2 sm:grid-cols-[1fr_1.6fr]">
+									<input bind:value={cap.name} placeholder="Universal search" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+									<input bind:value={cap.description} placeholder="One query across apps, notes, and recent files." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+								</div>
+								{#if capabilities.length > 1}
+									<button type="button" onclick={() => (capabilities = capabilities.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove capability">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
 							</div>
 						{/each}
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another capability to your recipe', island: true }}
+							onclick={() => (capabilities = [...capabilities, { name: '', description: '' }])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
 					</div>
 
 					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What makes it different — 3 pure-text items</p>
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What makes it different — {differentiators.length} items</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{differentiators.length} blocks</span>
+						</div>
 						{#each differentiators as diff, i}
-							<div class="grid gap-2 sm:grid-cols-[1fr_1.6fr]">
-								<input bind:value={diff.name} placeholder="Hub, not launcher" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
-								<input bind:value={diff.description} placeholder="Opens tools and also reasons across them." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+							<div class="flex gap-2">
+								<div class="grid flex-1 gap-2 sm:grid-cols-[1fr_1.6fr]">
+									<input bind:value={diff.name} placeholder="Hub, not launcher" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+									<input bind:value={diff.description} placeholder="Opens tools and also reasons across them." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+								</div>
+								{#if differentiators.length > 1}
+									<button type="button" onclick={() => (differentiators = differentiators.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove differentiator">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
 							</div>
 						{/each}
 						<p class="text-xs text-[var(--pc-text-faint)]">Rendered as pure long text: <span class="italic">name: description</span> joined with spaces, no bullets or em dashes.</p>
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another differentiator to your recipe', island: true }}
+							onclick={() => (differentiators = [...differentiators, { name: '', description: '' }])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
 					</div>
 
 					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Who it’s for — 3 audience lines (pure text)</p>
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Who it’s for — {audienceFor.length} audience lines</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{audienceFor.length} blocks</span>
+						</div>
 						{#each audienceFor as _, i}
-							<input bind:value={audienceFor[i]} placeholder={['People who live in keyboard shortcuts','Teams drowning in tab sprawl','Users who want one place to ask and act'][i] ?? ''} class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
-						{/each}
-					</div>
-
-					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">How it works — 3 steps</p>
-						{#each howItWorks as _, i}
-							<input bind:value={howItWorks[i]} placeholder={['Install Bento and point it at the apps you use daily.','Hit the hotkey, then type or speak what you need.','Bento pulls context, runs the action, and stays open for follow-ups.'][i] ?? ''} class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
-						{/each}
-					</div>
-
-					<div class="space-y-3">
-						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">FAQ — 3 Q&A for landing accordion</p>
-						{#each faqs as faq, i}
-							<div class="space-y-2 rounded-[12px] border border-[var(--pc-border-strong)]/20 bg-[var(--pc-surface)] p-3">
-								<input bind:value={faq.question} placeholder="Does Bento upload my files?" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
-								<textarea bind:value={faq.answer} rows={2} placeholder="Index and search run locally..." class="w-full cursor-text resize-none rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm leading-[1.5] text-[var(--pc-text-muted)] outline-none"></textarea>
+							<div class="flex gap-2">
+								<input bind:value={audienceFor[i]} placeholder={['People who live in keyboard shortcuts','Teams drowning in tab sprawl','Users who want one place to ask and act'][i] ?? 'Add audience'} class="flex-1 cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+								{#if audienceFor.length > 1}
+									<button type="button" onclick={() => (audienceFor = audienceFor.filter((__, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove audience">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
 							</div>
 						{/each}
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another audience to your recipe', island: true }}
+							onclick={() => (audienceFor = [...audienceFor, ''])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
+					</div>
+
+					<div class="space-y-3">
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">How it works — {howItWorks.length} steps</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{howItWorks.length} blocks</span>
+						</div>
+						{#each howItWorks as _, i}
+							<div class="flex gap-2">
+								<input bind:value={howItWorks[i]} placeholder={['Install Bento and point it at the apps you use daily.','Hit the hotkey, then type or speak what you need.','Bento pulls context, runs the action, and stays open for follow-ups.'][i] ?? 'Add a step'} class="flex-1 cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]" />
+								{#if howItWorks.length > 1}
+									<button type="button" onclick={() => (howItWorks = howItWorks.filter((__, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove step">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
+							</div>
+						{/each}
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another step to your recipe', island: true }}
+							onclick={() => (howItWorks = [...howItWorks, ''])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
+					</div>
+
+					<div class="space-y-3">
+						<div class="flex items-center justify-between">
+							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">FAQ — {faqs.length} Q&A</p>
+							<span class="text-xs text-[var(--pc-text-faint)]">{faqs.length} blocks</span>
+						</div>
+						{#each faqs as faq, i}
+							<div class="flex gap-2">
+								<div class="flex-1 space-y-2 rounded-[12px] border border-[var(--pc-border-strong)]/20 bg-[var(--pc-surface)] p-3">
+									<input bind:value={faq.question} placeholder="Does Bento upload my files?" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
+									<textarea bind:value={faq.answer} rows={2} placeholder="Index and search run locally..." class="w-full cursor-text resize-none rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm leading-[1.5] text-[var(--pc-text-muted)] outline-none"></textarea>
+								</div>
+								{#if faqs.length > 1}
+									<button type="button" onclick={() => (faqs = faqs.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove FAQ">
+										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
+									</button>
+								{/if}
+							</div>
+						{/each}
+						<button
+							type="button"
+							use:tooltip={{ text: 'Add another FAQ to your recipe', island: true }}
+							onclick={() => (faqs = [...faqs, { question: '', answer: '' }])}
+							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
+						>
+							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
+						</button>
 					</div>
 				</div>
 			{:else if activeTab === 'media'}
