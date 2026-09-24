@@ -45,10 +45,38 @@
 	let launchNote = $state('');
 	let youBuiltThis = $state(true);
 
+	// Rich profile — mirrors /p/bento prototype so production never shows "Not listed"
+	let capabilities: Array<{ name: string; description: string }> = $state([
+		{ name: '', description: '' },
+		{ name: '', description: '' },
+		{ name: '', description: '' },
+		{ name: '', description: '' }
+	]);
+	let differentiators: Array<{ name: string; description: string }> = $state([
+		{ name: '', description: '' },
+		{ name: '', description: '' },
+		{ name: '', description: '' }
+	]);
+	let audienceFor: string[] = $state(['', '', '']);
+	let howItWorks: string[] = $state(['', '', '']);
+	let pricingSummary = $state('');
+	let pricingPlans: Array<{ name: string; price: string; detail: string }> = $state([
+		{ name: 'Free', price: '$0', detail: 'Core search and 50 AI actions a month.' },
+		{ name: 'Pro', price: '$12/mo', detail: 'Unlimited actions, voice, priority local index.' },
+		{ name: 'Team', price: '$20/user', detail: 'Shared presets, admin controls, central billing.' }
+	]);
+	let platforms: string[] = $state([]);
+	let faqs: Array<{ question: string; answer: string }> = $state([
+		{ question: '', answer: '' },
+		{ question: '', answer: '' },
+		{ question: '', answer: '' }
+	]);
+
 	let taglineCount = $derived(`${tagline.length}/60`);
 	let slugTouched = $state(false);
 
 	const taxonomy = ['AI tools', 'Developer tools', 'Design', 'Productivity', 'Marketing', 'Analytics', 'Collaboration', 'Finance', 'Open source'] as const;
+	const platformOptions = ['macOS', 'Windows', 'Web', 'iOS', 'Android', 'Linux'] as const;
 
 	function stripUtm(input: string): string {
 		try {
@@ -108,6 +136,10 @@
 	function toggleCategory(cat: string) {
 		if (categories.includes(cat)) categories = categories.filter((c) => c !== cat);
 		else if (categories.length < 3) categories = [...categories, cat];
+	}
+	function togglePlatform(p: string) {
+		if (platforms.includes(p)) platforms = platforms.filter((x) => x !== p);
+		else platforms = [...platforms, p];
 	}
 	function addExtraLink() {
 		if (!extraUrl.trim()) return;
@@ -184,7 +216,15 @@
 		tagline.trim().length > 0 ||
 		description.trim().length > 0 ||
 		screenshots.length > 0 ||
-		logoUrl.trim().length > 0
+		logoUrl.trim().length > 0 ||
+		capabilities.some((c) => c.name.trim() || c.description.trim()) ||
+		differentiators.some((d) => d.name.trim() || d.description.trim()) ||
+		audienceFor.some((a) => a.trim()) ||
+		howItWorks.some((h) => h.trim()) ||
+		pricingSummary.trim().length > 0 ||
+		pricingPlans.some((p) => p.name.trim() || p.price.trim() || p.detail.trim()) ||
+		platforms.length > 0 ||
+		faqs.some((f) => f.question.trim() || f.answer.trim())
 	);
 
 	// Autosave draft — debounce 1500ms when dirty; never stack a second save while one is in flight.
@@ -196,6 +236,7 @@
 	$effect(() => {
 		// track deps
 		void website; void name; void slug; void tagline; void description; void categories; void pricing; void availability; void logoUrl; void screenshots; void videoUrl; void extraLinks; void launchTitle; void launchNote; void youBuiltThis;
+		void capabilities; void differentiators; void audienceFor; void howItWorks; void pricingSummary; void pricingPlans; void platforms; void faqs;
 		if (!isDirty) return;
 		clearTimeout(autosaveTimer);
 		autosaveTimer = setTimeout(() => { if (!saving) void saveDraft(false); }, 1500);
@@ -236,7 +277,15 @@
 				launch_title: launchTitle || null,
 				launch_note: launchNote || null,
 				you_built_this: youBuiltThis,
-				draft: true
+				draft: true,
+				capabilities: capabilities.filter((c) => c.name.trim() || c.description.trim()),
+				differentiators: differentiators.filter((d) => d.name.trim() || d.description.trim()),
+				audience_for: audienceFor.filter((a) => a.trim()),
+				how_it_works: howItWorks.filter((h) => h.trim()),
+				pricing_summary: pricingSummary.trim() || null,
+				pricing_plans: pricingPlans.filter((p) => p.name.trim() || p.price.trim() || p.detail.trim()),
+				platforms,
+				faqs: faqs.filter((f) => f.question.trim() || f.answer.trim())
 			};
 			const { data: rpcData, error: rpcErr } = await supabase.rpc('upsert_product_pad', { p_payload: fullPayload });
 			if (rpcErr) throw rpcErr;
@@ -328,7 +377,15 @@
 				launch_title: launchTitle || null,
 				launch_note: launchNote || null,
 				you_built_this: youBuiltThis,
-				draft: false
+				draft: false,
+				capabilities: capabilities.filter((c) => c.name.trim() || c.description.trim()),
+				differentiators: differentiators.filter((d) => d.name.trim() || d.description.trim()),
+				audience_for: audienceFor.filter((a) => a.trim()),
+				how_it_works: howItWorks.filter((h) => h.trim()),
+				pricing_summary: pricingSummary.trim() || null,
+				pricing_plans: pricingPlans.filter((p) => p.name.trim() || p.price.trim() || p.detail.trim()),
+				platforms,
+				faqs: faqs.filter((f) => f.question.trim() || f.answer.trim())
 			};
 			const { data: publishedData, error: pubError } = await supabase.rpc('upsert_product_pad', { p_payload: publishPayload });
 			if (pubError) throw pubError;
@@ -387,6 +444,27 @@
 					launchTitle = row.launch_title ?? '';
 					launchNote = row.launch_note ?? '';
 					youBuiltThis = row.you_built_this ?? true;
+					// Hydrate rich /p fields — keep 3-4 slots, pad empty
+					if (Array.isArray(row.capabilities) && row.capabilities.length) {
+						const caps = row.capabilities as any[];
+						capabilities = [0,1,2,3].map((i) => ({ name: caps[i]?.name ?? '', description: caps[i]?.description ?? '' }));
+					}
+					if (Array.isArray(row.differentiators) && row.differentiators.length) {
+						const diffs = row.differentiators as any[];
+						differentiators = [0,1,2].map((i) => ({ name: diffs[i]?.name ?? '', description: diffs[i]?.description ?? '' }));
+					}
+					if (Array.isArray(row.audience_for)) audienceFor = [...(row.audience_for as string[]), '', '', ''].slice(0, 3);
+					if (Array.isArray(row.how_it_works)) howItWorks = [...(row.how_it_works as string[]), '', '', ''].slice(0, 3);
+					if (typeof row.pricing_summary === 'string') pricingSummary = row.pricing_summary ?? '';
+					if (Array.isArray(row.pricing_plans) && row.pricing_plans.length) {
+						const plans = row.pricing_plans as any[];
+						pricingPlans = [0,1,2].map((i) => ({ name: plans[i]?.name ?? '', price: plans[i]?.price ?? '', detail: plans[i]?.detail ?? '' }));
+					}
+					if (Array.isArray(row.platforms)) platforms = row.platforms as string[];
+					if (Array.isArray(row.faqs) && row.faqs.length) {
+						const fqs = row.faqs as any[];
+						faqs = [0,1,2].map((i) => ({ question: fqs[i]?.question ?? '', answer: fqs[i]?.answer ?? '' }));
+					}
 					slugTouched = true;
 				}
 			})();
@@ -492,6 +570,76 @@
 								{/each}
 							</div>
 						</div>
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Platforms</p>
+						<div class="flex flex-wrap gap-2">
+							{#each platformOptions as plat}
+								<button type="button" onclick={() => togglePlatform(plat)} aria-pressed={platforms.includes(plat)} class="rounded-full border px-3 py-1.5 text-sm font-medium transition-[background-color,color,border-color] {platforms.includes(plat) ? 'border-[var(--pc-text)] bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)]'}">{plat}</button>
+							{/each}
+						</div>
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing summary</p>
+						<input bind:value={pricingSummary} placeholder="Free plan · Pro from $12/mo" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-3 text-sm text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]" />
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing plans — 3 tiers for /p Pricing</p>
+						{#each pricingPlans as plan, i}
+							<div class="grid gap-2 rounded-[12px] border border-[var(--pc-border-strong)]/30 bg-[var(--pc-surface)] p-3">
+								<input bind:value={plan.name} placeholder="Free" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
+								<input bind:value={plan.price} placeholder="$0" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm tabular-nums text-[var(--pc-text)] outline-none" />
+								<input bind:value={plan.detail} placeholder="Core search and 50 AI actions a month." class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm text-[var(--pc-text-muted)] outline-none" />
+							</div>
+						{/each}
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What it does — 4 capabilities for /p</p>
+						{#each capabilities as cap, i}
+							<div class="grid gap-2 sm:grid-cols-[1fr_1.6fr]">
+								<input bind:value={cap.name} placeholder="Universal search" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+								<input bind:value={cap.description} placeholder="One query across apps, notes, and recent files." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+							</div>
+						{/each}
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">What makes it different — 3 pure-text items</p>
+						{#each differentiators as diff, i}
+							<div class="grid gap-2 sm:grid-cols-[1fr_1.6fr]">
+								<input bind:value={diff.name} placeholder="Hub, not launcher" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm font-medium text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+								<input bind:value={diff.description} placeholder="Opens tools and also reasons across them." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
+							</div>
+						{/each}
+						<p class="text-xs text-[var(--pc-text-faint)]">Rendered as pure long text: <span class="italic">name: description</span> joined with spaces, no bullets or em dashes.</p>
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Who it’s for — 3 audience lines (pure text)</p>
+						{#each audienceFor as _, i}
+							<input bind:value={audienceFor[i]} placeholder={['People who live in keyboard shortcuts','Teams drowning in tab sprawl','Users who want one place to ask and act'][i] ?? ''} class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+						{/each}
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">How it works — 3 steps</p>
+						{#each howItWorks as _, i}
+							<input bind:value={howItWorks[i]} placeholder={['Install Bento and point it at the apps you use daily.','Hit the hotkey, then type or speak what you need.','Bento pulls context, runs the action, and stays open for follow-ups.'][i] ?? ''} class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
+						{/each}
+					</div>
+
+					<div class="space-y-3">
+						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">FAQ — 3 Q&A for landing accordion</p>
+						{#each faqs as faq, i}
+							<div class="space-y-2 rounded-[12px] border border-[var(--pc-border-strong)]/20 bg-[var(--pc-surface)] p-3">
+								<input bind:value={faq.question} placeholder="Does Bento upload my files?" class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm font-medium text-[var(--pc-text)] outline-none" />
+								<textarea bind:value={faq.answer} rows={2} placeholder="Index and search run locally..." class="w-full cursor-text resize-none rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm leading-[1.5] text-[var(--pc-text-muted)] outline-none"></textarea>
+							</div>
+						{/each}
 					</div>
 				</div>
 			{:else if activeTab === 'media'}

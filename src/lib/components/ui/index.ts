@@ -11,3 +11,4 @@ export { default as Toggle } from './Toggle.svelte';
 export { default as ToggleGroup } from './ToggleGroup.svelte';
 export { default as StatePanel } from './StatePanel.svelte';
 export { default as Select } from './Select.svelte';
+export * from './carousel/index.js';
