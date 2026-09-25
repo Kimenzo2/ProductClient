@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { goto } from '$app/navigation';
@@ -24,6 +24,47 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	let mediaError = $state('');
 	let nameError = $state('');
 	let taglineError = $state('');
+
+	// Exit confirm — small modal, same Pad language, never Pad-sized
+	let showExitModal = $state(false);
+	let pendingExitHref = $state('/workspace');
+	let exitModalSaving = $state(false);
+	let exitModalError = $state('');
+	let keepEditingBtn: HTMLButtonElement | null = $state(null);
+	let reducedMotion = $state(false);
+	let exitPanel: HTMLDivElement | null = $state(null);
+	let padCloseBtn: HTMLButtonElement | null = $state(null);
+	let exitTrigger: HTMLElement | null = $state(null);
+	// Move focus to the safe default when the modal opens (no autofocus attr)
+	$effect(() => {
+		if (showExitModal) keepEditingBtn?.focus();
+	});
+	// Scroll lock — the pad behind must not move while deciding
+	$effect(() => {
+		if (!showExitModal) return;
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = prev;
+		};
+	});
+	// Focus trap — Tab cycles inside the modal, never into the pad behind
+	function handleExitModalKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Tab' || !exitPanel) return;
+		const focusables = exitPanel.querySelectorAll<HTMLElement>(
+			'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+		);
+		if (focusables.length === 0) return;
+		const first = focusables[0];
+		const last = focusables[focusables.length - 1];
+		if (e.shiftKey && document.activeElement === first) {
+			e.preventDefault();
+			last.focus();
+		} else if (!e.shiftKey && document.activeElement === last) {
+			e.preventDefault();
+			first.focus();
+		}
+	}
 
 	// Fields
 	let website = $state('');
@@ -91,6 +132,13 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	}
 	function normalizeSlug(input: string): string {
 		return input.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,63).replace(/-+$/g,'');
+	}
+	// Defense-in-depth: only http(s) websites ever reach the DB or an href —
+	// restored drafts and publish-without-blur must not smuggle schemes through
+	function safeWebsite(): string | null {
+		const trimmed = website.trim();
+		if (!trimmed) return null;
+		return /^https?:\/\//i.test(trimmed) ? trimmed : null;
 	}
 	function normalizeWebsiteBlur() {
 		if (!website.trim()) { websiteWarn=''; return; }
@@ -228,20 +276,87 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		faqs.some((f) => f.question.trim() || f.answer.trim())
 	);
 
-	// Autosave draft — debounce 1500ms when dirty; never stack a second save while one is in flight.
-	// Keystrokes only clear/re-arm the timer (cheap); network happens on pause, not per character.
-	// Note: deliberately NOT reading `saving` here — that would re-arm a new timer after every
-	// completed save and turn autosave into a periodic write loop. The in-flight guard lives
-	// in the timer callback instead.
-	let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+	// Local-first draft — keystrokes persist to localStorage only. The database is
+	// touched solely on explicit "Save draft" / "Publish launch", so an abandoned
+	// pad never creates ghost products or burns slugs.
+	const LOCAL_DRAFT_KEY = 'submit-pad-local-draft-v1';
+	const LOCAL_DRAFT_VERSION = 1;
+	const LOCAL_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+	// Namespaced per edited draft — editing ?id=X must never leak into (or read)
+	// a new pad's snapshot
+	let localDraftKey = LOCAL_DRAFT_KEY;
+
+	function formSnapshot() {
+		return { website, name, slug, tagline, description, categories, pricing, availability, logoUrl, screenshots, videoUrl, extraLinks, launchTitle, launchNote, youBuiltThis, capabilities, differentiators, audienceFor, howItWorks, pricingSummary, pricingPlans, platforms, faqs };
+	}
+	function persistLocalDraft() {
+		try {
+			if (!isDirty) return;
+			localStorage.setItem(
+				localDraftKey,
+				JSON.stringify({ version: LOCAL_DRAFT_VERSION, savedAt: Date.now(), fields: formSnapshot() })
+			);
+		} catch { /* private mode / quota — pad still works in memory */ }
+	}
+	function clearLocalDraft() {
+		try { localStorage.removeItem(localDraftKey); } catch { /* noop */ }
+	}
+	function applyLocalFields(d: any): boolean {
+		if (!d || typeof d !== 'object') return false;
+		website = d.website ?? ''; name = d.name ?? ''; slug = d.slug ?? '';
+		tagline = d.tagline ?? ''; description = d.description ?? '';
+		categories = d.categories ?? []; pricing = d.pricing ?? null;
+		availability = d.availability ?? 'live'; logoUrl = d.logoUrl ?? '';
+		screenshots = d.screenshots ?? []; videoUrl = d.videoUrl ?? '';
+		extraLinks = d.extraLinks ?? []; launchTitle = d.launchTitle ?? '';
+		launchNote = d.launchNote ?? ''; youBuiltThis = d.youBuiltThis ?? true;
+		if (Array.isArray(d.capabilities) && d.capabilities.length) capabilities = d.capabilities;
+		if (Array.isArray(d.differentiators) && d.differentiators.length) differentiators = d.differentiators;
+		if (Array.isArray(d.audienceFor) && d.audienceFor.length) audienceFor = d.audienceFor;
+		if (Array.isArray(d.howItWorks) && d.howItWorks.length) howItWorks = d.howItWorks;
+		if (typeof d.pricingSummary === 'string') pricingSummary = d.pricingSummary;
+		if (Array.isArray(d.pricingPlans) && d.pricingPlans.length) pricingPlans = d.pricingPlans;
+		if (Array.isArray(d.platforms)) platforms = d.platforms;
+		if (Array.isArray(d.faqs) && d.faqs.length) faqs = d.faqs;
+		// Only claim "address touched" when an address was actually restored —
+		// otherwise a restored-then-renamed product loses slug auto-suggest
+		if (slug) slugTouched = true;
+		return isDirty;
+	}
+	function restoreLocalDraft(): boolean {
+		try {
+			const raw = localStorage.getItem(localDraftKey);
+			if (!raw) return false;
+			const parsed = JSON.parse(raw);
+			if (!parsed || typeof parsed !== 'object') return false;
+			// Versioned envelope — drop stale or foreign-schema drafts silently
+			if (parsed.fields && typeof parsed.fields === 'object') {
+				if (parsed.version !== LOCAL_DRAFT_VERSION) { clearLocalDraft(); return false; }
+				if (typeof parsed.savedAt !== 'number' || Date.now() - parsed.savedAt > LOCAL_DRAFT_TTL_MS) {
+					clearLocalDraft();
+					return false;
+				}
+				return applyLocalFields(parsed.fields);
+			}
+			// Legacy flat shape (pre-envelope) — restore once, re-persist enveloped
+			if ('name' in parsed || 'website' in parsed) return applyLocalFields(parsed);
+			return false;
+		} catch { return false; }
+	}
+
+	// Fingerprint of the last DB-persisted state. The exit modal triggers only
+	// when the form differs from it — plain typing never touches the database.
+	let savedFingerprint = $state('');
+	let currentFingerprint = $derived(JSON.stringify(formSnapshot()));
+	let isDbDirty = $derived(currentFingerprint !== savedFingerprint);
+
+	let localPersistTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
-		// track deps
-		void website; void name; void slug; void tagline; void description; void categories; void pricing; void availability; void logoUrl; void screenshots; void videoUrl; void extraLinks; void launchTitle; void launchNote; void youBuiltThis;
-		void capabilities; void differentiators; void audienceFor; void howItWorks; void pricingSummary; void pricingPlans; void platforms; void faqs;
+		void currentFingerprint;
 		if (!isDirty) return;
-		clearTimeout(autosaveTimer);
-		autosaveTimer = setTimeout(() => { if (!saving) void saveDraft(false); }, 1500);
-		return () => clearTimeout(autosaveTimer);
+		clearTimeout(localPersistTimer);
+		localPersistTimer = setTimeout(persistLocalDraft, 800);
+		return () => clearTimeout(localPersistTimer);
 	});
 
 	async function saveDraft(showHint = true) {
@@ -263,6 +378,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
 			if (!slug) slug = finalSlug;
 			const fullPayload: any = {
+				id: draftId,
 				name: name || 'Untitled product',
 				slug: finalSlug,
 				tagline: tagline || null,
@@ -271,7 +387,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				pricing,
 				availability,
 				logo_url: logoUrl || null,
-				website: website || null,
+				website: safeWebsite(),
 				screenshots,
 				video_url: videoUrl || null,
 				extra_links: extraLinks,
@@ -293,12 +409,13 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			const product = Array.isArray(rpcData) ? (rpcData as any[])[0] : rpcData as any;
 			if (!product?.id) throw new Error('Product was not returned by the database.');
 			draftId = product.id;
+			savedFingerprint = JSON.stringify(formSnapshot());
+			clearLocalDraft();
+			// A saved slug is owned by definition — drop any stale async-check error
+			slugError = '';
 			if (showHint) {
-				savedHint = 'Saved';
+				savedHint = 'Draft saved';
 				setTimeout(() => (savedHint = ''), 1200);
-			} else {
-				savedHint = 'Saved';
-				setTimeout(() => (savedHint = ''), 900);
 			}
 			return true;
 		} catch (e: any) {
@@ -363,6 +480,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				throw new Error('Could not create product — try saving draft first.');
 			}
 			const publishPayload: any = {
+				id: draftId,
 				name: name || 'Untitled product',
 				slug: slug || normalizeSlug(name),
 				tagline: tagline || null,
@@ -371,7 +489,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				pricing,
 				availability,
 				logo_url: logoUrl || null,
-				website: website || null,
+				website: safeWebsite(),
 				screenshots,
 				video_url: videoUrl || null,
 				extra_links: extraLinks,
@@ -393,6 +511,8 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			const publishedProduct = Array.isArray(publishedData) ? (publishedData as any[])[0] : publishedData as any;
 			if (!publishedProduct?.id) throw new Error('Published product was not returned by the database.');
 			draftId = publishedProduct.id;
+			savedFingerprint = JSON.stringify(formSnapshot());
+			clearLocalDraft();
 			await setActiveProduct(publishedProduct.id);
 			const targetSlug = slug || normalizeSlug(name);
 			await goto(`/workspace/products/${targetSlug}`);
@@ -405,22 +525,73 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		}
 	}
 
-	function handleBackdropClick() {
-		if (isDirty) {
-			// keep open — ask or keep pad open per spec, do not discard
+	function requestExit(href = '/workspace', trigger: HTMLElement | null = null) {
+		if (publishing || saving || exitModalSaving) return;
+		if (!isDbDirty) {
+			void goto(href);
+			return;
+		}
+		pendingExitHref = href;
+		exitTrigger = trigger;
+		exitModalError = '';
+		showExitModal = true;
+	}
+	function closeExitModal(restoreFocus = true) {
+		showExitModal = false;
+		if (restoreFocus) (exitTrigger ?? padCloseBtn)?.focus();
+	}
+	async function confirmSaveDraftAndExit() {
+		exitModalSaving = true;
+		exitModalError = '';
+		try {
+			const saved = await saveDraft(true);
+			if (!saved) {
+				exitModalError = mediaError || 'Could not save draft — check your connection.';
+				return;
+			}
+			// Esc mid-save means "keep editing" — the draft is saved, so just stay
+			if (!showExitModal) return;
+			showExitModal = false;
+			await goto(pendingExitHref);
+		} finally {
+			exitModalSaving = false;
+		}
+	}
+	function confirmDiscardAndExit() {
+		clearLocalDraft();
+		showExitModal = false;
+		void goto(pendingExitHref);
+	}
+	function handleBackdropClick(e: MouseEvent) {
+		requestExit('/workspace', e.currentTarget as HTMLElement | null);
+	}
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key !== 'Escape') return;
+		if (showExitModal) {
+			e.preventDefault();
+			closeExitModal();
+			return;
+		}
+		if (isDbDirty) {
+			e.preventDefault();
+			requestExit('/workspace', document.activeElement instanceof HTMLElement ? document.activeElement : null);
 			return;
 		}
 		void goto('/workspace');
 	}
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			if (isDirty) { e.preventDefault(); return; }
-			void goto('/workspace');
-		}
-	}
 	onMount(() => {
+		reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		// Empty-form baseline — anything typed after this counts as unsaved.
+		// A restored local draft therefore correctly triggers the exit modal.
+		savedFingerprint = JSON.stringify(formSnapshot());
 		// hydrate draft if ?id= in query (editing)
 		const id = page.url.searchParams.get('id');
+		if (id) localDraftKey = `${LOCAL_DRAFT_KEY}:${id}`;
+		else if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
+		const onBeforeUnload = (e: BeforeUnloadEvent) => {
+			if (JSON.stringify(formSnapshot()) !== savedFingerprint) e.preventDefault();
+		};
+		window.addEventListener('beforeunload', onBeforeUnload);
 		if (id) {
 			draftId = id;
 			void (async () => {
@@ -455,19 +626,26 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					if (Array.isArray(row.platforms)) platforms = row.platforms as string[];
 					if (Array.isArray(row.faqs) && row.faqs.length) faqs = row.faqs as any[];
 					slugTouched = true;
+					// DB state is the baseline — a same-draft local snapshot overlaid
+					// below stays "unsaved", so the exit modal correctly guards it
+					savedFingerprint = JSON.stringify(formSnapshot());
+					// A same-draft local snapshot (tab closed mid-edit) is strictly
+					// newer than the last DB save — saves always clear it
+					if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
 				}
 			})();
 		}
+		return () => window.removeEventListener('beforeunload', onBeforeUnload);
 	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- Backdrop: transparent click-catcher, like ProductSwitcher -->
-<button type="button" class="fixed inset-0 z-40 cursor-default bg-transparent" aria-label="Close" onclick={handleBackdropClick}></button>
+<button type="button" class="fixed inset-0 z-40 cursor-default bg-transparent" aria-label="Close" onclick={handleBackdropClick} {...(showExitModal ? { inert: true } : {})}></button>
 
 <!-- Pad — scale 0.98 → 1 + fade per spec -->
-<div class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6" aria-modal="true" role="dialog" aria-label="Add a product">
+<div class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6" aria-modal="true" role="dialog" aria-label="Add a product" {...(showExitModal ? { inert: true } : {})}>
 	<div
 		in:scale={{ start: 0.98, duration: 160, easing: cubicOut }}
 		class="flex w-full max-w-[820px] max-h-[min(88dvh,860px)] flex-col overflow-hidden rounded-[24px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] sm:max-h-[min(92dvh,860px)] max-sm:inset-0 max-sm:max-w-none max-sm:max-h-none max-sm:rounded-none max-sm:border-0"
@@ -480,7 +658,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					<h1 class="text-2xl font-medium leading-[1.15] tracking-[-0.015em] text-[var(--pc-text)] text-balance">{name.trim() ? name : 'Add a product'}</h1>
 					{#if savedHint}<p class="mt-1 text-sm text-[var(--pc-text-faint)]" role="status">{savedHint}</p>{:else}<p class="mt-1 text-sm text-[var(--pc-text-faint)] opacity-0">Saved</p>{/if}
 				</div>
-				<a href="/workspace" aria-label="Close" class="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] transition-[background-color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"><CloseCircle size={18} weight="Outline" aria-hidden="true" /></a>
+				<button type="button" bind:this={padCloseBtn} onclick={(e) => requestExit('/workspace', e.currentTarget)} aria-label="Close" class="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] transition-[background-color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"><CloseCircle size={18} weight="Outline" aria-hidden="true" /></button>
 			</div>
 			<div class="mt-5 flex gap-6 border-b border-transparent" role="tablist" aria-label="Add product sections">
 				{#each [['product','Product'],['media','Media'],['launch','Launch'],['review','Review']] as [value, label]}
@@ -841,7 +1019,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					{#if activeTab !== 'product'}
 						<button type="button" onclick={() => (activeTab = activeTab === 'review' ? 'launch' : activeTab === 'launch' ? 'media' : 'product')} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]">Back</button>
 					{:else}
-						<button type="button" onclick={() => saveDraft()} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]">Save draft</button>
+						<button type="button" onclick={() => saveDraft()} disabled={saving} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{saving ? 'Saving...' : 'Save draft'}</button>
 					{/if}
 				</div>
 				<div class="flex gap-2">
@@ -857,6 +1035,34 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		</div>
 	</div>
 </div>
+
+{#if showExitModal}
+	<!-- Exit confirm — deliberately small (max-w-[400px]): same Pad border, radius and tokens, not Pad-sized -->
+	<div class="fixed inset-0 z-[70] grid place-items-center p-4">
+		<button type="button" aria-label="Keep editing" onclick={() => closeExitModal()} class="absolute inset-0 cursor-default bg-black/60"></button>
+		<div
+			in:scale={{ start: reducedMotion ? 1 : 0.97, duration: reducedMotion ? 0 : 140, easing: cubicOut }}
+			role="alertdialog"
+			aria-modal="true"
+			tabindex={-1}
+			aria-labelledby="exit-modal-title"
+			aria-describedby="exit-modal-desc"
+			bind:this={exitPanel}
+			onkeydown={handleExitModalKeydown}
+			class="relative w-full max-w-[400px] rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-6 shadow-none"
+			style:background="var(--pc-bg)"
+		>
+			<h2 id="exit-modal-title" class="text-lg font-medium tracking-[-0.01em] text-[var(--pc-text)]">{name.trim() ? `Leave "${name.trim()}" without launching?` : 'Leave without launching?'}</h2>
+			<p id="exit-modal-desc" class="mt-2 text-sm leading-[1.55] text-[var(--pc-text-muted)]">Nothing is public until you hit Publish.</p>
+			{#if exitModalError}<p class="mt-3 rounded-[12px] bg-[#fca5a5]/10 px-3 py-2 text-sm leading-[1.5] text-[#fca5a5]" role="alert">{exitModalError}</p>{/if}
+			<div class="mt-5 flex flex-col gap-2">
+				<button type="button" bind:this={keepEditingBtn} onclick={() => closeExitModal()} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]">Keep editing</button>
+				<button type="button" onclick={confirmSaveDraftAndExit} disabled={exitModalSaving} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-5 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{exitModalSaving ? 'Saving...' : 'Save as draft'}</button>
+				<button type="button" onclick={confirmDiscardAndExit} disabled={exitModalSaving} class="inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium text-[#fca5a5] hover:bg-[var(--pc-surface)] disabled:opacity-50">Discard</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	/* No focus rings — surface shift only */
