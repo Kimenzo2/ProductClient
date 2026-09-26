@@ -8,7 +8,7 @@
 import { tooltip } from '$lib/components/Tooltip.svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
-	import { activeProductStore, setActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { activeProductStore, setActiveProduct, refreshProducts } from '$lib/stores/activeProduct.svelte';
 
 	type Tab = 'product' | 'media' | 'launch' | 'review';
 	type Pricing = 'free' | 'free_paid' | 'paid' | null;
@@ -16,6 +16,13 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let activeTab: Tab = $state('product');
 	let draftId: string | null = $state(null);
+	// Edit mode (?id=) — the pad edits an existing row. Saves preserve its
+	// status: a draft stays a draft, a live product stays live.
+	let editMode = $state(false);
+	let editRowDraft = $state(true);
+	let editKeepsLive = $derived(editMode && !editRowDraft);
+	let editLoading = $state(false);
+	let editLoadFailed = $state(false);
 	let savedHint = $state('');
 	let saving = $state(false);
 	let publishing = $state(false);
@@ -116,6 +123,42 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let taglineCount = $derived(`${tagline.length}/60`);
 	let slugTouched = $state(false);
+
+	// Slug at hydrate time — if the address was renamed since, `from` points at
+	// a dead URL and the live product path wins instead
+	let entrySlug = $state('');
+	// Where an edit-mode save returns to — the entry point's `from`, else the
+	// product page for the current (possibly renamed) slug
+	const fromParam = page.url.searchParams.get('from');
+	// Open-redirect guard: same-origin absolute paths only — no scheme, host,
+	// protocol-relative or backslash tricks
+	let returnHref = $derived(
+		fromParam &&
+		fromParam.startsWith('/') &&
+		!fromParam.startsWith('//') &&
+		!fromParam.includes('\\') &&
+		slug === entrySlug
+			? fromParam
+			: slug
+				? `/workspace/products/${slug}`
+				: '/workspace/products'
+	);
+	// Every pad exit in edit mode returns to the entry point; new pads exit to
+	// the workspace. Saves never navigate — "save and continue" is the default.
+	function exitDestination(fallback = '/workspace') {
+		return editMode ? returnHref : fallback;
+	}
+	// Modal title names what's at stake — a live product is already launched,
+	// so "leave without launching" would be wrong framing there
+	let exitTitle = $derived(
+		editKeepsLive
+			? name.trim()
+				? `Discard changes to "${name.trim()}"?`
+				: 'Discard unsaved changes?'
+			: name.trim()
+				? `Leave "${name.trim()}" without launching?`
+				: 'Leave without launching?'
+	);
 
 	const taxonomy = ['AI tools', 'Developer tools', 'Design', 'Productivity', 'Marketing', 'Analytics', 'Collaboration', 'Finance', 'Open source'] as const;
 	const platformOptions = ['macOS', 'Windows', 'Web', 'iOS', 'Android', 'Linux'] as const;
@@ -394,7 +437,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				launch_title: launchTitle || null,
 				launch_note: launchNote || null,
 				you_built_this: youBuiltThis,
-				draft: true,
+				// New pads always start as drafts; edits preserve the row's status
+				// so saving a live product never silently unpublishes it
+				draft: editMode ? editRowDraft : true,
 				capabilities: capabilities.filter((c) => c.name.trim() || c.description.trim()),
 				differentiators: differentiators.filter((d) => d.name.trim() || d.description.trim()),
 				audience_for: audienceFor.filter((a) => a.trim()),
@@ -514,6 +559,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			savedFingerprint = JSON.stringify(formSnapshot());
 			clearLocalDraft();
 			await setActiveProduct(publishedProduct.id);
+			await refreshProducts();
 			const targetSlug = slug || normalizeSlug(name);
 			await goto(`/workspace/products/${targetSlug}`);
 		} catch (e: any) {
@@ -527,11 +573,12 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	function requestExit(href = '/workspace', trigger: HTMLElement | null = null) {
 		if (publishing || saving || exitModalSaving) return;
+		const dest = editMode ? returnHref : href;
 		if (!isDbDirty) {
-			void goto(href);
+			void goto(dest);
 			return;
 		}
-		pendingExitHref = href;
+		pendingExitHref = dest;
 		exitTrigger = trigger;
 		exitModalError = '';
 		showExitModal = true;
@@ -552,6 +599,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			// Esc mid-save means "keep editing" — the draft is saved, so just stay
 			if (!showExitModal) return;
 			showExitModal = false;
+			await refreshProducts();
 			await goto(pendingExitHref);
 		} finally {
 			exitModalSaving = false;
@@ -562,10 +610,28 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		showExitModal = false;
 		void goto(pendingExitHref);
 	}
+	// Edit-mode footer/review save — preserves status, refreshes the store,
+	// stays in the pad. Leaving (X, Esc, backdrop) returns to the entry point.
+	async function handleSaveChanges() {
+		if (editLoading || editLoadFailed) return;
+		const saved = await saveDraft(true);
+		if (!saved) return;
+		await refreshProducts();
+		savedHint = 'Changes saved';
+	}
 	function handleBackdropClick(e: MouseEvent) {
 		requestExit('/workspace', e.currentTarget as HTMLElement | null);
 	}
 	function handleKeydown(e: KeyboardEvent) {
+		// Cmd/Ctrl+S triggers the footer action — never the browser's save-page dialog
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+			e.preventDefault();
+			if (publishing || saving || exitModalSaving) return;
+			if (showExitModal) void confirmSaveDraftAndExit();
+			else if (editMode) void handleSaveChanges();
+			else void saveDraft();
+			return;
+		}
 		if (e.key !== 'Escape') return;
 		if (showExitModal) {
 			e.preventDefault();
@@ -577,7 +643,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			requestExit('/workspace', document.activeElement instanceof HTMLElement ? document.activeElement : null);
 			return;
 		}
-		void goto('/workspace');
+		void goto(exitDestination());
 	}
 	onMount(() => {
 		reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -594,11 +660,20 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		window.addEventListener('beforeunload', onBeforeUnload);
 		if (id) {
 			draftId = id;
+			editMode = true;
+			editLoading = true;
 			void (async () => {
-				if (!supabase) return;
-				const { data } = await supabase.from('products').select('*').eq('id', id).maybeSingle();
-				if (data) {
+				try {
+					if (!supabase) return;
+					const { data } = await supabase.from('products').select('*').eq('id', id).maybeSingle();
+					if (!data) {
+						editLoadFailed = true;
+						mediaError = 'Could not load this product — it may have been deleted.';
+						return;
+					}
 					const row = data as any;
+					// Legacy rows may predate the draft flag — status is the tiebreaker
+					editRowDraft = typeof row.draft === 'boolean' ? row.draft : row.status !== 'Live';
 					website = row.website ?? '';
 					name = row.name ?? '';
 					slug = row.slug ?? '';
@@ -626,12 +701,15 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					if (Array.isArray(row.platforms)) platforms = row.platforms as string[];
 					if (Array.isArray(row.faqs) && row.faqs.length) faqs = row.faqs as any[];
 					slugTouched = true;
+					entrySlug = slug;
 					// DB state is the baseline — a same-draft local snapshot overlaid
 					// below stays "unsaved", so the exit modal correctly guards it
 					savedFingerprint = JSON.stringify(formSnapshot());
 					// A same-draft local snapshot (tab closed mid-edit) is strictly
 					// newer than the last DB save — saves always clear it
 					if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
+				} finally {
+					editLoading = false;
 				}
 			})();
 		}
@@ -645,7 +723,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 <button type="button" class="fixed inset-0 z-40 cursor-default bg-transparent" aria-label="Close" onclick={handleBackdropClick} {...(showExitModal ? { inert: true } : {})}></button>
 
 <!-- Pad — scale 0.98 → 1 + fade per spec -->
-<div class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6" aria-modal="true" role="dialog" aria-label="Add a product" {...(showExitModal ? { inert: true } : {})}>
+<div class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6" aria-modal="true" role="dialog" aria-label={editMode ? 'Edit product' : 'Add a product'} {...(showExitModal ? { inert: true } : {})}>
 	<div
 		in:scale={{ start: 0.98, duration: 160, easing: cubicOut }}
 		class="flex w-full max-w-[820px] max-h-[min(88dvh,860px)] flex-col overflow-hidden rounded-[24px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] sm:max-h-[min(92dvh,860px)] max-sm:inset-0 max-sm:max-w-none max-sm:max-h-none max-sm:rounded-none max-sm:border-0"
@@ -655,7 +733,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		<div class="shrink-0 border-b border-[var(--pc-border-strong)]/10 px-6 py-5 sm:px-8">
 			<div class="flex items-start justify-between gap-4">
 				<div class="min-w-0">
-					<h1 class="text-2xl font-medium leading-[1.15] tracking-[-0.015em] text-[var(--pc-text)] text-balance">{name.trim() ? name : 'Add a product'}</h1>
+					<h1 class="text-2xl font-medium leading-[1.15] tracking-[-0.015em] text-[var(--pc-text)] text-balance">{editLoading ? 'Loading…' : name.trim() ? name : editMode ? 'Edit product' : 'Add a product'}</h1>
 					{#if savedHint}<p class="mt-1 text-sm text-[var(--pc-text-faint)]" role="status">{savedHint}</p>{:else}<p class="mt-1 text-sm text-[var(--pc-text-faint)] opacity-0">Saved</p>{/if}
 				</div>
 				<button type="button" bind:this={padCloseBtn} onclick={(e) => requestExit('/workspace', e.currentTarget)} aria-label="Close" class="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] transition-[background-color] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"><CloseCircle size={18} weight="Outline" aria-hidden="true" /></button>
@@ -1019,14 +1097,18 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					{#if activeTab !== 'product'}
 						<button type="button" onclick={() => (activeTab = activeTab === 'review' ? 'launch' : activeTab === 'launch' ? 'media' : 'product')} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]">Back</button>
 					{:else}
-						<button type="button" onclick={() => saveDraft()} disabled={saving} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{saving ? 'Saving...' : 'Save draft'}</button>
+						<button type="button" onclick={() => (editMode ? handleSaveChanges() : saveDraft())} disabled={saving || editLoading || editLoadFailed} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{saving ? 'Saving...' : editMode ? 'Save changes' : 'Save draft'}</button>
 					{/if}
 				</div>
 				<div class="flex gap-2">
 					{#if activeTab !== 'review'}
 						<button type="button" onclick={() => (activeTab = activeTab === 'product' ? 'media' : activeTab === 'media' ? 'launch' : 'review')} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]">Continue</button>
+					{:else if editKeepsLive}
+						<button type="button" onclick={() => handleSaveChanges()} disabled={saving || editLoading || editLoadFailed} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98] disabled:opacity-50">
+							{saving ? 'Saving...' : 'Save changes'}
+						</button>
 					{:else}
-						<button type="button" onclick={handlePublish} disabled={publishing} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98] disabled:opacity-50">
+						<button type="button" onclick={handlePublish} disabled={publishing || editLoading || editLoadFailed} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98] disabled:opacity-50">
 							{#if availability === 'live'}Publish launch{:else}Publish coming soon{/if}
 						</button>
 					{/if}
@@ -1052,12 +1134,12 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			class="relative w-full max-w-[400px] rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] p-6 shadow-none"
 			style:background="var(--pc-bg)"
 		>
-			<h2 id="exit-modal-title" class="text-lg font-medium tracking-[-0.01em] text-[var(--pc-text)]">{name.trim() ? `Leave "${name.trim()}" without launching?` : 'Leave without launching?'}</h2>
-			<p id="exit-modal-desc" class="mt-2 text-sm leading-[1.55] text-[var(--pc-text-muted)]">Nothing is public until you hit Publish.</p>
+			<h2 id="exit-modal-title" class="text-lg font-medium tracking-[-0.01em] text-[var(--pc-text)]">{exitTitle}</h2>
+			<p id="exit-modal-desc" class="mt-2 text-sm leading-[1.55] text-[var(--pc-text-muted)]">{editKeepsLive ? 'Changes go live when you save.' : 'Nothing is public until you hit Publish.'}</p>
 			{#if exitModalError}<p class="mt-3 rounded-[12px] bg-[#fca5a5]/10 px-3 py-2 text-sm leading-[1.5] text-[#fca5a5]" role="alert">{exitModalError}</p>{/if}
 			<div class="mt-5 flex flex-col gap-2">
 				<button type="button" bind:this={keepEditingBtn} onclick={() => closeExitModal()} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]">Keep editing</button>
-				<button type="button" onclick={confirmSaveDraftAndExit} disabled={exitModalSaving} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-5 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{exitModalSaving ? 'Saving...' : 'Save as draft'}</button>
+				<button type="button" onclick={confirmSaveDraftAndExit} disabled={exitModalSaving} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-5 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{exitModalSaving ? 'Saving...' : editMode ? 'Save changes' : 'Save as draft'}</button>
 				<button type="button" onclick={confirmDiscardAndExit} disabled={exitModalSaving} class="inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium text-[#fca5a5] hover:bg-[var(--pc-surface)] disabled:opacity-50">Discard</button>
 			</div>
 		</div>

@@ -38,6 +38,7 @@ import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
 					</div>
 				</div>
 				<div class="flex flex-wrap gap-2">
+					<Button href={`/submit?id=${product.id}&from=${encodeURIComponent(`/workspace/products/${product.slug}`)}`} variant="outline" size="sm">Edit product</Button>
 					<Button href="/submit" variant="primary" size="sm">Write product update</Button>
 					{#if product.github_url}<Button href={product.github_url} target="_blank" variant="outline" size="sm">GitHub <span aria-hidden="true">↗</span></Button>{/if}
 				</div>

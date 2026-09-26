@@ -28,7 +28,7 @@ let filtered = $derived(products);
 					</div>
 				</div>
 				<p class="mt-4 line-clamp-2 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-75">{product.tagline ?? 'One place for planning, updates, and customer feedback.'}</p>
-				<div class="mt-auto flex items-center gap-2 pt-5"><Button href={workspacePath} variant="primary" size="sm"><Box size={14} weight="Outline" /> Open product</Button></div>
+				<div class="mt-auto flex items-center gap-2 pt-5"><Button href={workspacePath} variant="primary" size="sm"><Box size={14} weight="Outline" /> Open product</Button><Button href={`/submit?id=${product.id}&from=${encodeURIComponent('/workspace/products')}`} variant="outline" size="sm">Edit</Button></div>
 			</Card>
 		{/each}
 	</div>
