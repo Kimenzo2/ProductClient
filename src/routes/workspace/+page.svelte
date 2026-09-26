@@ -6,11 +6,15 @@
 	import { supabase } from '$lib/supabaseClient';
 	import { requireSession } from '$lib/auth/guard';
 	import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
+	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { loadLatestFeedback, timeAgo, type FeedbackItemView } from '$lib/data/feedbackInbox';
 	import { feedback, incidents, problems, releases } from '$lib/data/workspace';
 
 	type HomeMode = 'build' | 'coordinate';
 	type StarterAction = { label: string; detail: string; href: string; icon: typeof Box };
-	type WorkItem = { kind: string; title: string; detail: string; state: string; nextAction: string; relation: string; href: string; icon: typeof Box };
+	// href null = mock placeholder: inert empty-state UI until real activity arrives
+	type WorkItem = { kind: string; title: string; detail: string; state: string; nextAction: string; relation: string; href: string | null; icon: typeof Box };
+	type LiveEvent = { title: string; productName: string; productSlug: string; postedAt: string };
 
 	let displayName = $state('');
 	let role = $state('');
@@ -50,17 +54,84 @@
 		{ label: 'Read product docs', detail: 'Find the current product context', href: '/workspace/docs', icon: FileText }
 	];
 
-	const coordinateWork: WorkItem[] = [
-		{ kind: 'Feedback', title: feedback.find((item) => item.status === 'New')?.title ?? 'New customer feedback', detail: 'Needs review', state: 'Needs a reply', nextAction: 'Review feedback', relation: 'Starts with a customer message', href: feedback.find((item) => item.status === 'New')?.workspacePath ?? '/workspace/feedback', icon: Inbox },
-		{ kind: 'Problem', title: problems.find((item) => item.status === 'Ready for decision')?.title ?? 'A problem is ready for a decision', detail: 'Ready for a decision', state: 'Needs a decision', nextAction: 'Review context', relation: 'Moves from feedback to a decision', href: problems.find((item) => item.status === 'Ready for decision')?.workspacePath ?? '/workspace/problems', icon: Compass },
-		{ kind: 'Product update', title: releases[0]?.title ?? 'A product update changed', detail: `${releases[0]?.productName ?? 'Product'} · ${releases[0]?.postedAt ?? 'Recently'}`, state: 'Recently changed', nextAction: 'Read update', relation: 'Connects a decision to customers', href: releases[0]?.workspacePath ?? '/workspace/releases', icon: History }
-	];
+	// Live activity — resolved from the maker's own data. Until each source has
+	// a real record, its card renders the mock fixture below as inert
+	// placeholder UI (href null), never a link into mock detail pages.
+	let liveNewFeedback = $state<FeedbackItemView | null>(null);
+	let liveReviewableFeedback = $state<FeedbackItemView | null>(null);
+	let liveEvent = $state<LiveEvent | null>(null);
 
-	const buildWork: WorkItem[] = [
-		{ kind: 'Problem', title: problems.find((item) => item.status === 'Ready for decision')?.title ?? 'A problem is ready for a decision', detail: 'Ready for a decision', state: 'Needs context', nextAction: 'Review context', relation: 'Starts with a customer need', href: problems.find((item) => item.status === 'Ready for decision')?.workspacePath ?? '/workspace/problems', icon: Compass },
-		{ kind: 'Service problem', title: incidents.find((item) => item.status !== 'Resolved')?.title ?? 'No active service problems', detail: incidents.find((item) => item.status !== 'Resolved')?.severity ?? 'No active issue', state: incidents.find((item) => item.status !== 'Resolved') ? 'Needs technical review' : 'All clear', nextAction: incidents.find((item) => item.status !== 'Resolved') ? 'Open service problem' : 'View service problems', relation: 'Leads to a customer update', href: incidents.find((item) => item.status !== 'Resolved')?.workspacePath ?? '/workspace/incidents', icon: AlertTriangle },
-		{ kind: 'Product update', title: releases[0]?.title ?? 'A product update changed', detail: `${releases[0]?.productName ?? 'Product'} · ${releases[0]?.postedAt ?? 'Recently'}`, state: 'Recently changed', nextAction: 'Read update', relation: 'Connects a decision to the release', href: releases[0]?.workspacePath ?? '/workspace/releases', icon: History }
-	];
+	async function loadHomeActivity() {
+		if (!supabase) return;
+		const [items, event] = await Promise.all([loadLatestFeedback(), loadLatestEvent()]);
+		// Newest-first probe — find() takes the latest per bucket
+		liveNewFeedback = items.find((item) => item.status === 'New') ?? null;
+		liveReviewableFeedback = items.find((item) => item.status === 'Reviewed' || item.status === 'Planned') ?? null;
+		liveEvent = event;
+	}
+
+	async function loadLatestEvent(): Promise<LiveEvent | null> {
+		if (!supabase) return null;
+		try {
+			const productIds = activeProductStore.products.map((p) => p.id);
+			if (productIds.length === 0) return null;
+			const { data, error } = await supabase
+				.from('events')
+				.select('title, published_at, products(slug, name)')
+				.in('product_id', productIds)
+				.is('deleted_at', null)
+				.order('published_at', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+			if (error || !data) return null;
+			const row = data as { title: string; published_at: string; products?: { slug?: string | null; name?: string | null } | Array<{ slug?: string | null; name?: string | null }> | null };
+			// PostgREST embeds to-one as an object but tolerate an array shape —
+			// a shape surprise must not silently pin the placeholder
+			const embedded = Array.isArray(row.products) ? row.products[0] : row.products;
+			const slug = embedded?.slug;
+			if (!slug) return null;
+			return {
+				title: row.title,
+				productName: embedded?.name ?? 'Product',
+				productSlug: slug,
+				postedAt: timeAgo(row.published_at)
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	function mockFeedbackCard(): WorkItem {
+		return { kind: 'Feedback', title: feedback.find((item) => item.status === 'New')?.title ?? 'New customer feedback', detail: 'Needs review', state: 'Needs a reply', nextAction: 'Review feedback', relation: 'Starts with a customer message', href: null, icon: Inbox };
+	}
+	function mockDecisionCard(relation: string, state: string): WorkItem {
+		return { kind: 'Problem', title: problems.find((item) => item.status === 'Ready for decision')?.title ?? 'A problem is ready for a decision', detail: 'Ready for a decision', state, nextAction: 'Review context', relation, href: null, icon: Compass };
+	}
+	function mockUpdateCard(relation: string): WorkItem {
+		return { kind: 'Product update', title: releases[0]?.title ?? 'A product update changed', detail: `${releases[0]?.productName ?? 'Product'} · ${releases[0]?.postedAt ?? 'Recently'}`, state: 'Recently changed', nextAction: 'Read update', relation, href: null, icon: History };
+	}
+	function liveFeedbackCard(item: FeedbackItemView): WorkItem {
+		return { kind: 'Feedback', title: item.title, detail: `${item.productName} · ${item.postedAt}`, state: 'Needs a reply', nextAction: 'Review feedback', relation: 'Starts with a customer message', href: `/workspace/feedback/${item.id}`, icon: Inbox };
+	}
+	function liveDecisionCard(item: FeedbackItemView, relation: string, state: string): WorkItem {
+		return { kind: 'Problem', title: item.title, detail: 'Ready for a decision', state, nextAction: 'Review context', relation, href: `/workspace/feedback/${item.id}`, icon: Compass };
+	}
+	function liveUpdateCard(event: LiveEvent, relation: string): WorkItem {
+		return { kind: 'Product update', title: event.title, detail: `${event.productName} · ${event.postedAt}`, state: 'Recently changed', nextAction: 'View product', relation, href: `/workspace/products/${event.productSlug}`, icon: History };
+	}
+
+	let coordinateWork = $derived<WorkItem[]>([
+		liveNewFeedback ? liveFeedbackCard(liveNewFeedback) : mockFeedbackCard(),
+		liveReviewableFeedback ? liveDecisionCard(liveReviewableFeedback, 'Moves from feedback to a decision', 'Needs a decision') : mockDecisionCard('Moves from feedback to a decision', 'Needs a decision'),
+		liveEvent ? liveUpdateCard(liveEvent, 'Connects a decision to customers') : mockUpdateCard('Connects a decision to customers')
+	]);
+
+	let buildWork = $derived<WorkItem[]>([
+		liveReviewableFeedback ? liveDecisionCard(liveReviewableFeedback, 'Starts with a customer need', 'Needs context') : mockDecisionCard('Starts with a customer need', 'Needs context'),
+		// No home-scope live incident source yet — always a placeholder for now
+		{ kind: 'Service problem', title: incidents.find((item) => item.status !== 'Resolved')?.title ?? 'No active service problems', detail: incidents.find((item) => item.status !== 'Resolved')?.severity ?? 'No active issue', state: incidents.find((item) => item.status !== 'Resolved') ? 'Needs technical review' : 'All clear', nextAction: incidents.find((item) => item.status !== 'Resolved') ? 'Open service problem' : 'View service problems', relation: 'Leads to a customer update', href: null, icon: AlertTriangle },
+		liveEvent ? liveUpdateCard(liveEvent, 'Connects a decision to the release') : mockUpdateCard('Connects a decision to the release')
+	]);
 
 	let actions = $derived(mode === 'build' ? buildActions : coordinateActions);
 	let workItems = $derived(mode === 'build' ? buildWork : coordinateWork);
@@ -70,7 +141,11 @@
 		// keep greeting live if user keeps tab open across noon/evening
 		const interval = setInterval(refreshGreeting, 60_000);
 		const onVisibility = () => {
-			if (document.visibilityState === 'visible') refreshGreeting();
+			if (document.visibilityState !== 'visible') return;
+			refreshGreeting();
+			// Returning to this tab (Back button, app switch) re-resolves
+			// activity — cards flip the moment work exists elsewhere
+			void loadHomeActivity();
 		};
 		document.addEventListener('visibilitychange', onVisibility);
 
@@ -88,6 +163,11 @@
 			} catch {
 				// keep UX; user can retry via settings
 			}
+			// Real activity swaps mock placeholder cards for linked records.
+			// Placeholders render first (they ARE the empty state); live cards
+			// replace them exactly when activity exists. Fail-soft by design.
+			await hydrateActiveProduct();
+			await loadHomeActivity();
 		})();
 
 		return () => {
@@ -112,8 +192,7 @@
 				<a href={tenantUrl(tenant.slug, '/')} target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-1.5 text-[14px] text-[var(--pc-accent-light)] hover:underline"><Globe size={14} weight="Outline" aria-hidden="true" /> Live site</a>
 			{/if}
 			<WorkspaceLauncher placeholder={mode === 'build' ? 'Find the context behind a task or start a new one' : 'Find feedback, an update, a help page, or a product'} />
-			<div class="starter-area" aria-labelledby="starter-title">
-				<p id="starter-title" class="starter-label">Start with</p>
+			<div class="starter-area" aria-label="Quick actions">
 				<div class="starter-actions">
 					{#each actions as action (action.href)}
 						{@const Icon = action.icon}
@@ -152,7 +231,6 @@
 	.home-description { width: 100%; max-width: 48ch; margin: 15px auto 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; text-align: center; text-wrap: pretty; }
 	.home-welcome :global(.launcher) { margin-top: 30px; }
 	.starter-area { width: 100%; margin-top: 21px; text-align: center; }
-	.starter-label { margin: 0 0 9px; color: var(--pc-text-faint); font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 	.starter-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 	.starter-action { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 11px; border: 1px solid transparent; border-radius: 13px; color: var(--pc-text-muted); background: var(--pc-surface-2); text-align: start; transition: background-color 100ms ease, color 100ms ease; }
 	.starter-action:hover { color: var(--pc-text); background: var(--pc-surface); }

@@ -43,8 +43,6 @@
 			{/if}
 		</div>
 	{/if}
-
-	<p class="launcher-note">Search by the words people used, or start with one of the actions below.</p>
 </div>
 
 <style>
@@ -69,7 +67,6 @@
 	.launcher-empty { display: grid; gap: 3px; padding: 13px 11px; }
 	.launcher-empty strong { color: var(--pc-text); font-size: 12px; font-weight: 500; }
 	.launcher-empty span { color: var(--pc-text-muted); font-size: 11px; }
-	.launcher-note { margin: 11px 4px 0; color: var(--pc-text-faint); font-size: 11px; text-align: center; }
-	@media (max-width: 560px) { .launcher-form { min-height: 56px; padding-left: 15px; border-radius: 16px; }.launcher-form input { font-size: 14px; }.launcher-form button { width: 42px; height: 42px; border-radius: 12px; }.launcher-note { line-height: 1.45; } }
+	@media (max-width: 560px) { .launcher-form { min-height: 56px; padding-left: 15px; border-radius: 16px; }.launcher-form input { font-size: 14px; }.launcher-form button { width: 42px; height: 42px; border-radius: 12px; } }
 	@media (prefers-reduced-motion: reduce) { .launcher-form, .launcher-form button, .launcher-result { transition: none; } }
 </style>

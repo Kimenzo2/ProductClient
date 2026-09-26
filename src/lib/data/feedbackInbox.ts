@@ -149,6 +149,24 @@ export async function loadFeedbackItems(
 	return { items, error: null };
 }
 
+// Lightweight home-page probe — newest actionable feedback only. The full
+// 200-row loader is for list pages; home needs one record per bucket.
+export async function loadLatestFeedback(): Promise<FeedbackItemView[]> {
+	if (!supabase) return [];
+	try {
+		const { data, error } = await supabase
+			.from('feedback_items')
+			.select('id, product_id, source, kind, title, body, status, author_name, author_email, created_at, products(slug, name)')
+			.in('status', ['new', 'reviewing', 'planned'])
+			.order('created_at', { ascending: false })
+			.limit(10);
+		if (error || !data) return [];
+		return ((data ?? []) as FeedbackRow[]).map(toFeedbackItemView);
+	} catch {
+		return [];
+	}
+}
+
 export type FeedbackItemDetail = {
 	item: FeedbackItemView;
 	product: { slug: string; name: string; avatar: string | null; publicPath: string; workspacePath: string } | null;

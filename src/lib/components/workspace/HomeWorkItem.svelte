@@ -17,24 +17,41 @@
 		state: string;
 		nextAction: string;
 		relation: string;
-		href: string;
+		// Null href = mock placeholder: identical visuals, but inert empty-state
+		// UI. Never a link, never focusable, no hover affordance.
+		href: string | null;
 		icon: typeof Box;
 	} = $props();
 </script>
 
-<a class="home-work-item" href={href}>
-	<span class="work-icon" aria-hidden="true"><Icon size={17} weight="Outline" /></span>
-	<span class="work-body">
-		<span class="work-topline"><span class="work-detail">{detail}</span></span>
-		<strong>{title}</strong>
-		<span class="work-bottomline"><span>{relation}</span><span class="work-state">{state}</span></span>
-	</span>
-	<span class="work-action">{nextAction}<ArrowRight size={14} weight="Outline" aria-hidden="true" /></span>
-</a>
+{#if href}
+	<a class="home-work-item" href={href}>
+		<span class="work-icon" aria-hidden="true"><Icon size={17} weight="Outline" /></span>
+		<span class="work-body">
+			<span class="work-topline"><span class="work-detail">{detail}</span></span>
+			<strong>{title}</strong>
+			<span class="work-bottomline"><span>{relation}</span><span class="work-state">{state}</span></span>
+		</span>
+		<span class="work-action">{nextAction}<ArrowRight size={14} weight="Outline" aria-hidden="true" /></span>
+	</a>
+{:else}
+	<div class="home-work-item is-mock">
+		<span class="work-icon" aria-hidden="true"><Icon size={17} weight="Outline" /></span>
+		<span class="work-body">
+			<span class="work-topline"><span class="work-detail">{detail}</span></span>
+			<strong>{title}</strong>
+			<span class="work-bottomline"><span>{relation}</span><span class="work-state">{state}</span></span>
+		</span>
+		<span class="work-action">{nextAction}<ArrowRight size={14} weight="Outline" aria-hidden="true" /></span>
+	</div>
+{/if}
 
 <style>
 	.home-work-item { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 13px 14px; border: 1px solid transparent; border-radius: 15px; color: var(--pc-text-muted); background: var(--pc-surface-2); transition: background-color 100ms ease, color 100ms ease; }
-	.home-work-item:hover { color: var(--pc-text); background: var(--pc-surface); }
+	a.home-work-item:hover { color: var(--pc-text); background: var(--pc-surface); }
+	.home-work-item.is-mock { cursor: default; }
+	/* Mock action line must not read as a link — accent color is a click promise */
+	.home-work-item.is-mock .work-action { color: var(--pc-text-faint); }
 	.work-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: var(--pc-accent-light); background: rgba(119, 152, 18, .12); }
 	.work-body { min-width: 0; }
 	.work-topline, .work-bottomline { display: flex; align-items: center; gap: 8px; min-width: 0; }
