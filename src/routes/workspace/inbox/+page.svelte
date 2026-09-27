@@ -6,7 +6,9 @@
 	import { loadInboxIncidents, loadInboxThreads, type InboxThreadView, type IncidentRowView } from '$lib/data/feedbackInbox';
 	import { requireSession } from '$lib/auth/guard';
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { isAgentV2 } from '$lib/agentV2';
 
 	let filter = $state<'All' | 'Feedback' | 'Incident'>('All');
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
@@ -35,6 +37,7 @@
 	type QueueItem = {
 		id: string;
 		kind: 'Feedback' | 'Incident';
+		subjectType: string;
 		title: string;
 		subtitle: string;
 		description: string;
@@ -50,6 +53,7 @@
 	let queue = $derived.by(() => {		const threadItems: QueueItem[] = threads.map((thread) => ({
 			id: thread.id,
 			kind: 'Feedback',
+			subjectType: thread.subjectType,
 			title: thread.title,
 			subtitle: `${thread.productName} · feedback thread`,
 			description: thread.preview,
@@ -65,6 +69,7 @@
 		const incidentItems: QueueItem[] = incidentRows.map((incident) => ({
 			id: incident.id,
 			kind: 'Incident',
+			subjectType: 'incident',
 			title: incident.title,
 			subtitle: incident.severity,
 			description: incident.summary,
@@ -74,9 +79,13 @@
 			order: incident.status === 'Resolved' ? 2 : 0,
 			productSlug: ''
 		}));
-		// Incidents are tenant-scoped; keep them visible even when an active
-		// product filter is on — only feedback threads narrow by product.
-		const visibleThreads = activeSlug ? threadItems.filter((t) => t.productSlug === activeSlug) : threadItems;
+		// MVP gate: agent handoff threads only exist under ?v2. Incidents are
+		// tenant-scoped; keep them visible even when an active product filter is
+		// on — only feedback threads narrow by product.
+		const v2 = isAgentV2(page.url);
+		const visibleThreads = threadItems.filter(
+			(t) => (!activeSlug || t.productSlug === activeSlug) && (v2 || t.subjectType !== 'agent')
+		);
 		return [...visibleThreads, ...incidentItems].sort((a, b) => a.order - b.order);
 	});
 

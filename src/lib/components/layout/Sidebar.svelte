@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { AlertTriangle, Box, BranchDown, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, History, Inbox, MessageDots, QuoteUpSquare, Roadmap, Settings } from 'reicon-svelte';
+	import { AlertTriangle, Box, BranchDown, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, Headset, History, Inbox, MessageDots, QuoteUpSquare, Roadmap, Settings } from 'reicon-svelte';
 	import { Collapsible } from 'bits-ui';
 	import { Avatar, Button, Separator } from '$lib/components/ui';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
 	import { panelRegistry } from './sidebar/panelRegistry';
 	import WorkspaceHoverPanel from './sidebar/WorkspaceHoverPanel.svelte';
 import { tooltip } from '$lib/components/Tooltip.svelte';
+import { isAgentV2 } from '$lib/agentV2';
 import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
 import type { SignalKey } from '$lib/data/signalRegistry.svelte';
 import { supabase } from '$lib/supabaseClient';
@@ -34,6 +35,7 @@ import { supabase } from '$lib/supabaseClient';
 				{ label: 'Products', href: '/workspace/products', icon: Box },
 				{ label: 'Inbox', href: '/workspace/inbox', icon: Inbox, signalKey: 'inbox' as SignalKey },
 				{ label: 'Feedback', href: '/workspace/feedback', icon: MessageDots },
+				{ label: 'Agent', href: '/workspace/agent', icon: Headset },
 				{ label: 'Docs', href: '/workspace/docs', icon: FileText },
 				{ label: 'Proof', href: '/workspace/proof', icon: QuoteUpSquare }
 			]
@@ -57,7 +59,15 @@ import { supabase } from '$lib/supabaseClient';
 			items: [{ label: 'Analytics', href: '/workspace/analytics', icon: ChartBarTrendUp }]
 		}
 	];
-	const workspaceItems = workspaceGroups.flatMap((group) => group.items);
+	// Agent is an MVP behind the `?v2` URL tag: without it the nav, hover
+	// panel, and page behave as if Agent does not exist.
+	let showAgent = $derived(isAgentV2(page.url));
+	let visibleGroups = $derived(
+		showAgent
+			? workspaceGroups
+			: workspaceGroups.map((group) => ({ ...group, items: group.items.filter((item) => item.href !== '/workspace/agent') }))
+	);
+	const workspaceItems = $derived(visibleGroups.flatMap((group) => group.items));
 
 	const activeClass = 'bg-[var(--pc-accent)] text-white';
 	const inactiveClass = 'text-[var(--pc-text-muted)] hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)]';
@@ -136,7 +146,7 @@ import { supabase } from '$lib/supabaseClient';
 				</Collapsible.Trigger>
 				<Collapsible.Content>
 					<div class="mt-2 space-y-6">
-						{#each workspaceGroups as group (group.label)}
+						{#each visibleGroups as group (group.label)}
 							<div>
 								<p class="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] text-[var(--pc-text-faint)] antialiased">{group.label}</p>
 								<nav class="space-y-1" aria-label={group.label}>
@@ -171,10 +181,10 @@ import { supabase } from '$lib/supabaseClient';
 		{:else}
 			<!-- Collapsed rail — workspace only (public Discover removed) -->
 			<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-				<div class="flex-1 overflow-y-auto overflow-x-hidden py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-					<div class="flex w-full flex-col items-center gap-3 px-1" role="group" aria-label="Workspace groups">
-						{#each workspaceGroups as group (group.label)}
-							<nav class="flex w-full flex-col items-center gap-1.5" aria-label={group.label}>
+				<div class="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+					<div class="flex w-full flex-col items-center gap-2 px-1" role="group" aria-label="Workspace groups">
+						{#each visibleGroups as group (group.label)}
+							<nav class="flex w-full flex-col items-center gap-1" aria-label={group.label}>
 												{#each group.items as item (item.href)}
 													{@const Icon = item.icon}
 													{@const badge = item.signalKey ? signalRegistry[item.signalKey].count : 0}
@@ -191,7 +201,7 @@ import { supabase } from '$lib/supabaseClient';
 						{/each}
 					</div>
 				</div>
-				<div class="flex shrink-0 flex-col items-center gap-2 border-t border-[var(--pc-border-strong)]/10 px-2 pb-1 pt-3">
+				<div class="flex shrink-0 flex-col items-center gap-1.5 border-t border-[var(--pc-border-strong)]/10 px-2 pb-1 pt-2">
 					<a href="/workspace/settings" aria-label="Settings" class="grid size-10 shrink-0 place-items-center rounded-xl text-[var(--pc-text-muted)] transition-[background-color,color,transform] duration-100 hover:bg-[var(--pc-accent-soft)] hover:text-[var(--pc-accent)] active:scale-[0.96] {isActive('/workspace/settings') ? activeClass : ''} {focusClass} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: 'Settings', typeX: 'right', typeY: 'center' }}><Settings size={18} weight="Filled" aria-hidden="true" /></a>
 					<a href="/you" aria-label={profileName ? `Profile — ${profileName}` : 'Profile'} class="grid size-10 shrink-0 place-items-center rounded-xl transition-[background-color,color] duration-100 hover:bg-[var(--pc-surface-2)] {focusClass} {isActive('/you') ? activeClass : ''} after:absolute after:-inset-1 after:content-[''] after:rounded-xl relative" use:tooltip={{ text: profileName ? `${profileName} — Profile` : 'Profile', typeX: 'right', typeY: 'center' }}><Avatar src={profileAvatar} alt={profileName ? `Profile — ${profileName}` : 'Profile'} fallback={profileInitials} size="sm" /></a>
 				</div>
@@ -232,7 +242,7 @@ import { supabase } from '$lib/supabaseClient';
 				<span class="flex items-center gap-2"><ProductClientLogo size={28} /><span class="text-[13px] font-medium">Product Client</span></span>
 			</div>
 			<div class="space-y-5 px-3 py-3">
-				{#each workspaceGroups as group (group.label)}
+				{#each visibleGroups as group (group.label)}
 					<nav class="space-y-0.5" aria-label={group.label}>
 						<p class="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] leading-[1.1] antialiased text-[var(--pc-text-faint)]">{group.label}</p>
 						{#each group.items as item (item.href)}

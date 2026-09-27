@@ -8,6 +8,7 @@ import { decisionsPanel } from './panels/decisions';
 import { roadmapPanel } from './panels/roadmap';
 import { proofPanel } from './panels/proof';
 import { inboxPanel } from './panels/inbox';
+import { agentPanel } from './panels/agent';
 import { analyticsPanel } from './panels/analytics';
 
 // Central registry — Sidebar.svelte imports only this file.
@@ -23,5 +24,6 @@ export const panelRegistry: Record<string, PanelDef> = {
 	'/workspace/roadmap': roadmapPanel,
 	'/workspace/proof': proofPanel,
 	'/workspace/inbox': inboxPanel,
+	'/workspace/agent': agentPanel,
 	'/workspace/analytics': analyticsPanel
 };

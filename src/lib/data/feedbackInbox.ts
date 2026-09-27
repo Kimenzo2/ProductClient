@@ -27,6 +27,7 @@ export type InboxThreadView = {
 	preview: string;
 	status: string;
 	unread: boolean;
+	subjectType: string;
 	productSlug: string;
 	productName: string;
 	lastMessageAt: string;
@@ -232,6 +233,7 @@ export async function loadInboxThreads(
 			preview,
 			status: row.status.charAt(0).toUpperCase() + row.status.slice(1),
 			unread: row.unread_maker,
+			subjectType: row.subject_type,
 			productSlug: (row.products as { slug?: string | null } | null)?.slug ?? '',
 			productName: embeddedName(row.products) || 'Product',
 			lastMessageAt: timeAgo(row.last_message_at),
