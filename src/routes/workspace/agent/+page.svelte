@@ -226,11 +226,18 @@
 				{/each}
 			</div>
 		{:else if tab === 'conversations'}
-			<Card>
-				<p class="text-[14px] font-medium text-[var(--pc-text)]">{agentThreads} Agent thread{agentThreads === 1 ? '' : 's'}</p>
-				<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">Handoffs land in Inbox. Reply there; the visitor sees it when the thread resumes.</p>
-				<div class="mt-3"><Button href="/workspace/inbox" variant="surface" size="sm">Open Inbox</Button></div>
-			</Card>
+			<div class="space-y-3">
+				<Card>
+					<p class="text-[14px] font-medium text-[var(--pc-text)]">{agentThreads} Agent thread{agentThreads === 1 ? '' : 's'}</p>
+					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">Handoffs land in Inbox. Reply there; the visitor sees it when the thread resumes.</p>
+					<div class="mt-3"><Button href="/workspace/inbox" variant="surface" size="sm">Open Inbox</Button></div>
+				</Card>
+				<Card>
+					<p class="text-[14px] font-medium text-[var(--pc-text)]">MCP endpoint</p>
+					<p class="mt-1 break-all font-mono text-[12px] text-[var(--pc-text-muted)]">/api/mcp/product</p>
+					<p class="mt-1 text-[12px] text-[var(--pc-text-faint)]">Read-only product graph for Cursor/Claude, on the public site host. No contacts, inbox, or ranking.</p>
+				</Card>
+			</div>
 		{:else}
 			<Card>
 				<p class="text-[14px] font-medium text-[var(--pc-text)]">Misses</p>
