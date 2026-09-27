@@ -79,6 +79,10 @@
 
 	async function setEnabled(value: boolean): Promise<void> {
 		if (!supabase || !activeId || saving) return;
+		if (activeId.startsWith('mock-')) {
+			error = 'Select a real product — the demo entry cannot host an Agent.';
+			return;
+		}
 		saving = true;
 		try {
 			// An expired session calls PostgREST as anon, which has no execute
@@ -190,7 +194,7 @@
 				</Card>
 				<Card>
 					<label class="block text-[13px] font-medium text-[var(--pc-text)]" for="agent-greeting">Greeting</label>
-					<textarea id="agent-greeting" bind:value={greeting} rows="2" placeholder="Hi, ask me anything about this product." class="mt-2 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 py-2.5 text-[13px] outline-none placeholder:text-[var(--pc-text-faint)]"></textarea>
+					<textarea id="agent-greeting" bind:value={greeting} rows="2" maxlength={280} placeholder="Hi, ask me anything about this product." class="mt-2 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 py-2.5 text-[13px] outline-none placeholder:text-[var(--pc-text-faint)]"></textarea>
 					<div class="mt-3"><Button variant="surface" size="sm" onclick={() => void saveGreeting()} disabled={saving}>Save greeting</Button></div>
 				</Card>
 				<div class="grid gap-3 sm:grid-cols-4">
