@@ -26,10 +26,76 @@
 	let counts = $state({ sessions7d: 0, leads: 0, visits: 0, handoffs: 0 });
 	let misses = $state<string[]>([]);
 	let agentThreads = $state(0);
+	let expandedId = $state<string | null>(null);
+	let transcript = $state<Array<{ role: string; body: string }>>([]);
+	let workingMemory = $state<string | null>(null);
+	let transcriptLoading = $state(false);
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 	let lastLoadedFor = $state<string | undefined>(undefined);
+
+	function publicSite(): string {
+		try {
+			const host = window.location.hostname;
+			if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:4100';
+		} catch { /* ignore */ }
+		return 'https://productclient.com';
+	}
+
+	async function authHeader(): Promise<Record<string, string>> {
+		if (!supabase) return {};
+		const { data } = await supabase.auth.getSession();
+		const token = data.session?.access_token;
+		return token ? { authorization: `Bearer ${token}` } : {};
+	}
+
+	async function expandSession(id: string): Promise<void> {
+		if (expandedId === id) {
+			expandedId = null;
+			return;
+		}
+		expandedId = id;
+		transcript = [];
+		workingMemory = null;
+		if (!activeSlug) return;
+		transcriptLoading = true;
+		try {
+			const res = await fetch(
+				`${publicSite()}/api/agent/thread/${id}?slug=${encodeURIComponent(activeSlug)}`,
+				{ headers: await authHeader() }
+			);
+			if (!res.ok) throw new Error('Could not load transcript');
+			const data = (await res.json()) as {
+				messages?: Array<{ role: string; body: string }>;
+				workingMemory?: string | null;
+			};
+			transcript = Array.isArray(data.messages) ? data.messages : [];
+			workingMemory = typeof data.workingMemory === 'string' ? data.workingMemory : null;
+		} catch {
+			transcript = [];
+		} finally {
+			transcriptLoading = false;
+		}
+	}
+
+	async function deleteSession(id: string): Promise<void> {
+		if (!activeSlug || saving) return;
+		saving = true;
+		try {
+			const res = await fetch(`${publicSite()}/api/agent/thread/${id}?slug=${encodeURIComponent(activeSlug)}`, {
+				method: 'DELETE',
+				headers: await authHeader()
+			});
+			if (!res.ok) throw new Error('Could not delete');
+			sessions = sessions.filter((s) => s.id !== id);
+			if (expandedId === id) expandedId = null;
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not delete';
+		} finally {
+			saving = false;
+		}
+	}
 
 	async function load(): Promise<void> {
 		const allowed = await requireSession('/workspace/agent');
@@ -232,6 +298,45 @@
 					<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">Handoffs land in Inbox. Reply there; the visitor sees it when the thread resumes.</p>
 					<div class="mt-3"><Button href="/workspace/inbox" variant="surface" size="sm">Open Inbox</Button></div>
 				</Card>
+				{#each sessions as session (session.id)}
+					<Card>
+						<div class="flex items-center justify-between gap-3">
+							<button type="button" onclick={() => void expandSession(session.id)} class="min-w-0 flex-1 text-left" aria-expanded={expandedId === session.id}>
+								<p class="truncate text-[14px] font-medium text-[var(--pc-text)]">{new Date(session.updated_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {session.stage.replace(/_/g, ' ')}</p>
+								<p class="mt-0.5 text-[12px] text-[var(--pc-text-faint)]">{expandedId === session.id ? 'Hide transcript' : 'View transcript'}</p>
+							</button>
+							<button
+								type="button"
+								onclick={() => void deleteSession(session.id)}
+								disabled={saving}
+								class="h-8 shrink-0 rounded-full px-3 text-xs font-medium text-[var(--pc-text-faint)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)] disabled:opacity-50"
+								aria-label="Delete this session everywhere"
+							>
+								Delete
+							</button>
+						</div>
+						{#if expandedId === session.id}
+							<div class="mt-3 border-t border-[var(--pc-border-strong)]/10 pt-3">
+								{#if transcriptLoading}
+									<p class="text-[13px] text-[var(--pc-text-faint)]">Loading…</p>
+								{:else}
+									{#if workingMemory}
+										<p class="mb-3 whitespace-pre-wrap rounded-[12px] bg-[var(--pc-surface-2)] p-3 text-[12px] leading-[1.6] text-[var(--pc-text-muted)]">{workingMemory}</p>
+									{/if}
+									{#each transcript as msg, i (i)}
+										<div class={cn('flex', msg.role === 'visitor' ? 'justify-end' : 'justify-start')}>
+											<p class={cn('mb-2 max-w-[90%] text-[13px] leading-[1.6]', msg.role === 'visitor' ? 'rounded-[12px] bg-[var(--pc-surface-2)] px-3 py-2 text-[var(--pc-text)]' : 'text-[var(--pc-text-muted)]')}>{msg.body}</p>
+										</div>
+									{:else}
+										<p class="text-[13px] text-[var(--pc-text-faint)]">No messages.</p>
+									{/each}
+								{/if}
+							</div>
+						{/if}
+					</Card>
+				{:else}
+					<StatePanel title="No sessions yet" description="Sessions appear here after the first visitor chat." />
+				{/each}
 				<Card>
 					<p class="text-[14px] font-medium text-[var(--pc-text)]">MCP endpoint</p>
 					<p class="mt-1 break-all font-mono text-[12px] text-[var(--pc-text-muted)]">/api/mcp/product</p>
