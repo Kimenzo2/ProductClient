@@ -10,7 +10,12 @@
 	import { cn } from '$lib/utils.js';
 
 	type Tool = { key: string; label: string; enabled: boolean; pin: string; config: Record<string, unknown>; sort_order: number };
-	type Session = { id: string; stage: string; started_at: string; updated_at: string };
+	type Session = { id: string; stage: string; started_at: string; updated_at: string; title?: string | null; preview?: string | null };
+	type Automations = {
+		mail: { queued: number; sent: number; failed: number };
+		nudges: { waiting: number; processed: number };
+		audience: { consented: number; changelog: number };
+	};
 
 	let tab = $state<'overview' | 'tools' | 'conversations' | 'misses'>('overview');
 	let v2 = $derived(isAgentV2(page.url));
@@ -24,6 +29,7 @@
 	let tools = $state<Tool[]>([]);
 	let sessions = $state<Session[]>([]);
 	let counts = $state({ sessions7d: 0, leads: 0, visits: 0, handoffs: 0 });
+	let automations = $state<Automations | null>(null);
 	let misses = $state<string[]>([]);
 	let agentThreads = $state(0);
 	let expandedId = $state<string | null>(null);
@@ -130,6 +136,21 @@
 			counts = { sessions7d: sessions.length, leads: (by.lead_captured ?? 0) + (by.waitlisted ?? 0), visits: by.visited ?? 0, handoffs: by.handed_off ?? 0 };
 			const { count } = await supabase.from('inbox_threads').select('id', { count: 'exact', head: true }).eq('product_id', activeId).eq('subject_type', 'agent');
 			agentThreads = count ?? 0;
+			// Titles, previews, and automation stats come from the public site's
+			// maker-gated sessions API (RLS-safe). On failure the raw session
+			// rows queried above remain and the Automations card just stays hidden.
+			if (activeSlug) {
+				try {
+					const res = await fetch(`${publicSite()}/api/agent/sessions?slug=${encodeURIComponent(activeSlug)}`, { headers: await authHeader() });
+					if (res.ok) {
+						const data = (await res.json()) as { sessions?: Session[]; automations?: Automations };
+						if (Array.isArray(data.sessions)) sessions = data.sessions;
+						if (data.automations) automations = data.automations;
+					}
+				} catch {
+					/* keep local fallback */
+				}
+			}
 			const ids = sessions.map((s) => s.id);
 			if (ids.length) {
 				const { data: missRows } = await supabase.from('agent_messages').select('body').in('session_id', ids.slice(0, 200)).eq('role', 'system').like('body', 'miss:%').order('created_at', { ascending: false }).limit(50);
@@ -268,6 +289,28 @@
 						<Card><p class="text-[20px] font-medium tabular-nums text-[var(--pc-text)]">{m.value}</p><p class="mt-1 text-[12px] text-[var(--pc-text-muted)]">{m.label} · 7d</p></Card>
 					{/each}
 				</div>
+				{#if automations}
+					<Card>
+						<div class="flex items-baseline justify-between gap-3">
+							<p class="text-[14px] font-medium text-[var(--pc-text)]">Automations</p>
+							<p class="text-[12px] text-[var(--pc-text-faint)]">last 7 days</p>
+						</div>
+						<div class="mt-3 grid gap-4 sm:grid-cols-3">
+							<div>
+								<p class="text-[12px] font-medium text-[var(--pc-text-muted)]">Mail</p>
+								<p class="mt-1 text-[13px] tabular-nums text-[var(--pc-text)]">{automations.mail.sent} sent · {automations.mail.queued} queued · {automations.mail.failed} failed</p>
+							</div>
+							<div>
+								<p class="text-[12px] font-medium text-[var(--pc-text-muted)]">Nudges</p>
+								<p class="mt-1 text-[13px] tabular-nums text-[var(--pc-text)]">{automations.nudges.processed} processed · {automations.nudges.waiting} waiting</p>
+							</div>
+							<div>
+								<p class="text-[12px] font-medium text-[var(--pc-text-muted)]">Audience</p>
+								<p class="mt-1 text-[13px] tabular-nums text-[var(--pc-text)]">{automations.audience.consented} consented · {automations.audience.changelog} on changelog</p>
+							</div>
+						</div>
+					</Card>
+				{/if}
 			</div>
 		{:else if tab === 'tools'}
 			<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -302,8 +345,11 @@
 					<Card>
 						<div class="flex items-center justify-between gap-3">
 							<button type="button" onclick={() => void expandSession(session.id)} class="min-w-0 flex-1 text-left" aria-expanded={expandedId === session.id}>
-								<p class="truncate text-[14px] font-medium text-[var(--pc-text)]">{new Date(session.updated_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {session.stage.replace(/_/g, ' ')}</p>
-								<p class="mt-0.5 text-[12px] text-[var(--pc-text-faint)]">{expandedId === session.id ? 'Hide transcript' : 'View transcript'}</p>
+								<p class="truncate text-[14px] font-medium text-[var(--pc-text)]">{session.title || `${new Date(session.updated_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${session.stage.replace(/_/g, ' ')}`}</p>
+								{#if session.preview}<p class="mt-0.5 truncate text-[12px] text-[var(--pc-text-muted)]">{session.preview}</p>{/if}
+								<p class="mt-0.5 text-[12px] text-[var(--pc-text-faint)]">
+									{expandedId === session.id ? 'Hide transcript' : 'View transcript'}{#if session.title} · {new Date(session.updated_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {session.stage.replace(/_/g, ' ')}{/if}
+								</p>
 							</button>
 							<button
 								type="button"
