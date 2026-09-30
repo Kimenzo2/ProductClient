@@ -16,8 +16,14 @@
 		nudges: { waiting: number; processed: number };
 		audience: { consented: number; changelog: number };
 	};
+	type Channels = {
+		page: { enabled: boolean; url: string };
+		email: { status: string; from_name: string; reply_to: string; label: string };
+		slack: { status: string; team_id: string | null; webhook_url: string };
+		coming: Array<{ channel: string; label: string; waiting: number }>;
+	};
 
-	let tab = $state<'overview' | 'tools' | 'conversations' | 'misses'>('overview');
+	let tab = $state<'overview' | 'channels' | 'tools' | 'conversations' | 'misses'>('overview');
 	let v2 = $derived(isAgentV2(page.url));
 	let activeId = $derived(activeProductStore.activeProductId);
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
@@ -30,6 +36,13 @@
 	let sessions = $state<Session[]>([]);
 	let counts = $state({ sessions7d: 0, leads: 0, visits: 0, handoffs: 0 });
 	let automations = $state<Automations | null>(null);
+	let channels = $state<Channels | null>(null);
+	let emailFromName = $state('');
+	let emailReplyTo = $state('');
+	let emailSaving = $state(false);
+	let		emailSaved = $state(false);
+	let slackTeamId = $state('');
+	let slackSaving = $state(false);
 	let misses = $state<string[]>([]);
 	let agentThreads = $state(0);
 	let expandedId = $state<string | null>(null);
@@ -117,6 +130,9 @@
 		}
 		loading = true;
 		error = null;
+		automations = null;
+		channels = null;
+		emailSaved = false;
 		try {
 			const [{ data: settings }, { data: prod }, { data: toolRows }, { data: sessionRows }] = await Promise.all([
 				supabase.from('agent_settings').select('enabled,greeting').eq('product_id', activeId).maybeSingle(),
@@ -149,6 +165,20 @@
 					}
 				} catch {
 					/* keep local fallback */
+				}
+			}
+			if (activeSlug) {
+				try {
+					const res = await fetch(`${publicSite()}/api/agent/channels?slug=${encodeURIComponent(activeSlug)}`, { headers: await authHeader() });
+					if (res.ok) {
+						const data = (await res.json()) as Channels;
+						channels = data;
+						emailFromName = data.email.from_name;
+						emailReplyTo = data.email.reply_to;
+						slackTeamId = data.slack.team_id ?? '';
+					}
+				} catch {
+					/* channels tab shows unavailable */
 				}
 			}
 			const ids = sessions.map((s) => s.id);
@@ -209,6 +239,51 @@
 		}
 	}
 
+	async function saveEmailChannel(): Promise<void> {
+		if (!activeSlug || emailSaving) return;
+		emailSaving = true;
+		emailSaved = false;
+		try {
+			const res = await fetch(`${publicSite()}/api/agent/channels`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json', ...(await authHeader()) },
+				body: JSON.stringify({ slug: activeSlug, from_name: emailFromName, reply_to: emailReplyTo })
+			});
+			if (!res.ok) {
+				const data = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(data.error ?? 'Could not save email settings');
+			}
+			if (channels) channels = { ...channels, email: { ...channels.email, status: 'connected', from_name: emailFromName, reply_to: emailReplyTo } };
+			emailSaved = true;
+			setTimeout(() => (emailSaved = false), 2500);
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not save email settings';
+		} finally {
+			emailSaving = false;
+		}
+	}
+
+	async function saveSlackChannel(connect: boolean): Promise<void> {
+		if (!activeSlug || slackSaving) return;
+		slackSaving = true;
+		try {
+			const res = await fetch(`${publicSite()}/api/agent/channels`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json', ...(await authHeader()) },
+				body: JSON.stringify({ slug: activeSlug, slack_team_id: connect ? slackTeamId.trim() : '' })
+			});
+			if (!res.ok) {
+				const data = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(data.error ?? 'Could not save Slack settings');
+			}
+			if (channels) channels = { ...channels, slack: { ...channels.slack, status: connect ? 'connected' : 'disconnected', team_id: connect ? slackTeamId.trim().toUpperCase() : null } };
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not save Slack settings';
+		} finally {
+			slackSaving = false;
+		}
+	}
+
 	async function patchTool(tool: Tool, patch: Partial<Tool>): Promise<void> {
 		if (!supabase || !activeId) return;
 		if (tool.key === 'visit' && patch.enabled === true && !liveUrl) {
@@ -226,7 +301,7 @@
 	onMount(() => {
 		void hydrateActiveProduct();
 		const t = page.url.searchParams.get('tab');
-		if (t === 'tools' || t === 'misses') tab = t;
+		if (t === 'channels' || t === 'tools' || t === 'misses') tab = t;
 	});
 
 	$effect(() => {
@@ -245,7 +320,7 @@
 		<div class="py-6"><StatePanel title="Agent is a V2 preview" description="This surface is still an MVP. Add ?v2 to the URL to open it." /></div>
 	{:else}
 	<div class="flex gap-1.5 overflow-x-auto py-5" role="tablist" aria-label="Agent sections">
-		{#each [{ id: 'overview', label: 'Overview' }, { id: 'tools', label: 'Tools' }, { id: 'conversations', label: 'Conversations' }, { id: 'misses', label: 'Misses' }] as t (t.id)}
+		{#each [{ id: 'overview', label: 'Overview' }, { id: 'channels', label: 'Channels' }, { id: 'tools', label: 'Tools' }, { id: 'conversations', label: 'Conversations' }, { id: 'misses', label: 'Misses' }] as t (t.id)}
 			<button
 				type="button"
 				role="tab"
@@ -310,6 +385,88 @@
 							</div>
 						</div>
 					</Card>
+				{/if}
+			</div>
+		{:else if tab === 'channels'}
+			<div class="space-y-3">
+				{#if !channels}
+					<StatePanel title="Channels unavailable" description="Could not reach the public site just now. Try again." />
+				{:else}
+					<Card>
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<p class="text-[14px] font-medium text-[var(--pc-text)]">Page</p>
+								<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">The agent panel at {channels.page.url}. Same knowledge and actions as every other channel.</p>
+							</div>
+							<div class="flex shrink-0 items-center gap-2">
+								<span class={cn('h-8 rounded-full px-3 text-xs font-medium leading-8', channels.page.enabled ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]')}>
+									{channels.page.enabled ? 'On' : 'Off'}
+								</span>
+								<Button href={publicSite() + channels.page.url} variant="surface" size="sm">Open page</Button>
+							</div>
+						</div>
+					</Card>
+					<Card>
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<p class="text-[14px] font-medium text-[var(--pc-text)]">Email</p>
+								<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">{channels.email.label}. Workflows queue it; consent gates every send.</p>
+							</div>
+							<span class={cn('h-8 shrink-0 rounded-full px-3 text-xs font-medium leading-8', channels.email.status === 'connected' ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]')}>
+								{channels.email.status === 'connected' ? 'Connected' : 'Not set up'}
+							</span>
+						</div>
+						<div class="mt-4 grid gap-3 sm:grid-cols-2">
+							<div>
+								<label class="block text-[12px] font-medium text-[var(--pc-text-muted)]" for="email-from-name">From name</label>
+								<input id="email-from-name" bind:value={emailFromName} maxlength={60} placeholder="The name visitors see" class="mt-1.5 h-9 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 text-[13px] text-[var(--pc-text)] outline-none placeholder:text-[var(--pc-text-faint)]" />
+							</div>
+							<div>
+								<label class="block text-[12px] font-medium text-[var(--pc-text-muted)]" for="email-reply-to">Reply-to</label>
+								<input id="email-reply-to" bind:value={emailReplyTo} type="email" placeholder="replies@yourdomain.com" class="mt-1.5 h-9 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 text-[13px] text-[var(--pc-text)] outline-none placeholder:text-[var(--pc-text-faint)]" />
+							</div>
+						</div>
+						<div class="mt-3 flex items-center gap-3">
+							<Button variant="surface" size="sm" onclick={() => void saveEmailChannel()} disabled={emailSaving}>Save email settings</Button>
+							{#if emailSaved}<span class="text-[12px] text-[var(--pc-text-muted)]" role="status">Saved</span>{/if}
+						</div>
+					</Card>
+					<div class="grid gap-3 sm:grid-cols-2">
+						<Card>
+							<div class="flex items-center justify-between gap-3">
+								<p class="text-[14px] font-medium text-[var(--pc-text)]">Slack</p>
+								<span class={cn('h-8 rounded-full px-3 text-xs font-medium leading-8', channels.slack.status === 'connected' ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)]')}>
+									{channels.slack.status === 'connected' ? 'Connected' : 'Not connected'}
+								</span>
+							</div>
+							<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">For you and your team: DM the bot or @mention it. One workspace = one product.</p>
+							<div class="mt-3 grid gap-3 sm:grid-cols-2">
+								<div>
+									<label class="block text-[12px] font-medium text-[var(--pc-text-muted)]" for="slack-team-id">Slack team id</label>
+									<input id="slack-team-id" bind:value={slackTeamId} placeholder="T0123ABC456" class="mt-1.5 h-9 w-full rounded-[10px] bg-[var(--pc-surface)] px-3 font-mono text-[13px] text-[var(--pc-text)] outline-none placeholder:text-[var(--pc-text-faint)]" />
+								</div>
+								<div>
+									<span class="block text-[12px] font-medium text-[var(--pc-text-muted)]">Webhook URL (paste in the Slack app)</span>
+									<p class="mt-1.5 h-9 truncate rounded-[10px] bg-[var(--pc-surface)] px-3 font-mono text-[12px] leading-9 text-[var(--pc-text-muted)]" title="{publicSite()}{channels.slack.webhook_url}">{publicSite()}{channels.slack.webhook_url}</p>
+								</div>
+							</div>
+							<div class="mt-3 flex items-center gap-2">
+								<Button variant="surface" size="sm" onclick={() => void saveSlackChannel(true)} disabled={slackSaving || !slackTeamId.trim()}>Connect</Button>
+								{#if channels.slack.status === 'connected'}<Button variant="surface" size="sm" onclick={() => void saveSlackChannel(false)} disabled={slackSaving}>Disconnect</Button>{/if}
+							</div>
+						</Card>
+						{#each channels.coming as c (c.channel)}
+							<Card>
+								<div class="flex items-center justify-between gap-3">
+									<p class="text-[14px] font-medium text-[var(--pc-text)]">{c.label}</p>
+									<span class="h-8 rounded-full bg-[var(--pc-surface-2)] px-3 text-xs font-medium leading-8 text-[var(--pc-text-muted)]">Coming</span>
+								</div>
+								<p class="mt-1 text-[13px] text-[var(--pc-text-muted)]">
+									{#if c.waiting > 0}{c.waiting} {c.waiting === 1 ? 'handle' : 'handles'} waiting from the page{:else}No handles yet — the agent captures them on the page.{/if}
+								</p>
+							</Card>
+						{/each}
+					</div>
 				{/if}
 			</div>
 		{:else if tab === 'tools'}

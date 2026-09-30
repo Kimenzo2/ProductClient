@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { AlertTriangle, FileText, Inbox, Map, Plus, Rocket, Heart } from 'reicon-svelte';
+	import { AlertTriangle, ChatDots, FileText, Inbox, Map, Plus, Rocket, Heart } from 'reicon-svelte';
+	import NotePad from '$lib/components/notes/NotePad.svelte';
 
 	let {
 		label = 'Create',
@@ -10,12 +11,16 @@
 	} = $props();
 
 	let open = $state(false);
+	let noteOpen = $state(false);
 	let root = $state<HTMLElement | undefined>(undefined);
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
 	let menuEl = $state<HTMLElement | undefined>(undefined);
 	let activeIndex = $state(0);
 
-	const createItems = [
+	type CreateItem = { label: string; description: string; icon: typeof Inbox; href?: string; notepad?: boolean };
+
+	const createItems: CreateItem[] = [
+		{ label: 'Post a note', description: 'A quick status on your product — live for 24 hours', icon: ChatDots, notepad: true },
 		{ label: 'Add feedback', description: 'Share a request, problem, question, or praise', href: '/feedback/new', icon: Inbox },
 		{ label: 'Describe a problem', description: 'Explain what is getting in the way', href: '/workspace/problems', icon: Map },
 		{ label: 'Choose what to do', description: 'Write down the choice and why you made it', href: '/workspace/decisions?create=decision', icon: Map },
@@ -137,26 +142,49 @@
 			<div class="mt-1 space-y-1" aria-labelledby="qc-title">
 				{#each createItems as item, i (item.label)}
 					{@const Icon = item.icon}
-					<a
-						href={item.href}
-						role="menuitem"
-						tabindex={i === activeIndex ? 0 : -1}
-						aria-describedby="qc-desc-{i}"
-						onclick={() => (open = false)}
-						onmouseenter={() => (activeIndex = i)}
-						class="flex items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
-					>
-						<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
-						<span class="min-w-0 flex-1 text-left">
-							<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
-							<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
-						</span>
-					</a>
+					{#if item.notepad}
+						<button
+							type="button"
+							role="menuitem"
+							tabindex={i === activeIndex ? 0 : -1}
+							aria-describedby="qc-desc-{i}"
+							onclick={() => {
+								open = false;
+								noteOpen = true;
+							}}
+							onmouseenter={() => (activeIndex = i)}
+							class="flex w-full items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
+						>
+							<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
+							<span class="min-w-0 flex-1 text-left">
+								<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
+								<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
+							</span>
+						</button>
+					{:else}
+						<a
+							href={item.href}
+							role="menuitem"
+							tabindex={i === activeIndex ? 0 : -1}
+							aria-describedby="qc-desc-{i}"
+							onclick={() => (open = false)}
+							onmouseenter={() => (activeIndex = i)}
+							class="flex items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
+						>
+							<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
+							<span class="min-w-0 flex-1 text-left">
+								<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
+								<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
+							</span>
+						</a>
+					{/if}
 				{/each}
 			</div>
 		</div>
 	{/if}
 </div>
+
+<NotePad bind:open={noteOpen} />
 
 <style>
 	.line-clamp-1 {
