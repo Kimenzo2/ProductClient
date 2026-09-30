@@ -268,7 +268,8 @@ import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
 	.status-editor-page { width: min(100% - 40px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 28px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
 	h1, h2, h3, p { margin-top: 0; }
-	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
+	h1 { margin-bottom: 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	h2 { margin-bottom: 0; font-size: 22px; font-weight: 500; letter-spacing: -.04em; line-height: 1.15; }
 	.lede, .section-heading p { color: var(--pc-text-muted); font-size: 14px; line-height: 1.55; }
 	.lede { max-width: 54ch; margin: 12px 0 0; }

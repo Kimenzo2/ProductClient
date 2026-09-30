@@ -539,6 +539,7 @@ html { scroll-behavior: smooth; }
 /* Island — holds more words & information: title + desc, wider, card-like */
 .genesis-tooltip.island {
   max-width: min(360px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  border-radius: 8px;
   padding: 10px 12px;
   gap: 6px;
   flex-direction: column;

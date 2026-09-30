@@ -242,12 +242,62 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	function removeExtraLink(index: number) {
 		extraLinks = extraLinks.filter((_, i) => i !== index);
 	}
-	function addScreenshotUrl() {
-		const url = prompt('Paste image URL');
-		if (!url) return;
-		const trimmed = url.trim();
-		if (!trimmed) return;
-		screenshots = [...screenshots, trimmed].slice(0, 6);
+	let screenshotsUploading = $state(false);
+	let screenshotInput: HTMLInputElement | null = $state(null);
+	const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
+
+	function triggerScreenshotPicker() {
+		if (screenshotsUploading) return;
+		screenshotInput?.click();
+	}
+	async function handleScreenshotFiles(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const files = Array.from(input.files ?? []);
+		input.value = '';
+		if (files.length === 0) return;
+		if (!supabase) {
+			mediaError = 'Service unavailable — try again.';
+			return;
+		}
+		const slots = 6 - screenshots.length;
+		if (slots <= 0) {
+			mediaError = 'Six images max — remove one to add another.';
+			return;
+		}
+		const picked = files.slice(0, slots);
+		if (picked.some((f) => f.size > MAX_SCREENSHOT_BYTES)) {
+			mediaError = 'An image is too large — keep each under 8 MB.';
+			return;
+		}
+		const { data: session } = await supabase.auth.getSession();
+		const token = session.session?.access_token;
+		if (!token) {
+			mediaError = 'Sign in to upload images.';
+			return;
+		}
+		mediaError = '';
+		screenshotsUploading = true;
+		try {
+			for (const file of picked) {
+				const form = new FormData();
+				form.set('file', file);
+				if (draftId) form.set('product_id', draftId);
+				const response = await fetch('/api/products/upload', {
+					method: 'POST',
+					headers: { authorization: `Bearer ${token}` },
+					body: form
+				});
+				const result = await response.json().catch(() => null);
+				if (!response.ok || !result?.ok || typeof result.url !== 'string') {
+					throw new Error(result?.message ?? 'Could not upload image.');
+				}
+				screenshots = [...screenshots, result.url].slice(0, 6);
+			}
+		} catch (error) {
+			mediaError = error instanceof Error ? error.message : 'Could not upload image.';
+		} finally {
+			screenshotsUploading = false;
+		}
 	}
 	function removeScreenshot(index: number) {
 		screenshots = screenshots.filter((_, i) => i !== index);
@@ -492,8 +542,8 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	}
 
 	async function handlePublish() {
-		if (logoUploading) {
-			mediaError = 'Wait for the logo upload to finish.';
+		if (logoUploading || screenshotsUploading) {
+			mediaError = 'Wait for the uploads to finish.';
 			activeTab = 'media';
 			return;
 		}
@@ -1021,9 +1071,10 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 									<button type="button" onclick={() => removeScreenshot(i)} class="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><CloseCircle size={14} weight="Outline" aria-hidden="true" /></button>
 								</div>
 							{/each}
-							<button type="button" onclick={addScreenshotUrl} class="grid h-[140px] w-[140px] shrink-0 place-items-center rounded-[12px] border border-dashed border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] transition-[background-color] hover:bg-[var(--pc-surface-2)]">
-								<span class="flex flex-col items-center gap-1"><Add size={18} weight="Outline" aria-hidden="true" /><span class="text-sm">Add</span></span>
+							<button type="button" onclick={triggerScreenshotPicker} disabled={screenshotsUploading} class="grid h-[140px] w-[140px] shrink-0 place-items-center rounded-[12px] border border-dashed border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] transition-[background-color] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">
+								<span class="flex flex-col items-center gap-1"><Add size={18} weight="Outline" aria-hidden="true" /><span class="text-sm">{screenshotsUploading ? 'Uploading…' : 'Add'}</span></span>
 							</button>
+							<input type="file" bind:this={screenshotInput} accept="image/*" multiple class="sr-only" onchange={handleScreenshotFiles} aria-label="Upload screenshots from your device" />
 						</div>
 						{#if mediaError}<p class="text-sm leading-[1.5] text-[#fca5a5]" role="alert">{mediaError}</p>{:else}<p class="text-sm leading-[1.5] text-[var(--pc-text-faint)]">Publish needs one image or a video.</p>{/if}
 					</div>

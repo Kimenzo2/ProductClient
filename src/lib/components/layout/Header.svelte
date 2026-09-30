@@ -5,7 +5,8 @@
 	import { feedHref } from '$lib/auth/urls';
 import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
 import ProductSwitcher from '$lib/components/layout/ProductSwitcher.svelte';
-import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
+import { hydrateSignalRegistry, signalRegistry, setNotificationCount } from '$lib/data/signalRegistry.svelte';
+import { loadNotifications } from '$lib/data/notifications';
 import { tooltip } from '$lib/components/Tooltip.svelte';
 
 	let {
@@ -26,6 +27,12 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	onMount(() => {
 		isDark = getTheme() === 'dark';
 		void hydrateSignalRegistry();
+		// Bell badge stays truthful without visiting /notifications — same
+		// lightweight probe the page uses, once per app load.
+		void loadNotifications().then(
+			({ items }) => setNotificationCount(items.filter((n) => !n.read).length),
+			() => {}
+		);
 	});
 </script>
 
@@ -61,7 +68,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		</div>
 
 		<div class="ms-auto flex items-center gap-3">
-			<a href={feedHref()} target="_blank" rel="noopener" aria-label="Open feed in a new tab" title="Open feed in a new tab" class="grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]">
+			<a href={feedHref()} target="_blank" rel="noopener" aria-label="Launch feed" use:tooltip={{ text: 'Launch feed', island: true }} class="grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]">
 				<ArrowUpRight size={18} weight="Outline" aria-hidden="true" />
 			</a>
 			<div class="hidden sm:block"><QuickCreate /></div>
@@ -93,7 +100,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 
 			<a href="/notifications" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} class="relative grid size-9 place-items-center rounded-full bg-transparent text-[var(--pc-text)] transition-[background-color,color,transform] duration-150 hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] active:scale-[0.96]">
 				<Bell size={18} weight="Outline" aria-hidden="true" />
-				{#if unreadCount > 0}<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[11px] font-medium leading-none tracking-[-0.01em] text-white">{unreadCount}</span>{/if}
+				{#if unreadCount > 0}<span class="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-[var(--pc-accent)] text-[11px] font-medium leading-none tracking-[-0.01em] text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>{/if}
 			</a>
 		</div>
 	</div>

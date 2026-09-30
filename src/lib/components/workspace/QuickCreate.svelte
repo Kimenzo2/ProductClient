@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertTriangle, ChatDots, FileText, Inbox, Map, Plus, Rocket, Heart } from 'reicon-svelte';
+	import { AlertTriangle, ChatDots, Inbox, Plus, Rocket } from 'reicon-svelte';
 	import NotePad from '$lib/components/notes/NotePad.svelte';
 
 	let {
@@ -16,18 +16,18 @@
 	let triggerEl = $state<HTMLButtonElement | undefined>(undefined);
 	let menuEl = $state<HTMLElement | undefined>(undefined);
 	let activeIndex = $state(0);
+	let typeaheadBuffer = $state('');
+	let typeaheadTimer: ReturnType<typeof setTimeout> | undefined;
 
-	type CreateItem = { label: string; description: string; icon: typeof Inbox; href?: string; notepad?: boolean };
+	type CreateItem = { label: string; icon: typeof Inbox; href?: string; notepad?: boolean };
 
+	// Maker controls, not visitor prompts: every item acts on the maker's own
+	// products — triage, publish, declare, record. Labels only, no descriptions.
 	const createItems: CreateItem[] = [
-		{ label: 'Post a note', description: 'A quick status on your product — live for 24 hours', icon: ChatDots, notepad: true },
-		{ label: 'Add feedback', description: 'Share a request, problem, question, or praise', href: '/feedback/new', icon: Inbox },
-		{ label: 'Describe a problem', description: 'Explain what is getting in the way', href: '/workspace/problems', icon: Map },
-		{ label: 'Choose what to do', description: 'Write down the choice and why you made it', href: '/workspace/decisions?create=decision', icon: Map },
-		{ label: 'Write a product update', description: 'Prepare a clear message about a change', href: '/submit', icon: Rocket },
-		{ label: 'Write help content', description: 'Explain how a product works', href: '/workspace/docs/editor', icon: FileText },
-		{ label: 'Report a service problem', description: 'Tell the team what is wrong and who is affected', href: '/workspace/incidents/new', icon: AlertTriangle },
-		{ label: 'Add a customer quote', description: 'Save a review or story that you can share', href: '/workspace/proof', icon: Heart }
+		{ label: 'Post a note', icon: ChatDots, notepad: true },
+		{ label: 'Review inbox', href: '/workspace/inbox', icon: Inbox },
+		{ label: 'Publish update', href: '/workspace/releases', icon: Rocket },
+		{ label: 'Declare incident', href: '/workspace/incidents/new', icon: AlertTriangle }
 	];
 
 	function toggle() {
@@ -45,6 +45,8 @@
 
 	function close() {
 		open = false;
+		clearTimeout(typeaheadTimer);
+		typeaheadBuffer = '';
 		triggerEl?.focus();
 	}
 
@@ -65,7 +67,37 @@
 		}
 	}
 
+	// APG menu typeahead — first-character (and fast multi-char) navigation,
+	// cycling forward from the current item with wrap-around
+	function handleTypeahead(key: string) {
+		const char = key.toLowerCase();
+		clearTimeout(typeaheadTimer);
+		typeaheadTimer = setTimeout(() => (typeaheadBuffer = ''), 500);
+		const labels = createItems.map((item) => item.label.toLowerCase());
+		const start = (activeIndex + 1) % labels.length;
+		const findFrom = (prefix: string): number => {
+			const ordered = [...labels.slice(start), ...labels.slice(0, start)];
+			const found = ordered.findIndex((label) => label.startsWith(prefix));
+			return found === -1 ? -1 : (start + found) % labels.length;
+		};
+		const hit = findFrom(typeaheadBuffer + char);
+		if (hit !== -1) {
+			typeaheadBuffer += char;
+			focusItem(hit);
+		} else {
+			// Multi-char buffer missed — retry as a fresh single character
+			const single = findFrom(char);
+			typeaheadBuffer = single === -1 ? '' : char;
+			if (single !== -1) focusItem(single);
+		}
+	}
+
 	function handleMenuKeydown(event: KeyboardEvent) {
+		if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+			event.preventDefault();
+			handleTypeahead(event.key);
+			return;
+		}
 		switch (event.key) {
 			case 'ArrowDown':
 				event.preventDefault();
@@ -130,16 +162,14 @@
 			id="quickcreate-menu"
 			role="menu"
 			tabindex="-1"
-			aria-label="Create new"
-			class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(360px,calc(100vw-24px))] origin-top-right rounded-[20px] bg-[var(--pc-bg)] border border-[var(--pc-border-strong)] p-2"
-			style="overscroll-behavior: contain;"
+			aria-labelledby="qc-title"
+			class="absolute right-0 top-[calc(100%+10px)] z-50 w-[min(280px,calc(100vw-24px))] rounded-[16px] bg-[var(--pc-bg)] border border-[var(--pc-border-strong)] p-1.5"
 			onkeydown={handleMenuKeydown}
 		>
-			<div class="px-3 pb-2 pt-2">
-				<p id="qc-title" class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)] antialiased">What do you want to add?</p>
-				<p class="mt-1 text-xs leading-[1.5] tracking-[-0.01em] text-[var(--pc-text-muted)] max-w-[32ch] text-pretty">Start with feedback, a question, an update, or a customer quote.</p>
+			<div class="px-3 pb-1.5 pt-2">
+				<p id="qc-title" class="text-[13px] font-normal leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)] antialiased">What are you working on?</p>
 			</div>
-			<div class="mt-1 space-y-1" aria-labelledby="qc-title">
+			<div class="mt-1 space-y-1">
 				{#each createItems as item, i (item.label)}
 					{@const Icon = item.icon}
 					{#if item.notepad}
@@ -147,35 +177,27 @@
 							type="button"
 							role="menuitem"
 							tabindex={i === activeIndex ? 0 : -1}
-							aria-describedby="qc-desc-{i}"
 							onclick={() => {
 								open = false;
 								noteOpen = true;
 							}}
 							onmouseenter={() => (activeIndex = i)}
-							class="flex w-full items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
+							class="flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[44px]"
 						>
-							<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
-							<span class="min-w-0 flex-1 text-left">
-								<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
-								<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
-							</span>
+							<span class="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={14} weight="Outline" aria-hidden="true" /></span>
+							<span class="min-w-0 flex-1 truncate text-left text-[13px] font-normal leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
 						</button>
 					{:else}
 						<a
 							href={item.href}
 							role="menuitem"
 							tabindex={i === activeIndex ? 0 : -1}
-							aria-describedby="qc-desc-{i}"
 							onclick={() => (open = false)}
 							onmouseenter={() => (activeIndex = i)}
-							class="flex items-start gap-3 rounded-[12px] px-2.5 py-2.5 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[56px]"
+							class="flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 transition-[background-color] duration-100 hover:bg-[var(--pc-surface)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)] focus-visible:bg-[var(--pc-surface)] min-h-[44px]"
 						>
-							<span class="grid size-8 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={15} weight="Outline" aria-hidden="true" /></span>
-							<span class="min-w-0 flex-1 text-left">
-								<span class="block text-[13px] font-medium leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
-								<span id="qc-desc-{i}" class="mt-0.5 block text-xs leading-[1.4] tracking-[-0.01em] text-[var(--pc-text-muted)] line-clamp-1">{item.description}</span>
-							</span>
+							<span class="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] ring-1 ring-[var(--pc-border-strong)]" aria-hidden="true"><Icon size={14} weight="Outline" aria-hidden="true" /></span>
+							<span class="min-w-0 flex-1 truncate text-left text-[13px] font-normal leading-[1.3] tracking-[-0.01em] text-[var(--pc-text)]">{item.label}</span>
 						</a>
 					{/if}
 				{/each}
@@ -185,13 +207,3 @@
 </div>
 
 <NotePad bind:open={noteOpen} />
-
-<style>
-	.line-clamp-1 {
-		display: -webkit-box;
-		-webkit-line-clamp: 1;
-		line-clamp: 1;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-</style>

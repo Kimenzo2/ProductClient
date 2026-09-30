@@ -113,12 +113,13 @@
         }
       }
 
-      // Clamp to viewport (reflow at 320px / 200% zoom)
+      // Clamp to viewport (reflow at 320px / 200% zoom), then convert to
+      // document coords: the container is body-absolute, rects are viewport.
       x = Math.max(BORDER, Math.min(ww - ow - BORDER, x));
       y = Math.max(BORDER, Math.min(wh - oh - BORDER, y));
 
-      node.style.left = `${x}px`;
-      node.style.top  = `${y}px`;
+      node.style.left = `${x + (window.scrollX || 0)}px`;
+      node.style.top  = `${y + (window.scrollY || 0)}px`;
 
       // Trigger animation on next frame (matches Anytype's show class timing)
       // Respect prefers-reduced-motion: CSS handles it, just add show

@@ -247,7 +247,8 @@
 	.state { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; color: var(--pc-status-outage); background: color-mix(in oklch, var(--pc-status-outage) 14%, transparent); }
 	.state.monitoring { color: var(--pc-status-degraded); background: color-mix(in oklch, var(--pc-status-degraded) 14%, transparent); }
 	.state.resolved { color: var(--pc-status-operational); background: color-mix(in oklch, var(--pc-status-operational) 14%, transparent); }
-	h1 { max-width: 24ch; margin: 14px 0 0; font-size: clamp(30px, 5vw, 48px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
+	h1 { max-width: 24ch; margin: 14px 0 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	.detail-lede { max-width: 68ch; margin: 14px 0 0; color: var(--pc-text-muted); font-size: 15px; line-height: 1.65; }
 	.detail-context { margin: 12px 0 0; color: var(--pc-text-faint); font-size: 12px; }
 	.command-room { padding: 28px 0 30px; border-bottom: 1px solid var(--pc-border-strong); }

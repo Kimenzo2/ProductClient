@@ -1,60 +1,53 @@
 <script lang="ts">
-	import { Verified, Bell, ArrowUp, Rocket, MessageDots, AlertTriangle, CheckCircle } from 'reicon-svelte';
+	import { onMount } from 'svelte';
+	import { Bell, Rocket, AlertTriangle } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
 	import { Avatar, Button, StatePanel } from '$lib/components/ui';
-	import { mockStates } from '$lib/data/mockStates';
+	import { loadNotifications, markNotificationsRead, type LiveNotification } from '$lib/data/notifications';
+	import { setNotificationCount } from '$lib/data/signalRegistry.svelte';
 
-	// Product identity comes from the shared mock data — never duplicate names or avatars here.
-	const productBySlug = new Map(mockStates.map((s) => [s.product.slug, s.product]));
-	function productName(slug: string): string {
-		return productBySlug.get(slug)?.name ?? slug;
-	}
-	function productAvatar(slug: string): string {
-		return productBySlug.get(slug)?.avatar ?? '';
-	}
-
-	type Notification = {
-		id: string;
-		type: 'upvote' | 'launch' | 'comment' | 'incident' | 'milestone';
-		productSlug: string;
-		message: string;
-		time: string;
-		read: boolean;
-	};
-
-	let notifications: Notification[] = $state([
-		{ id: '1', type: 'launch', productSlug: 'bento', message: 'Bento 0.4 launched — voice commands, quick switching, better answers', time: '2 hours ago', read: false },
-		{ id: '2', type: 'upvote', productSlug: 'tetra', message: 'Your upvote pushed Tetra to #4 on the weekly leaderboard', time: '5 hours ago', read: false },
-		{ id: '3', type: 'milestone', productSlug: 'mossbit', message: 'Mossbit crossed 1,000 reads this month — you were one of the first followers', time: '1 day ago', read: false },
-		{ id: '4', type: 'incident', productSlug: 'mossbit', message: 'Requests latency incident — resolved', time: '1 day ago', read: true },
-		{ id: '5', type: 'comment', productSlug: 'quillpost', message: 'New comment on Quillpost launch announcement', time: '2 days ago', read: true },
-		{ id: '6', type: 'launch', productSlug: 'inkwell', message: 'Inkwell shipped background exports — now available in beta', time: '3 days ago', read: true },
-		{ id: '7', type: 'upvote', productSlug: 'hearth', message: 'Hearth moved up 3 spots — your follows are ranking it', time: '3 days ago', read: true },
-		{ id: '8', type: 'milestone', productSlug: 'signalfox', message: 'Signalfox passed 100 followers on Product Client', time: '4 days ago', read: true },
-	]);
-
-	const typeIcon: Record<string, typeof Rocket> = {
+	const typeIcon: Record<LiveNotification['type'], typeof Rocket> = {
 		launch: Rocket,
-		upvote: ArrowUp,
-		comment: MessageDots,
-		incident: AlertTriangle,
-		milestone: CheckCircle
+		incident: AlertTriangle
 	};
 
-	const typeColor: Record<string, string> = {
+	const typeColor: Record<LiveNotification['type'], string> = {
 		launch: 'var(--color-blue-600)',
-		upvote: 'var(--pc-accent)',
-		comment: 'var(--pc-text-muted)',
-		incident: 'var(--yellow-7)',
-		milestone: 'var(--pc-accent)'
+		incident: 'var(--yellow-7)'
 	};
+
+	let notifications: LiveNotification[] = $state([]);
+	let loading = $state(true);
+	let loadError = $state<string | null>(null);
+
+	function syncBadge() {
+		setNotificationCount(notifications.filter((n) => !n.read).length);
+	}
+
+	async function refresh() {
+		loading = true;
+		loadError = null;
+		const { items, error } = await loadNotifications();
+		notifications = items;
+		loadError = error;
+		loading = false;
+		syncBadge();
+	}
+
+	onMount(() => {
+		void refresh();
+	});
 
 	let filter = $state<'all' | 'unread'>('all');
 	let unreadCount = $derived(notifications.filter((n) => !n.read).length);
 	let filtered = $derived(filter === 'unread' ? notifications.filter((n) => !n.read) : notifications);
 
 	function markAllRead() {
-		notifications = notifications.map((n) => ({ ...n, read: true }));
+		void (async () => {
+			await markNotificationsRead(notifications.map((n) => n.id));
+			notifications = notifications.map((n) => ({ ...n, read: true }));
+			syncBadge();
+		})();
 	}
 </script>
 
@@ -89,7 +82,24 @@
 	</Tabs.Root>
 
 	<!-- List — flat, opaque, no opacity wash, 60ch, concentric -->
-	{#if filtered.length > 0}
+	{#if loading}
+		<ul class="space-y-3 list-none p-0 m-0" aria-label="Loading notifications">
+			{#each [0, 1, 2] as i (i)}
+				<li aria-hidden="true">
+					<div class="flex items-start gap-3 p-3 rounded-[20px] bg-[var(--pc-surface-2)]">
+						<div class="shrink-0 grid size-9 place-items-center rounded-full bg-[var(--pc-surface)] ring-1 ring-[var(--pc-border-strong)] mt-0.5"></div>
+						<div class="min-w-0 flex-1 space-y-2 py-1">
+							<div class="h-3 w-2/5 rounded-full bg-[var(--pc-surface)]"></div>
+							<div class="h-3.5 w-11/12 rounded-full bg-[var(--pc-surface)]"></div>
+							<div class="h-2.5 w-1/4 rounded-full bg-[var(--pc-surface)]"></div>
+						</div>
+					</div>
+				</li>
+			{/each}
+		</ul>
+	{:else if loadError}
+		<StatePanel icon={Bell} title="Couldn't load notifications" description={loadError} actionLabel="Retry" onAction={() => void refresh()} class="pc-enter" />
+	{:else if filtered.length > 0}
 		<ul class="space-y-3 pc-enter-stagger list-none p-0 m-0" role="list" aria-label="Notifications">
 			{#each filtered as n (n.id)}
 				{@const Icon = typeIcon[n.type]}
@@ -106,8 +116,8 @@
 						<!-- Content — no opacity, 14/15 body, tabular -->
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<Avatar src={productAvatar(n.productSlug)} alt={productName(n.productSlug)} size="xs" shape="square" class="!ring-0 ring-0 border-0" />
-								<span class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] truncate">{productName(n.productSlug)}</span>
+								<Avatar src={n.productAvatar} alt={n.productName} size="xs" shape="square" class="!ring-0 ring-0 border-0" />
+								<span class="text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] truncate">{n.productName}</span>
 								{#if !n.read}
 									<span class="size-1.5 rounded-full bg-[var(--pc-accent)] shrink-0" aria-hidden="true"></span>
 									<span class="sr-only">Unread</span>
@@ -120,8 +130,10 @@
 				</li>
 			{/each}
 		</ul>
-	{:else}
-		<StatePanel icon={Bell} title="You're all caught up" description="New activity from products you follow will appear here." class="pc-enter" />
+	{:else if !loading && filter === 'unread' && notifications.length > 0}
+		<StatePanel icon={Bell} title="You're all caught up" description="Everything here is read. New activity will light the bell again." class="pc-enter" />
+	{:else if !loading}
+		<StatePanel icon={Bell} title="No activity yet" description="Follow a product and its launches and status updates will appear here." class="pc-enter" />
 	{/if}
 </div>
 

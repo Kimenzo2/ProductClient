@@ -217,7 +217,8 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	.back-nav a:focus-visible, .form-actions a:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-top: 28px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
 	h1, h2, p { margin-top: 0; }
-	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
+	h1 { margin-bottom: 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	h2 { margin-bottom: 0; font-size: 21px; font-weight: 500; letter-spacing: -.04em; }
 	.incident-form { display: grid; gap: 0; }
 	.form-section { padding: 30px 0; border-bottom: 1px solid var(--pc-border-strong); }

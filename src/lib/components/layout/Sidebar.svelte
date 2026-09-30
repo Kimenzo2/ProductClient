@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { AlertTriangle, Box, BranchDown, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, Headset, History, Inbox, MessageDots, QuoteUpSquare, Roadmap, Settings } from 'reicon-svelte';
+	import { AlertTriangle, Box, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, Headset, History, Inbox, MessageDots, Roadmap, Settings } from 'reicon-svelte';
 	import { Collapsible } from 'bits-ui';
 	import { Avatar, Button, Separator } from '$lib/components/ui';
 	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
@@ -36,14 +36,12 @@ import { supabase } from '$lib/supabaseClient';
 				{ label: 'Inbox', href: '/workspace/inbox', icon: Inbox, signalKey: 'inbox' as SignalKey },
 				{ label: 'Feedback', href: '/workspace/feedback', icon: MessageDots },
 				{ label: 'Agent', href: '/workspace/agent', icon: Headset },
-				{ label: 'Docs', href: '/workspace/docs', icon: FileText },
-				{ label: 'Proof', href: '/workspace/proof', icon: QuoteUpSquare }
+				{ label: 'Docs', href: '/workspace/docs', icon: FileText }
 			]
 		},
 		{
 			label: 'Decide',
 			items: [
-				{ label: 'Product Decisions', href: '/workspace/decisions', icon: BranchDown },
 				{ label: 'Roadmap', href: '/workspace/roadmap', icon: Roadmap }
 			]
 		},

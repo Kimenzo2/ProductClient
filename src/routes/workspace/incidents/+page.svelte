@@ -91,7 +91,8 @@ let baseQueue = $derived(isPreview ? incidentRecordsForWorkspace() : []);
 	.declare-btn:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 3px; }
 
 	h1, h2 { margin: 0; letter-spacing: -.04em; font-weight: 500; }
-	h1 { font-size: clamp(30px, 4vw, 44px); }
+	h1 { font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	h2 { font-size: 20px; }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.65; }
 	.incident-context, .incident-meta small { color: var(--pc-text-muted); font-size: 12px; }

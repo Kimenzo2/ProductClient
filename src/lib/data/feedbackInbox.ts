@@ -260,14 +260,25 @@ export type IncidentRowView = {
 	severity: string;
 	owner: string;
 	startedAt: string;
+	startedAtIso: string;
 	resolvedAt: string | null;
 };
 
 export async function loadInboxIncidents(): Promise<{ rows: IncidentRowView[]; error: string | null }> {
 	if (!supabase) return { rows: [], error: 'Service is temporarily unavailable' };
+	// Belt and suspenders beyond RLS: resolve the caller's own tenants first and
+	// scope the read explicitly. Any failure here resolves to NO rows, never to
+	// an unscoped read — a cross-tenant incident must be unable to render.
+	const { data: memberships, error: membershipError } = await supabase
+		.from('tenant_members')
+		.select('tenant_id');
+	if (membershipError || !memberships) return { rows: [], error: null };
+	const tenantIds = [...new Set((memberships as Array<{ tenant_id: string }>).map((m) => m.tenant_id).filter(Boolean))];
+	if (tenantIds.length === 0) return { rows: [], error: null };
 	const { data, error } = await supabase
 		.from('incidents')
 		.select('id, title, summary, status, severity, lead_name, started_at, resolved_at')
+		.in('tenant_id', tenantIds)
 		.order('started_at', { ascending: false })
 		.limit(50);
 	if (error) return { rows: [], error: error.message };
@@ -279,6 +290,7 @@ export async function loadInboxIncidents(): Promise<{ rows: IncidentRowView[]; e
 		severity: row.severity as string,
 		owner: (row.lead_name as string) || 'Unassigned',
 		startedAt: timeAgo(row.started_at as string),
+		startedAtIso: (row.started_at as string) ?? '',
 		resolvedAt: (row.resolved_at as string | null) ?? null
 	}));
 	return { rows, error: null };

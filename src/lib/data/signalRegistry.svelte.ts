@@ -15,7 +15,12 @@ export type SignalKey = 'inbox' | 'incidents' | 'postIncidentFlow' | 'followUps'
 // Keep each rune at the module top level. Svelte does not allow a rune call
 // nested inside an object literal initializer.
 const inboxCount = $derived(0);
-const notificationCount = $derived(0);
+let notificationCount = $state(0);
+
+/** Live unread badge for the header bell — set by the notifications page. */
+export function setNotificationCount(count: number): void {
+	notificationCount = Math.max(0, Math.floor(count));
+}
 const incidentCount = $derived.by(() =>
 	statusEditorPreview.loadState === 'ready'
 		? incidentRecordsForWorkspace().filter((incident) => incident.status !== 'Resolved').length

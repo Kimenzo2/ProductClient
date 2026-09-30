@@ -192,7 +192,8 @@
 	.back-link:hover { color: var(--pc-text); }
 	
 	h1, h2 { margin: 0; font-weight: 500; letter-spacing: -.045em; }
-	h1 { font-size: clamp(30px, 5vw, 46px); }
+	h1 { font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	h2 { font-size: 21px; }
 	.declare-form, .review { padding-top: 28px; }
 	.mode-switcher { display: flex; gap: 4px; padding-bottom: 18px; border-bottom: 1px solid var(--pc-border-strong); }

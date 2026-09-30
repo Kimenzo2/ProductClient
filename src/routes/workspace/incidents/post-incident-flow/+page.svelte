@@ -292,7 +292,8 @@ let filter = $state<FlowFilter>('All flows');
 	.flow-page { width: min(100% - 32px, 1160px); margin: 0 auto; padding: 44px 0 72px; }
 	.page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 30px; border-bottom: 1px solid var(--pc-border-strong); }
 	h1, h2, h3, p { margin-top: 0; }
-	h1 { margin-bottom: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 500; letter-spacing: -.05em; line-height: 1.05; }
+	h1 { margin-bottom: 0; font-size: 19px; font-weight: 600; letter-spacing: -.015em; line-height: 1.2; }
+	@media (min-width: 768px) { h1 { font-size: 21px; } }
 	.lede { max-width: 62ch; margin: 12px 0 0; color: var(--pc-text-muted); font-size: 14px; line-height: 1.6; }
 	.flow-summary { display: flex; align-items: center; gap: 16px; color: var(--pc-text-muted); font-size: 12px; white-space: nowrap; }
 	.flow-summary span + span { padding-inline-start: 16px; border-inline-start: 1px solid var(--pc-border-strong); }

@@ -4,9 +4,7 @@ import { incidentsPanel } from './panels/incidents';
 import { feedbackPanel } from './panels/feedback';
 import { productsPanel } from './panels/products';
 import { releasesPanel } from './panels/releases';
-import { decisionsPanel } from './panels/decisions';
 import { roadmapPanel } from './panels/roadmap';
-import { proofPanel } from './panels/proof';
 import { inboxPanel } from './panels/inbox';
 import { agentPanel } from './panels/agent';
 import { analyticsPanel } from './panels/analytics';
@@ -20,9 +18,7 @@ export const panelRegistry: Record<string, PanelDef> = {
 	'/workspace/feedback': feedbackPanel,
 	'/workspace/products': productsPanel,
 	'/workspace/releases': releasesPanel,
-	'/workspace/decisions': decisionsPanel,
 	'/workspace/roadmap': roadmapPanel,
-	'/workspace/proof': proofPanel,
 	'/workspace/inbox': inboxPanel,
 	'/workspace/agent': agentPanel,
 	'/workspace/analytics': analyticsPanel
