@@ -23,6 +23,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	let editKeepsLive = $derived(editMode && !editRowDraft);
 	let editLoading = $state(false);
 	let editLoadFailed = $state(false);
+	let formHydrated = $state(false);
 	let savedHint = $state('');
 	let saving = $state(false);
 	let publishing = $state(false);
@@ -121,6 +122,23 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		{ question: '', answer: '' }
 	]);
 
+	function faqText(value: unknown): string {
+		return typeof value === 'string' ? value : '';
+	}
+
+	function normalizeFaqs(value: unknown): Array<{ question: string; answer: string }> {
+		if (!Array.isArray(value)) return [];
+		return value.map((entry) => {
+			if (typeof entry === 'string') return { question: entry, answer: '' };
+			if (!entry || typeof entry !== 'object') return { question: '', answer: '' };
+			const faq = entry as Record<string, unknown>;
+			return {
+				question: faqText(faq.question ?? faq.q ?? faq.title),
+				answer: faqText(faq.answer ?? faq.a ?? faq.body)
+			};
+		});
+	}
+
 	let taglineCount = $derived(`${tagline.length}/60`);
 	let slugTouched = $state(false);
 
@@ -199,6 +217,10 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		const normalized = normalizeSlug(slug);
 		if (normalized !== slug) slug = normalized;
 		if (!slug) return;
+		if (slug.length < 3) {
+			slugError = 'Use at least three letters or numbers.';
+			return;
+		}
 		if (!supabase) return;
 		const { data: session } = await supabase.auth.getSession();
 		if (!session.session) return;
@@ -223,7 +245,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	}
 	function handleNameInput(value: string) {
 		name = value;
-		if (!slugTouched && !slug) slug = normalizeSlug(value);
+		if (!slugTouched) slug = normalizeSlug(value);
 	}
 	function toggleCategory(cat: string) {
 		if (categories.includes(cat)) categories = categories.filter((c) => c !== cat);
@@ -366,7 +388,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		pricingSummary.trim().length > 0 ||
 		pricingPlans.some((p) => p.name.trim() || p.price.trim() || p.detail.trim()) ||
 		platforms.length > 0 ||
-		faqs.some((f) => f.question.trim() || f.answer.trim())
+		faqs.some((f) => faqText(f?.question).trim() || faqText(f?.answer).trim())
 	);
 
 	// Local-first draft — keystrokes persist to localStorage only. The database is
@@ -384,10 +406,15 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	}
 	function persistLocalDraft() {
 		try {
-			if (!isDirty) return;
+			if (!formHydrated || !isDbDirty || !isDirty) return;
 			localStorage.setItem(
 				localDraftKey,
-				JSON.stringify({ version: LOCAL_DRAFT_VERSION, savedAt: Date.now(), fields: formSnapshot() })
+				JSON.stringify({
+					version: LOCAL_DRAFT_VERSION,
+					savedAt: Date.now(),
+					productId: editMode ? draftId : null,
+					fields: formSnapshot()
+				})
 			);
 		} catch { /* private mode / quota — pad still works in memory */ }
 	}
@@ -410,7 +437,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		if (typeof d.pricingSummary === 'string') pricingSummary = d.pricingSummary;
 		if (Array.isArray(d.pricingPlans) && d.pricingPlans.length) pricingPlans = d.pricingPlans;
 		if (Array.isArray(d.platforms)) platforms = d.platforms;
-		if (Array.isArray(d.faqs) && d.faqs.length) faqs = d.faqs;
+		if (Array.isArray(d.faqs) && d.faqs.length) faqs = normalizeFaqs(d.faqs);
 		// Only claim "address touched" when an address was actually restored —
 		// otherwise a restored-then-renamed product loses slug auto-suggest
 		if (slug) slugTouched = true;
@@ -425,13 +452,21 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			// Versioned envelope — drop stale or foreign-schema drafts silently
 			if (parsed.fields && typeof parsed.fields === 'object') {
 				if (parsed.version !== LOCAL_DRAFT_VERSION) { clearLocalDraft(); return false; }
+				// An edit snapshot must be tied to the exact database row. Older or
+				// foreign snapshots must never replace the loaded product form.
+				if (editMode && parsed.productId !== draftId) { clearLocalDraft(); return false; }
 				if (typeof parsed.savedAt !== 'number' || Date.now() - parsed.savedAt > LOCAL_DRAFT_TTL_MS) {
+					clearLocalDraft();
+					return false;
+				}
+				if (editMode && (typeof parsed.fields.name !== 'string' || !parsed.fields.name.trim() || typeof parsed.fields.slug !== 'string' || !parsed.fields.slug.trim())) {
 					clearLocalDraft();
 					return false;
 				}
 				return applyLocalFields(parsed.fields);
 			}
 			// Legacy flat shape (pre-envelope) — restore once, re-persist enveloped
+			if (editMode) { clearLocalDraft(); return false; }
 			if ('name' in parsed || 'website' in parsed) return applyLocalFields(parsed);
 			return false;
 		} catch { return false; }
@@ -446,13 +481,32 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	let localPersistTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
 		void currentFingerprint;
-		if (!isDirty) return;
+		if (!formHydrated || !isDbDirty || !isDirty) return;
 		clearTimeout(localPersistTimer);
 		localPersistTimer = setTimeout(persistLocalDraft, 800);
 		return () => clearTimeout(localPersistTimer);
 	});
 
 	async function saveDraft(showHint = true) {
+		if (editMode && (!formHydrated || editLoading || editLoadFailed || !draftId)) {
+			if (showHint) mediaError = 'This product is not ready to save yet. Reload it before trying again.';
+			return false;
+		}
+		if (editMode && (!name.trim() || !slug.trim())) {
+			if (showHint) mediaError = 'Keep the product name and address filled in before saving changes.';
+			return false;
+		}
+		if (!name.trim()) {
+			if (showHint) mediaError = 'Add a product name before saving.';
+			return false;
+		}
+		if ((slugTouched && !slug.trim()) || (slug.trim() && normalizeSlug(slug).length < 3)) {
+			if (showHint) {
+				mediaError = 'Use a product address with at least three letters or numbers.';
+				slugError = mediaError;
+			}
+			return false;
+		}
 		if (!supabase) {
 			if (showHint) mediaError = 'Service unavailable — try again.';
 			return false;
@@ -468,11 +522,15 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		saving = true;
 		if (showHint) mediaError = '';
 		try {
-			const finalSlug = slug || normalizeSlug(name) || `product-${Math.random().toString(36).slice(2, 6)}`;
+			const finalSlug = slug || normalizeSlug(name);
+			if (finalSlug.length < 3) {
+				if (showHint) mediaError = 'Add a product address with at least three letters or numbers.';
+				return false;
+			}
 			if (!slug) slug = finalSlug;
 			const fullPayload: any = {
 				id: draftId,
-				name: name || 'Untitled product',
+				name: name.trim() || 'Untitled product',
 				slug: finalSlug,
 				tagline: tagline || null,
 				description: description || null,
@@ -497,7 +555,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				pricing_summary: pricingSummary.trim() || null,
 				pricing_plans: pricingPlans.filter((p) => p.name.trim() || p.price.trim() || p.detail.trim()),
 				platforms,
-				faqs: faqs.filter((f) => f.question.trim() || f.answer.trim())
+				faqs: normalizeFaqs(faqs).filter((f) => f.question.trim() || f.answer.trim())
 			};
 			const { data: rpcData, error: rpcErr } = await supabase.rpc('upsert_product_pad', { p_payload: fullPayload });
 			if (rpcErr) throw rpcErr;
@@ -530,6 +588,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		mediaError = ''; nameError = ''; taglineError = '';
 		if (!name.trim()) { nameError = 'Add a product name.'; activeTab = 'product'; return nameError; }
 		if (!slug.trim()) { slugError = 'Add a product address.'; activeTab = 'product'; return slugError; }
+		if (normalizeSlug(slug).length < 3) { slugError = 'Use at least three letters or numbers.'; activeTab = 'product'; return slugError; }
 		if (slugError) { activeTab = 'product'; return slugError; }
 		if (!tagline.trim()) { taglineError = 'Add a tagline.'; activeTab = 'product'; return taglineError; }
 		if (tagline.length > 60) { taglineError = 'Tagline is a bit long — keep it under 60.'; activeTab = 'product'; return taglineError; }
@@ -599,7 +658,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 				pricing_summary: pricingSummary.trim() || null,
 				pricing_plans: pricingPlans.filter((p) => p.name.trim() || p.price.trim() || p.detail.trim()),
 				platforms,
-				faqs: faqs.filter((f) => f.question.trim() || f.answer.trim())
+				faqs: normalizeFaqs(faqs).filter((f) => f.question.trim() || f.answer.trim())
 			};
 			const { data: publishedData, error: pubError } = await supabase.rpc('upsert_product_pad', { p_payload: publishPayload });
 			if (pubError) throw pubError;
@@ -703,7 +762,10 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		// hydrate draft if ?id= in query (editing)
 		const id = page.url.searchParams.get('id');
 		if (id) localDraftKey = `${LOCAL_DRAFT_KEY}:${id}`;
-		else if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
+		else {
+			if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
+			formHydrated = true;
+		}
 		const onBeforeUnload = (e: BeforeUnloadEvent) => {
 			if (JSON.stringify(formSnapshot()) !== savedFingerprint) e.preventDefault();
 		};
@@ -714,9 +776,13 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			editLoading = true;
 			void (async () => {
 				try {
-					if (!supabase) return;
-					const { data } = await supabase.from('products').select('*').eq('id', id).maybeSingle();
-					if (!data) {
+					if (!supabase) {
+						editLoadFailed = true;
+						mediaError = 'Service unavailable — this product was not loaded.';
+						return;
+					}
+					const { data, error } = await supabase.from('products').select('*').eq('id', id).maybeSingle();
+					if (error || !data) {
 						editLoadFailed = true;
 						mediaError = 'Could not load this product — it may have been deleted.';
 						return;
@@ -747,9 +813,9 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					if (Array.isArray(row.audience_for) && row.audience_for.length) audienceFor = row.audience_for as string[];
 					if (Array.isArray(row.how_it_works) && row.how_it_works.length) howItWorks = row.how_it_works as string[];
 					if (typeof row.pricing_summary === 'string') pricingSummary = row.pricing_summary ?? '';
-					if (Array.isArray(row.pricing_plans) && row.pricing_plans.length) pricingPlans = row.pricing_plans as any[];
+					if (Array.isArray(row.pricing_plans)) pricingPlans = row.pricing_plans as any[];
 					if (Array.isArray(row.platforms)) platforms = row.platforms as string[];
-					if (Array.isArray(row.faqs) && row.faqs.length) faqs = row.faqs as any[];
+					if (Array.isArray(row.faqs) && row.faqs.length) faqs = normalizeFaqs(row.faqs);
 					slugTouched = true;
 					entrySlug = slug;
 					// DB state is the baseline — a same-draft local snapshot overlaid
@@ -758,6 +824,11 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					// A same-draft local snapshot (tab closed mid-edit) is strictly
 					// newer than the last DB save — saves always clear it
 					if (restoreLocalDraft()) savedHint = 'Unsaved draft restored';
+					formHydrated = true;
+				} catch (error) {
+					editLoadFailed = true;
+					mediaError = 'Could not load this product. Reload before editing.';
+					console.warn('[pad] edit load', error);
 				} finally {
 					editLoading = false;
 				}
@@ -822,7 +893,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 							<label for="pad-slug" class="block text-sm font-medium text-[var(--pc-text-muted)]">Address</label>
 							<div class="flex items-center gap-1 rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-0 transition-[background-color] focus-within:bg-[var(--pc-surface-2)]">
 								<span class="shrink-0 text-sm text-[var(--pc-text-faint)]">productclient.com/</span>
-								<input id="pad-slug" bind:value={slug} onfocus={() => (slugTouched = true)} onblur={checkSlugBlur} placeholder="bento" class="min-w-0 flex-1 cursor-text bg-transparent py-3 text-base text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none" />
+								<input id="pad-slug" bind:value={slug} oninput={() => (slugTouched = true)} onblur={checkSlugBlur} placeholder="bento" class="min-w-0 flex-1 cursor-text bg-transparent py-3 text-base text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none" />
 							</div>
 							{#if slugError}<p class="text-sm text-[#fca5a5]">{slugError}</p>{/if}
 						</div>
@@ -879,6 +950,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					<div class="space-y-3">
 						<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing summary</p>
 						<input bind:value={pricingSummary} placeholder="Free plan · Pro from $12/mo" class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-3 text-sm text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]" />
+						<p class="text-xs leading-relaxed text-[var(--pc-text-faint)]">This also appears as the compact offer banner on your Feed card. Short copy works best.</p>
 					</div>
 
 					<div class="space-y-3">

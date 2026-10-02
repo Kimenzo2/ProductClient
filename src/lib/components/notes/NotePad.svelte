@@ -4,9 +4,10 @@
 	import { cubicOut } from 'svelte/easing';
 	import { supabase } from '$lib/supabaseClient';
 	import { activeProductStore } from '$lib/stores/activeProduct.svelte.js';
+	import { Select } from '$lib/components/ui';
 
 	// P-Landing owns notes. The dashboard is a thin client: GET renders the
-	// current note + taps, POST supersedes, DELETE ends now. Auth = the maker's
+	// current note + taps, POST supersedes, PATCH extends, DELETE ends now. Auth = the maker's
 	// Supabase JWT; CORS allow-list covers localhost:3000 + the app origin.
 	interface NoteRow {
 		id: string;
@@ -42,6 +43,12 @@
 		{ value: 'scarcity', label: 'Limited', fill: '#3c2b28', ink: '#ffd9cf' },
 		{ value: 'milestone', label: 'Milestone', fill: '#2c3524', ink: '#e2f4c2' }
 	] as const;
+	const EXPIRY_OPTIONS = [
+		{ value: '1', label: '1 hour' },
+		{ value: '24', label: '24 hours' },
+		{ value: '168', label: '7 days' },
+		{ value: 'custom', label: 'Choose an end time' }
+	];
 
 	const MAX_TEXT = 80;
 	const MAX_META = 40;
@@ -50,11 +57,14 @@
 	let kind = $state<string>('human');
 	let meta = $state('');
 	let href = $state('');
+	let expiryChoice = $state<'1' | '24' | '168' | 'custom'>('24');
+	let customExpiry = $state('');
 
 	let current = $state<NoteRow | null>(null);
 	let taps = $state(0);
 	let loading = $state(false);
 	let saving = $state(false);
+	let extending = $state(false);
 	let ending = $state(false);
 	let error = $state<string | null>(null);
 	let savedHint = $state(false);
@@ -67,7 +77,11 @@
 	const currentTone = $derived(KINDS.find((k) => k.value === current?.kind) ?? KINDS[0]);
 	const textLeft = $derived(MAX_TEXT - text.trim().length);
 	const metaLeft = $derived(MAX_META - meta.trim().length);
-	const canSave = $derived(text.trim().length > 0 && textLeft >= 0 && metaLeft >= 0 && !saving && !isMock);
+	const MAX_NOTE_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+	const canExtend = $derived(
+		!!current && live && new Date(current.expires_at).getTime() + 24 * 60 * 60 * 1000 <= new Date(current.created_at).getTime() + MAX_NOTE_LIFETIME_MS
+	);
+	const canSave = $derived(text.trim().length > 0 && textLeft >= 0 && metaLeft >= 0 && expiryIsValid() && !saving && !isMock);
 	const hoursLeft = $derived.by(() => {
 		if (!current || !live) return null;
 		const ms = new Date(current.expires_at).getTime() - Date.now();
@@ -75,6 +89,29 @@
 		const m = Math.floor((ms % 3_600_000) / 60_000);
 		return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
 	});
+
+	function expiryTimestamp(): number {
+		if (expiryChoice === 'custom') return customExpiry ? new Date(customExpiry).getTime() : Number.NaN;
+		return Date.now() + Number(expiryChoice) * 3_600_000;
+	}
+
+	function expiryIsValid(): boolean {
+		const expiresAt = expiryTimestamp();
+		const now = Date.now();
+		return Number.isFinite(expiresAt) && expiresAt > now + 5 * 60_000 && expiresAt <= now + MAX_NOTE_LIFETIME_MS;
+	}
+
+	function expiryPayload(): { expiry_hours: number } | { expires_at: string } {
+		if (expiryChoice === 'custom') return { expires_at: new Date(customExpiry).toISOString() };
+		return { expiry_hours: Number(expiryChoice) };
+	}
+
+	function toLocalDateTimeInput(date: Date): string {
+		return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+	}
+
+	const customExpiryMin = toLocalDateTimeInput(new Date(Date.now() + 5 * 60_000));
+	const customExpiryMax = toLocalDateTimeInput(new Date(Date.now() + MAX_NOTE_LIFETIME_MS));
 
 	// Load the product's current note + taps each time the pad opens.
 	$effect(() => {
@@ -126,11 +163,16 @@
 		kind = 'human';
 		meta = '';
 		href = '';
+		expiryChoice = '24';
+		customExpiry = '';
 		onclose?.();
 	}
 
 	async function save(): Promise<void> {
-		if (!canSave || !product) return;
+		if (!canSave || !product) {
+			if (expiryChoice === 'custom' && !expiryIsValid()) error = 'Choose an end time at least 5 minutes from now and within 30 days.';
+			return;
+		}
 		saving = true;
 		error = null;
 		savedHint = false;
@@ -142,6 +184,7 @@
 					product_id: product.id,
 					text: text.trim(),
 					kind,
+					...expiryPayload(),
 					...(meta.trim() ? { meta: meta.trim() } : {}),
 					...(href.trim() ? { href: href.trim() } : {})
 				})
@@ -159,6 +202,27 @@
 			error = e instanceof Error ? e.message : 'Could not post the note';
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function extend24Hours(): Promise<void> {
+		if (!product || !current || !canExtend || extending) return;
+		extending = true;
+		error = null;
+		try {
+			const res = await fetch(`${await siteOrigin()}/api/notes`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+				body: JSON.stringify({ product_id: product.id, note_id: current.id })
+			});
+			const data = (await res.json().catch(() => null)) as { error?: string } | null;
+			if (!res.ok) throw new Error(data?.error ?? 'Could not extend the note');
+			savedHint = true;
+			await load();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Could not extend the note';
+		} finally {
+			extending = false;
 		}
 	}
 
@@ -198,7 +262,7 @@
 		<div
 			bind:this={panel}
 			in:scale={{ start: 0.97, duration: 150, easing: cubicOut }}
-			class="flex w-full max-w-[420px] max-h-[min(88dvh,720px)] flex-col overflow-hidden rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)]"
+			class="flex w-full max-w-[456px] max-h-[min(90dvh,760px)] flex-col overflow-hidden rounded-[20px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)]"
 			style:background="var(--pc-bg)"
 		>
 			<!-- Header -->
@@ -207,7 +271,7 @@
 					<div class="min-w-0">
 						<h2 class="text-lg font-medium leading-[1.2] tracking-[-0.01em] text-[var(--pc-text)]">Post a note</h2>
 						<p class="mt-1 text-[13px] leading-[1.45] text-[var(--pc-text-muted)]">
-							{!product || isMock ? 'Pick a real product first.' : `A short status on ${product.name}, live for 24 hours.`}
+							{!product || isMock ? 'Pick a real product first.' : `A short update on ${product.name}'s feed.`}
 						</p>
 					</div>
 					<button
@@ -221,10 +285,11 @@
 				</div>
 			</div>
 
-			<div class="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+			<div class="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
 				{#if loading}
 					<p class="py-6 text-center text-[13px] text-[var(--pc-text-muted)]">Loading…</p>
 				{:else}
+					<div class="grid gap-6">
 					<!-- Current note -->
 					{#if current && live}
 						<!-- Live preview: painted with the note's actual bubble tone -->
@@ -237,6 +302,11 @@
 										{hoursLeft}
 										{#if taps > 0}<span aria-hidden="true">·</span>{taps} tap{taps === 1 ? '' : 's'}{/if}
 									</p>
+									{#if canExtend}
+										<button type="button" onclick={extend24Hours} disabled={extending} class="mt-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/15 disabled:opacity-50">
+											{extending ? 'Extending…' : 'Keep live 24 hours'}
+										</button>
+									{/if}
 								</div>
 								{#if confirmEnd}
 									<div class="flex shrink-0 items-center gap-1.5">
@@ -268,13 +338,13 @@
 								{/if}
 							</div>
 						</div>
-						<p class="mt-3 text-[12px] leading-[1.5] text-[var(--pc-text-muted)]">Posting a new note replaces this one.</p>
+						<p class="mt-2 text-[12px] leading-[1.5] text-[var(--pc-text-muted)]">Posting a new note replaces this one.</p>
 					{:else if current}
 						<p class="text-[12px] leading-[1.5] text-[var(--pc-text-muted)]">Your last note has expired. Post a fresh one below.</p>
 					{/if}
 
 					<!-- Composer -->
-					<div class="mt-4">
+					<div class="grid gap-2">
 						<label for="notepad-text" class="text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">What's happening?</label>
 						<textarea
 							id="notepad-text"
@@ -284,14 +354,23 @@
 							placeholder="ship day. coffee level: critical"
 							class="mt-2 w-full resize-none rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-3 text-[14px] leading-[1.45] tracking-[-0.01em] text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]"
 						></textarea>
-						<div class="mt-1 flex items-center justify-between">
+						<div class="flex items-center justify-between gap-3">
 							<span class="text-[11px] text-[var(--pc-text-muted)]">Shows on your launch card</span>
 							<span class="tabular-nums text-[11px] {textLeft < 0 ? 'text-[#fca5a5]' : 'text-[var(--pc-text-muted)]'}">{textLeft}</span>
 						</div>
 					</div>
 
+					<div class="grid gap-2">
+						<label for="notepad-expiry" class="text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">Keep in feed for</label>
+						<Select id="notepad-expiry" bind:value={expiryChoice} options={EXPIRY_OPTIONS} />
+						{#if expiryChoice === 'custom'}
+							<label for="notepad-custom-expiry" class="sr-only">Note end time</label>
+							<input id="notepad-custom-expiry" type="datetime-local" min={customExpiryMin} max={customExpiryMax} bind:value={customExpiry} class="h-11 w-full rounded-[12px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] px-3.5 text-[13px] text-[var(--pc-text)] outline-none transition-[background-color,border-color] focus:bg-[var(--pc-surface)] focus-visible:border-[var(--pc-focus-ring)]" />
+						{/if}
+					</div>
+
 					<!-- Kind — tone swatches previewing the exact bubble fill/ink -->
-					<fieldset class="mt-4">
+					<fieldset>
 						<legend class="flex w-full items-center justify-between text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">
 							Kind
 							<span class="text-[11px] font-normal tracking-[-0.01em] text-[var(--pc-text-muted)]">Tints your note bubble</span>
@@ -315,7 +394,7 @@
 					</fieldset>
 
 					<!-- Optional meta + link -->
-					<div class="mt-4 grid gap-3">
+					<div class="grid gap-4">
 						<div>
 							<div class="flex items-center justify-between">
 								<label for="notepad-meta" class="text-[13px] font-medium tracking-[-0.01em] text-[var(--pc-text)]">Tag <span class="font-normal text-[var(--pc-text-muted)]">(optional)</span></label>
@@ -327,7 +406,7 @@
 								bind:value={meta}
 								maxlength={MAX_META + 10}
 								placeholder="e.g. SHIPDAY20"
-								class="mt-1.5 h-9 w-full rounded-[10px] border border-transparent bg-[var(--pc-surface)] px-3 text-[13px] tracking-[-0.01em] text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]"
+								class="mt-2 h-10 w-full rounded-[10px] border border-transparent bg-[var(--pc-surface)] px-3 text-[13px] tracking-[-0.01em] text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]"
 							/>
 						</div>
 						<div>
@@ -337,13 +416,14 @@
 								type="url"
 								bind:value={href}
 								placeholder="https://…"
-								class="mt-1.5 h-9 w-full rounded-[10px] border border-transparent bg-[var(--pc-surface)] px-3 text-[13px] tracking-[-0.01em] text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]"
+								class="mt-2 h-10 w-full rounded-[10px] border border-transparent bg-[var(--pc-surface)] px-3 text-[13px] tracking-[-0.01em] text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]"
 							/>
 						</div>
 					</div>
 
-					{#if error}<p class="mt-3 rounded-[12px] bg-[#fca5a5]/10 px-3 py-2 text-[13px] leading-[1.5] text-[#fca5a5]" role="alert">{error}</p>{/if}
-					{#if savedHint}<p class="mt-3 text-[13px] leading-[1.5] text-[var(--pc-text)]" role="status">Note is live.</p>{/if}
+					{#if error}<p class="rounded-[12px] bg-[#fca5a5]/10 px-3 py-2 text-[13px] leading-[1.5] text-[#fca5a5]" role="alert">{error}</p>{/if}
+					{#if savedHint}<p class="text-[13px] leading-[1.5] text-[var(--pc-text)]" role="status">Note is live.</p>{/if}
+					</div>
 				{/if}
 			</div>
 

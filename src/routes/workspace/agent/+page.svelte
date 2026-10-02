@@ -181,12 +181,12 @@
 					/* channels tab shows unavailable */
 				}
 			}
-			const ids = sessions.map((s) => s.id);
-			if (ids.length) {
-				const { data: missRows } = await supabase.from('agent_messages').select('body').in('session_id', ids.slice(0, 200)).eq('role', 'system').like('body', 'miss:%').order('created_at', { ascending: false }).limit(50);
-				misses = ((missRows ?? []) as Array<{ body: string }>).map((m) => m.body.replace(/^miss:\s*/, '').slice(0, 300));
-			} else misses = [];
-		} catch (e) {
+		const ids = sessions.map((s) => s.id);
+		if (ids.length) {
+			const { data: missRows } = await supabase.from('agent_messages').select('body').in('session_id', ids.slice(0, 200)).eq('role', 'system').like('body', 'miss:%').order('created_at', { ascending: false }).limit(50);
+			misses = ((missRows ?? []) as Array<{ body: string }>).map((m) => m.body.replace(/^miss:\s*/, '').slice(0, 300));
+		} else misses = [];
+	} catch (e) {
 			error = e instanceof Error ? e.message : 'Could not load Agent settings';
 		} finally {
 			loading = false;
