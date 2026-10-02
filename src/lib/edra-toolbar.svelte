@@ -4,7 +4,8 @@
 	import { commands } from '../../node_modules/edra/dist/edra/commands/index.js';
 	import { addAIHighlight, getEditor, useEditorTransaction } from '../../node_modules/edra/dist/edra/tiptap/index.js';
 	import { cn } from '../../node_modules/edra/dist/utils.js';
-	import { WandSparkles } from '@lucide/svelte';
+	import { Sparkles } from 'reicon-svelte';
+	import type { Component } from 'svelte';
 	import Colors from '../../node_modules/edra/dist/edra/shadcn/components/tools/Colors.svelte';
 	import Export from '../../node_modules/edra/dist/edra/shadcn/components/tools/Export.svelte';
 	import Tooltip from '../../node_modules/edra/dist/edra/shadcn/components/Tooltip.svelte';
@@ -47,14 +48,14 @@
 				variant="ghost"
 				size="icon"
 			>
-				<WandSparkles />
+				<Sparkles size={14} weight="Outline" aria-hidden="true" />
 			</Button>
 		</Tooltip>
 	{/if}
 	{#each commandsKeys as key (key)}
 		{@const group = commands[key]}
 		{#each group as command, idx (idx)}
-			{@const Icon = command.icon as typeof WandSparkles}
+			{@const Icon = command.icon as Component<{ size?: number }>}
 			<Tooltip tooltip={command.tooltip} shortCut={command.shortCut ?? ''}>
 				<Button
 					variant="ghost"
