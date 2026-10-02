@@ -40,8 +40,7 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
-			adapter: adapter({ runtime: 'nodejs24.x' }),
-			alias: { $lib: 'src/lib', '$lib/*': 'src/lib/*' }
+			adapter: adapter({ runtime: 'nodejs24.x' })
 		})
 	],
 	// Edra's compiled Svelte toolbar imports this package indirectly. Keep it

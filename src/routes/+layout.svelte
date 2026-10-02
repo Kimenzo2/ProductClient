@@ -100,7 +100,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 </svelte:head>
 
-<!-- Theme managed via app.html inline script + $lib/theme -->
+<!-- Theme managed via app.html inline script + #lib/theme -->
 
 <Tooltip.Provider delayDuration={0}>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-[var(--pc-text)] focus:px-5 focus:py-2 focus:text-sm focus:font-bold focus:text-[var(--pc-bg)] focus-visible:outline-[0.5px] focus-visible:outline-offset-2 focus-visible:outline-[var(--pc-focus-ring)]">Skip to content</a>
