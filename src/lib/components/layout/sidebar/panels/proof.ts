@@ -1,5 +1,5 @@
 import { QuoteUpSquare } from 'reicon-svelte';
-import { proofs } from '$lib/data/workspace';
+import { proofs } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const proofPanel: PanelDef = {

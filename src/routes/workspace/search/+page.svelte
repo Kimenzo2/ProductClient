@@ -2,11 +2,11 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { AlertTriangle, Box, Compass, FileText, Heart, History, Inbox, Search, UserSquare } from 'reicon-svelte';
-	import { Button, Chip, Input, StatePanel } from '$lib/components/ui';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { workspaceSearchKinds } from '$lib/search/search';
-	import { workspaceSearchRecords } from '$lib/search/workspace-search';
-	import type { SearchKind, SearchRecord } from '$lib/search/types';
+	import { Button, Chip, Input, StatePanel } from '#lib/components/ui/index.js';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { workspaceSearchKinds } from '#lib/search/search.js';
+	import { workspaceSearchRecords } from '#lib/search/workspace-search.js';
+	import type { SearchKind, SearchRecord } from '#lib/search/types.js';
 
 	const icons: Record<SearchKind, typeof Search> = {
 		Product: Box,

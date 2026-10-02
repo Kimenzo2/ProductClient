@@ -1,6 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
+
+import {
+	CLOUDFLARE_ACCOUNT_ID,
+	CLOUDFLARE_D1_DATABASE_ID,
+	CLOUDFLARE_API_TOKEN
+} from '$app/env/private';
+
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
 import type { RequestHandler } from './$types';
 
 async function hashPassword(pwd: string): Promise<string> {
@@ -16,18 +22,18 @@ export const GET: RequestHandler = async ({ request }) => {
 	try {
 		admin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const authHeader = request.headers.get('authorization') ?? '';
 	const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-	if (!token) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!token) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const { data: authData } = await admin.auth.getUser(token);
 	const userId = authData.user?.id;
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	const { data: tenant } = await admin.from('tenants').select('id, slug, name, docs_access_mode, docs_agent_blurb').eq('owner_id', userId).maybeSingle();
-	if (!tenant) return json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
-	return json({ ok: true, tenant });
+	if (!tenant) return Response.json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
+	return Response.json({ ok: true, tenant });
 };
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -35,32 +41,32 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		admin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const authHeader = request.headers.get('authorization') ?? '';
 	const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-	if (!token) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!token) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const { data: authData } = await admin.auth.getUser(token);
 	const userId = authData.user?.id;
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	let body: { accessMode?: unknown; password?: unknown; agentBlurb?: unknown };
 	try {
 		body = await request.json();
 	} catch {
-		return json({ ok: false, code: 'BAD_REQUEST', message: 'Invalid JSON' }, { status: 400 });
+		return Response.json({ ok: false, code: 'BAD_REQUEST', message: 'Invalid JSON' }, { status: 400 });
 	}
 	const accessMode = typeof body.accessMode === 'string' ? body.accessMode.trim().toLowerCase() : 'public';
-	if (!['public', 'password', 'private'].includes(accessMode)) return json({ ok: false, code: 'INVALID_ACCESS_MODE' }, { status: 422 });
+	if (!['public', 'password', 'private'].includes(accessMode)) return Response.json({ ok: false, code: 'INVALID_ACCESS_MODE' }, { status: 422 });
 	const agentBlurb = typeof body.agentBlurb === 'string' ? body.agentBlurb.trim().slice(0, 500) : null;
 
 	const { data: tenant } = await admin.from('tenants').select('id, slug').eq('owner_id', userId).maybeSingle();
-	if (!tenant) return json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
+	if (!tenant) return Response.json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
 
 	let passwordHash: string | null = null;
 	if (accessMode === 'password') {
 		const pwd = typeof body.password === 'string' ? body.password.trim() : '';
-		if (!pwd || pwd.length < 4 || pwd.length > 120) return json({ ok: false, code: 'INVALID_PASSWORD', message: 'Password must be 4-120 chars' }, { status: 422 });
+		if (!pwd || pwd.length < 4 || pwd.length > 120) return Response.json({ ok: false, code: 'INVALID_PASSWORD', message: 'Password must be 4-120 chars' }, { status: 422 });
 		passwordHash = await hashPassword(pwd);
 	}
 
@@ -68,12 +74,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		.from('tenants')
 		.update({ docs_access_mode: accessMode, docs_password_hash: passwordHash, docs_agent_blurb: agentBlurb })
 		.eq('id', tenant.id);
-	if (updErr) return json({ ok: false, code: 'SUPABASE_ERROR', message: updErr.message }, { status: 500 });
+	if (updErr) return Response.json({ ok: false, code: 'SUPABASE_ERROR', message: updErr.message }, { status: 500 });
 
 	// Sync to D1 registry (best-effort)
-	const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-	const databaseId = env.CLOUDFLARE_D1_DATABASE_ID;
-	const cloudflareToken = env.CLOUDFLARE_API_TOKEN;
+	const accountId = CLOUDFLARE_ACCOUNT_ID;
+	const databaseId = CLOUDFLARE_D1_DATABASE_ID;
+	const cloudflareToken = CLOUDFLARE_API_TOKEN;
 	if (accountId && databaseId && cloudflareToken) {
 		const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
 		try {
@@ -88,5 +94,5 @@ export const POST: RequestHandler = async ({ request }) => {
 		} catch {}
 	}
 
-	return json({ ok: true, tenantId: tenant.id, accessMode, agentBlurb });
+	return Response.json({ ok: true, tenantId: tenant.id, accessMode, agentBlurb });
 };

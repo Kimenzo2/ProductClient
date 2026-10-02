@@ -1,6 +1,6 @@
-import { supabase } from '$lib/supabaseClient';
-import type { AnalyticsRange } from '$lib/data/analytics-range.svelte';
-import { timeAgo } from '$lib/data/feedbackInbox';
+import { supabase } from '#lib/supabaseClient.js';
+import type { AnalyticsRange } from '#lib/data/analytics-range.svelte.js';
+import { timeAgo } from '#lib/data/feedbackInbox.js';
 
 export type RoadmapAnalytics = { byColumn: Record<string, number>; recentlyMoved: {title:string;from:string;to:string;at:string}[]; oldestPlanned: {title:string;age:string}|null };
 

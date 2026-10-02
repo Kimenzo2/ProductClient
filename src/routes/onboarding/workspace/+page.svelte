@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowLeft, ArrowRight, Building } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import AuthInput from '$lib/components/auth/AuthInput.svelte';
-	import OnboardingFrame from '$lib/components/auth/OnboardingFrame.svelte';
-	import { requireSession } from '$lib/auth/guard';
-	import { readOnboardingDraft, saveOnboardingDraft } from '$lib/auth/onboarding';
+	import { Button } from '#lib/components/ui/index.js';
+	import AuthInput from '#lib/components/auth/AuthInput.svelte';
+	import OnboardingFrame from '#lib/components/auth/OnboardingFrame.svelte';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { readOnboardingDraft, saveOnboardingDraft } from '#lib/auth/onboarding.js';
 
 	let workspaceName = $state('');
 	let workspaceError = $state('');

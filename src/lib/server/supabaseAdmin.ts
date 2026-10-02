@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { env as privateEnv } from '$env/dynamic/private';
-import { PUBLIC_SUPABASE_URL } from '$env/static/public';
+import { SUPABASE_SECRET_API_KEY, SUPABASE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY } from '$app/env/private';
+import { PUBLIC_SUPABASE_URL } from '$app/env/public';
 
 /**
  * Server-only Supabase client with `service_role` privileges (sb_secret_...).
@@ -11,12 +11,7 @@ import { PUBLIC_SUPABASE_URL } from '$env/static/public';
  * Never import this file from client code — src/lib/server/* is server-only by SvelteKit convention.
  */
 function getSecretKey(): string {
-	return (
-		(privateEnv as Record<string, string | undefined>).SUPABASE_SECRET_API_KEY ??
-		privateEnv.SUPABASE_SECRET_KEY ??
-		(privateEnv as Record<string, string | undefined>).SUPABASE_SERVICE_ROLE_KEY ??
-		''
-	);
+	return SUPABASE_SECRET_API_KEY || SUPABASE_SECRET_KEY || SUPABASE_SERVICE_ROLE_KEY || '';
 }
 
 export function createAdminClient(): SupabaseClient {

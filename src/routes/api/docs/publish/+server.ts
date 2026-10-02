@@ -1,10 +1,9 @@
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { findTenantForUser } from '$lib/server/tenantAccess';
-import { pagePath, validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
-import { docsContentHash, mirrorDocsToD1, type DocsRedirect } from '$lib/server/docsPublish';
-import { buildDocsArtifacts } from '$lib/server/docsArtifacts';
-import { enqueueGithubKitSyncJob } from '$lib/server/githubKitSync';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { findTenantForUser } from '#lib/server/tenantAccess.js';
+import { pagePath, validateDocsDocument, type DocsDocument } from '#lib/data/docsEditor.js';
+import { docsContentHash, mirrorDocsToD1, type DocsRedirect } from '#lib/server/docsPublish.js';
+import { buildDocsArtifacts } from '#lib/server/docsArtifacts.js';
+import { enqueueGithubKitSyncJob } from '#lib/server/githubKitSync.js';
 import type { RequestHandler } from './$types';
 
 function redirectsBetween(previous: DocsDocument | null, next: DocsDocument): DocsRedirect[] {
@@ -24,33 +23,33 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		admin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const header = request.headers.get('authorization') ?? '';
 	const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-	if (!token) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!token) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const { data: auth } = await admin.auth.getUser(token);
 	const userId = auth.user?.id;
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const tenant = await findTenantForUser(admin, userId);
-	if (!tenant) return json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
-	if (tenant.role === 'member') return json({ ok: false, code: 'FORBIDDEN', message: 'Only workspace owners and admins can publish documentation.' }, { status: 403 });
+	if (!tenant) return Response.json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
+	if (tenant.role === 'member') return Response.json({ ok: false, code: 'FORBIDDEN', message: 'Only workspace owners and admins can publish documentation.' }, { status: 403 });
 
 	let body: { version?: unknown };
 	try {
 		body = await request.json();
 	} catch {
-		return json({ ok: false, code: 'BAD_REQUEST', message: 'Invalid JSON' }, { status: 400 });
+		return Response.json({ ok: false, code: 'BAD_REQUEST', message: 'Invalid JSON' }, { status: 400 });
 	}
 	const expectedVersion = Number(body.version ?? 0);
-	if (!Number.isInteger(expectedVersion) || expectedVersion < 1) return json({ ok: false, code: 'INVALID_VERSION' }, { status: 422 });
+	if (!Number.isInteger(expectedVersion) || expectedVersion < 1) return Response.json({ ok: false, code: 'INVALID_VERSION' }, { status: 422 });
 
 	const { data: row, error } = await admin
 		.from('docs_documents')
 		.select('draft, draft_version, published, published_version, published_at, publication_state, publication_error, published_hash, published_release_id')
 		.eq('tenant_id', tenant.id)
 		.maybeSingle();
-	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (error) return Response.json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	const current = row as {
 		draft?: unknown;
 		draft_version?: number;
@@ -62,19 +61,19 @@ export const POST: RequestHandler = async ({ request }) => {
 		published_hash?: string | null;
 		published_release_id?: string | null;
 	} | null;
-	if (!current?.draft || current.draft_version !== expectedVersion) return json({ ok: false, code: 'CONFLICT', message: 'Save the latest draft before publishing.' }, { status: 409 });
+	if (!current?.draft || current.draft_version !== expectedVersion) return Response.json({ ok: false, code: 'CONFLICT', message: 'Save the latest draft before publishing.' }, { status: 409 });
 	const issues = validateDocsDocument(current.draft);
-	if (issues.length) return json({ ok: false, code: 'INVALID', issues }, { status: 422 });
+	if (issues.length) return Response.json({ ok: false, code: 'INVALID', issues }, { status: 422 });
 
 	// A failed D1 mirror is retryable without creating a fake new release.
 	if (current.publication_state === 'failed' && current.published && current.published_at && current.published_release_id && current.published_version && validateDocsDocument(current.published).length === 0) {
 		const published = current.published as DocsDocument;
 		const contentHash = current.published_hash ?? docsContentHash(published);
 		const existingRelease = await admin.from('docs_releases').select('id').eq('tenant_id', tenant.id).eq('version', current.published_version).maybeSingle();
-		if (existingRelease.error) return json({ ok: false, code: 'DB_ERROR', message: existingRelease.error.message }, { status: 500 });
+		if (existingRelease.error) return Response.json({ ok: false, code: 'DB_ERROR', message: existingRelease.error.message }, { status: 500 });
 		if (!existingRelease.data) {
 			const releaseRepair = await admin.from('docs_releases').insert({ id: current.published_release_id, tenant_id: tenant.id, version: current.published_version, document: published, content_hash: contentHash, published_at: current.published_at, published_by: userId });
-			if (releaseRepair.error) return json({ ok: false, code: 'RELEASE_RECORD_FAILED', message: 'The release history is incomplete. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+			if (releaseRepair.error) return Response.json({ ok: false, code: 'RELEASE_RECORD_FAILED', message: 'The release history is incomplete. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 		}
 		const retryArtifacts = buildDocsArtifacts(published, tenant.slug, current.published_version, contentHash);
 		const retryArtifactWrite = await admin.from('docs_release_artifacts').upsert({
@@ -88,13 +87,13 @@ export const POST: RequestHandler = async ({ request }) => {
 			mcp_json: retryArtifacts.mcpJson,
 			sitemap_xml: retryArtifacts.sitemapXml
 		}, { onConflict: 'release_id' });
-		if (retryArtifactWrite.error) return json({ ok: false, code: 'ARTIFACT_RECORD_FAILED', message: 'The release artifacts are incomplete. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+		if (retryArtifactWrite.error) return Response.json({ ok: false, code: 'ARTIFACT_RECORD_FAILED', message: 'The release artifacts are incomplete. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 		const mirror = await mirrorDocsToD1(tenant.slug, published, current.published_version, current.published_at, contentHash, current.published_release_id);
 		if (!mirror.ok) {
 			await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Hosted documentation sync failed.', publication_attempted_at: new Date().toISOString() }).eq('tenant_id', tenant.id);
 			await admin.from('docs_publication_attempts').update({ state: 'failed', error_code: 'HOSTED_SYNC_FAILED', error_message: 'Hosted documentation sync failed.', completed_at: new Date().toISOString() }).eq('tenant_id', tenant.id).eq('release_id', current.published_release_id);
 			await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.publish_retry_failed', release_id: current.published_release_id, version: current.published_version, details: { code: 'HOSTED_SYNC_FAILED' } });
-			return json({ ok: false, code: 'HOSTED_SYNC_FAILED', version: current.published_version, message: 'The hosted documentation is still unavailable. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+			return Response.json({ ok: false, code: 'HOSTED_SYNC_FAILED', version: current.published_version, message: 'The hosted documentation is still unavailable. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 		}
 		await admin.from('docs_documents').update({ publication_state: 'published', publication_error: null, publication_attempted_at: new Date().toISOString() }).eq('tenant_id', tenant.id);
 		await admin.from('docs_publication_attempts').update({ state: 'succeeded', completed_at: new Date().toISOString() }).eq('tenant_id', tenant.id).eq('release_id', current.published_release_id);
@@ -105,7 +104,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			console.error('[docs/publish] could not enqueue GitHub mirror retry', error);
 			await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.github_sync_enqueue_failed', release_id: current.published_release_id, version: current.published_version, details: { message: error instanceof Error ? error.message : String(error) } });
 		}
-		return json({ ok: true, version: current.published_version, publishedAt: current.published_at, retried: true });
+		return Response.json({ ok: true, version: current.published_version, publishedAt: current.published_at, retried: true });
 	}
 
 	const publishedAt = new Date().toISOString();
@@ -133,8 +132,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		.eq('published_version', current.published_version ?? 0)
 		.select('published_version')
 		.maybeSingle();
-	if (updateError) return json({ ok: false, code: 'DB_ERROR', message: updateError.message }, { status: 500 });
-	if (!updated) return json({ ok: false, code: 'CONFLICT', message: 'This document changed elsewhere. Reload it before publishing.' }, { status: 409 });
+	if (updateError) return Response.json({ ok: false, code: 'DB_ERROR', message: updateError.message }, { status: 500 });
+	if (!updated) return Response.json({ ok: false, code: 'CONFLICT', message: 'This document changed elsewhere. Reload it before publishing.' }, { status: 409 });
 
 	const release = await admin.from('docs_releases').insert({
 		id: releaseId,
@@ -147,7 +146,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	});
 	if (release.error) {
 		await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Release history could not be recorded.' }).eq('tenant_id', tenant.id);
-		return json({ ok: false, code: 'RELEASE_RECORD_FAILED', message: 'The release was not recorded. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+		return Response.json({ ok: false, code: 'RELEASE_RECORD_FAILED', message: 'The release was not recorded. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 	}
 	const artifacts = buildDocsArtifacts(published, tenant.slug, publishedVersion, contentHash);
 	const artifactWrite = await admin.from('docs_release_artifacts').insert({
@@ -163,7 +162,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	});
 	if (artifactWrite.error) {
 		await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Generated release artifacts could not be recorded.' }).eq('tenant_id', tenant.id);
-		return json({ ok: false, code: 'ARTIFACT_RECORD_FAILED', message: 'The release artifacts could not be recorded. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+		return Response.json({ ok: false, code: 'ARTIFACT_RECORD_FAILED', message: 'The release artifacts could not be recorded. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 	}
 	await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.publish_started', release_id: releaseId, version: publishedVersion, details: { contentHash, redirectCount: redirects.length } });
 	if (redirects.length) {
@@ -171,7 +170,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const redirectWrite = await admin.from('docs_redirects').upsert(redirectRows, { onConflict: 'tenant_id,from_path' });
 		if (redirectWrite.error) {
 			await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Redirect history could not be recorded.' }).eq('tenant_id', tenant.id);
-			return json({ ok: false, code: 'REDIRECT_RECORD_FAILED', message: 'The release was not completed. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
+			return Response.json({ ok: false, code: 'REDIRECT_RECORD_FAILED', message: 'The release was not completed. Retry publishing.' }, { status: 503, headers: { 'retry-after': '5' } });
 		}
 	}
 	await admin.from('docs_publication_attempts').insert({ tenant_id: tenant.id, release_id: releaseId, version: publishedVersion, content_hash: contentHash, state: 'pending', attempted_at: publishedAt });
@@ -186,7 +185,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		await admin.from('docs_documents').update({ publication_state: 'failed', publication_error: 'Hosted documentation sync failed.' }).eq('tenant_id', tenant.id);
 		await admin.from('docs_publication_attempts').update({ state: 'failed', error_code: 'HOSTED_SYNC_FAILED', error_message: 'Hosted documentation sync failed.', completed_at: new Date().toISOString() }).eq('tenant_id', tenant.id).eq('release_id', releaseId);
 		await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.publish_failed', release_id: releaseId, version: publishedVersion, details: { code: 'HOSTED_SYNC_FAILED' } });
-		return json(
+		return Response.json(
 			{
 				ok: false,
 				code: 'HOSTED_SYNC_FAILED',
@@ -207,5 +206,5 @@ export const POST: RequestHandler = async ({ request }) => {
 		console.error('[docs/publish] could not enqueue GitHub mirror', error);
 		await admin.from('docs_audit_events').insert({ tenant_id: tenant.id, actor_id: userId, event_type: 'docs.github_sync_enqueue_failed', release_id: releaseId, version: publishedVersion, details: { message: error instanceof Error ? error.message : String(error) } });
 	}
-	return json({ ok: true, version: publishedVersion, publishedAt });
+	return Response.json({ ok: true, version: publishedVersion, publishedAt });
 };

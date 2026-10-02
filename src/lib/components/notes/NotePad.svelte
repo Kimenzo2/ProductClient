@@ -2,9 +2,9 @@
 	import { CloseCircle, Trash, Clock } from 'reicon-svelte';
 	import { scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { supabase } from '$lib/supabaseClient';
-	import { activeProductStore } from '$lib/stores/activeProduct.svelte.js';
-	import { Select } from '$lib/components/ui';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { activeProductStore } from '#lib/stores/activeProduct.svelte.js';
+	import { Select } from '#lib/components/ui/index.js';
 
 	// P-Landing owns notes. The dashboard is a thin client: GET renders the
 	// current note + taps, POST supersedes, PATCH extends, DELETE ends now. Auth = the maker's

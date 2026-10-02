@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Shield, User, UserAdd, Users } from 'reicon-svelte';
-	import { Button, Input } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, type Tenant } from '$lib/tenant';
+	import { Button, Input } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { ensureMyTenant, type Tenant } from '#lib/tenant.js';
 
 	type Member = { id: string; email: string; role: 'Owner' | 'Member'; you?: boolean };
 

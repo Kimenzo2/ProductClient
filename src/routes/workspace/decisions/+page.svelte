@@ -1,11 +1,11 @@
 <script lang="ts">
-import { ArrowRight, CheckCircle, Map } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import DecisionThread from '$lib/components/workspace/DecisionThread.svelte';
-import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-import { decisionThreads } from '$lib/data/workspace';
-import { browser } from '$app/environment';
-import { onMount } from 'svelte';
+	import { ArrowRight, CheckCircle, Map } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import DecisionThread from '#lib/components/workspace/DecisionThread.svelte';
+	import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+	import { decisionThreads } from '#lib/data/workspace.js';
+	import { browser } from '$app/env';
+	import { onMount } from 'svelte';
 
 let filter = $state<'All' | 'In decision' | 'Planned' | 'Shipped'>('All');
 let isPreview = $state(false);
@@ -40,19 +40,39 @@ let filtered = $derived(sourceThreads.filter((thread) => filter === 'All' || thr
 
 	<div class="flex items-center gap-1.5 overflow-x-auto py-5" role="group" aria-label="Product decision states">
 		{#each ['All', 'In decision', 'Planned', 'Shipped'] as item}
-			<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">
-				{#if item === 'Shipped'}<CheckCircle size={13} weight="Outline" aria-hidden="true" />{:else}<Map size={13} weight="Outline" aria-hidden="true" />{/if}
-				{item === 'All' ? 'Everything' : item === 'In decision' ? 'Choosing now' : item}
+			<button
+				type="button"
+				onclick={() => filter = item as typeof filter}
+				aria-pressed={filter === item}
+				class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item
+					? 'bg-[var(--pc-text)] text-[var(--pc-bg)]'
+					: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}"
+			>
+				{#if item === 'Shipped'}
+					<CheckCircle size={13} weight="Outline" aria-hidden="true" />
+				{:else}
+					<Map size={13} weight="Outline" aria-hidden="true" />
+				{/if}
+
+				{item === 'All'
+					? 'Everything'
+					: item === 'In decision' ? 'Choosing now' : item}
 			</button>
 		{/each}
 	</div>
 
 	<section class="space-y-3 pb-10" aria-label="Product decisions">
 		{#each filtered as thread (thread.id)}
-			<DecisionThread {thread} />
+			<DecisionThread thread={thread} />
 		{/each}
 		{#if filtered.length === 0}
-			<StatePanel icon={Map} title="No decisions found" description="No decisions match the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} />
+			<StatePanel
+				icon={Map}
+				title="No decisions found"
+				description="No decisions match the selected filter."
+				actionLabel="Show all"
+				onAction={() => filter = 'All'}
+			/>
 		{/if}
 	</section>
 </div>

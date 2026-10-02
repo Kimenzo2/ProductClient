@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { ArrowRight, Search } from 'reicon-svelte';
-	import { workspaceSearchRecords } from '$lib/search/workspace-search';
+	import { workspaceSearchRecords } from '#lib/search/workspace-search.js';
 
 	let { placeholder }: { placeholder: string } = $props();
 	let query = $state('');

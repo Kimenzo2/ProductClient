@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '#lib/assets/favicon.svg';
 	import '../app.css';
-	import { toggleTheme, type Theme } from '$lib/theme';
+	import { toggleTheme, type Theme } from '#lib/theme.js';
 	import { Add, Home, Inbox, Search, UserSquare } from 'reicon-svelte';
-	import Header from '$lib/components/layout/Header.svelte';
-	import AuthShell from '$lib/components/auth/AuthShell.svelte';
-	import Sidebar from '$lib/components/layout/Sidebar.svelte';
-	import GlobalSearch from '$lib/components/layout/GlobalSearch.svelte';
-	import { surfaceForPath, type AppSurface } from '$lib/routing/surfaces';
-	import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, OG_IMAGE } from '$lib/site';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import Header from '#lib/components/layout/Header.svelte';
+	import AuthShell from '#lib/components/auth/AuthShell.svelte';
+	import Sidebar from '#lib/components/layout/Sidebar.svelte';
+	import GlobalSearch from '#lib/components/layout/GlobalSearch.svelte';
+	import { surfaceForPath, type AppSurface } from '#lib/routing/surfaces.js';
+	import { SITE_URL, SITE_NAME, SITE_TITLE, SITE_DESCRIPTION, OG_IMAGE } from '#lib/site.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 
 	let { children } = $props();
 

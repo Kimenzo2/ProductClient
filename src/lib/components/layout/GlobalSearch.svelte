@@ -2,9 +2,9 @@
 	import { tick } from 'svelte';
 	import { goto } from '$app/navigation';
 import { AlertTriangle, Box, Compass, FileText, Heart, History, Inbox, Search, UserSquare } from 'reicon-svelte';
-import { workspaceSearchKinds } from '$lib/search/search';
-import type { SearchKind, SearchRecord } from '$lib/search/types';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { workspaceSearchKinds } from '#lib/search/search.js';
+import type { SearchKind, SearchRecord } from '#lib/search/types.js';
+import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 	let {
 		open = false,
@@ -49,7 +49,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		if (workspaceSearchRecords || workspaceSearchLoading) return;
 		workspaceSearchLoading = true;
 		try {
-			const module = await import('$lib/search/workspace-search');
+			const module = await import('#lib/search/workspace-search.js');
 			workspaceSearchRecords = module.workspaceSearchRecords;
 		} finally {
 			workspaceSearchLoading = false;

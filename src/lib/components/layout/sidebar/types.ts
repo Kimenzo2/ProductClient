@@ -1,4 +1,4 @@
-import type { SignalKey } from '$lib/data/signalRegistry.svelte';
+import type { SignalKey } from '#lib/data/signalRegistry.svelte.js';
 
 export type PanelLink = { label: string; href: string; icon?: any; badge?: number | string; signalKey?: SignalKey; external?: boolean };
 export type PanelRecent = { label: string; href: string; subtitle?: string };

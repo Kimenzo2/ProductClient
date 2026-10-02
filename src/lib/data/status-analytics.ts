@@ -1,5 +1,5 @@
-import { supabase } from '$lib/supabaseClient';
-import type { AnalyticsRange } from '$lib/data/analytics-range.svelte';
+import { supabase } from '#lib/supabaseClient.js';
+import type { AnalyticsRange } from '#lib/data/analytics-range.svelte.js';
 
 export type StatusAnalytics = { metrics: { views: number; spike: number; subscribers: number }; currentStatus: string; liveUrlStatus: string };
 

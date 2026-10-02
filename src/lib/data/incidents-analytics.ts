@@ -1,6 +1,6 @@
-import { supabase } from '$lib/supabaseClient';
-import type { AnalyticsRange } from '$lib/data/analytics-range.svelte';
-import { timeAgo } from '$lib/data/feedbackInbox';
+import { supabase } from '#lib/supabaseClient.js';
+import type { AnalyticsRange } from '#lib/data/analytics-range.svelte.js';
+import { timeAgo } from '#lib/data/feedbackInbox.js';
 
 export type IncidentsAnalytics = { metrics: { open: number; resolved: number; ttfu: string | null; ttr: string | null }; bySeverity: {severity:string;count:number}[]; recent: {title:string;severity:string;opened:string}[]; missingFix:number; missingDoc:number };
 

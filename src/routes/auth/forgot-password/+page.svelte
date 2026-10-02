@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, Mailbox } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import AuthInput from '$lib/components/auth/AuthInput.svelte';
-	import { readableAuthError } from '$lib/auth/utils';
-	import { authHref } from '$lib/auth/urls';
-	import { supabase } from '$lib/supabaseClient';
+	import { Button } from '#lib/components/ui/index.js';
+	import AuthInput from '#lib/components/auth/AuthInput.svelte';
+	import { readableAuthError } from '#lib/auth/utils.js';
+	import { authHref } from '#lib/auth/urls.js';
+	import { supabase } from '#lib/supabaseClient.js';
 
 	let email = $state('');
 	let emailError = $state('');

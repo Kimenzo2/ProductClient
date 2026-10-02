@@ -1,7 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { env as privateEnv } from '$env/dynamic/private';
-import { getInstallationToken } from '$lib/server/githubApp';
-import { githubRepositoryUrl } from '$lib/server/githubCanonical';
+import {
+	GITHUB_KIT_TEMPLATE_DOCS,
+	GITHUB_KIT_TEMPLATE_INSTALLATION_ID,
+	GITHUB_KIT_TEMPLATE_ROADMAP,
+	GITHUB_KIT_TEMPLATE_STATUS
+} from '$app/env/private';
+
+const KIT_TEMPLATE_REPOS: Record<KitKey, string> = {
+	docs: GITHUB_KIT_TEMPLATE_DOCS,
+	roadmap: GITHUB_KIT_TEMPLATE_ROADMAP,
+	status: GITHUB_KIT_TEMPLATE_STATUS
+};
+import { getInstallationToken } from '#lib/server/githubApp.js';
+import { githubRepositoryUrl } from '#lib/server/githubCanonical.js';
 
 export type KitKey = 'docs' | 'roadmap' | 'status';
 
@@ -23,19 +34,15 @@ type KitRow = {
 
 const KIT_ORDER: KitKey[] = ['docs', 'roadmap', 'status'];
 
-function privateValue(name: string): string | undefined {
-	return (privateEnv as Record<string, string | undefined>)[name];
-}
-
 function templateInstallationId(): number | null {
-	const value = privateValue('GITHUB_KIT_TEMPLATE_INSTALLATION_ID');
+	const value = GITHUB_KIT_TEMPLATE_INSTALLATION_ID;
 	if (!value?.trim()) return null;
 	const parsed = Number(value);
 	return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 export function templateRepository(kit: KitKey): string {
-	const override = privateValue(`GITHUB_KIT_TEMPLATE_${kit.toUpperCase()}`);
+	const override = KIT_TEMPLATE_REPOS[kit];
 	if (override?.trim()) return override.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
 	return {
 		docs: 'Kimenzo2/documentation-starter-kit',

@@ -2,7 +2,7 @@
 	import { setCarouselContext, type CarouselOrientation } from './context.js';
 	import { writable } from 'svelte/store';
 	import type { EmblaCarouselType, EmblaOptionsType, EmblaPluginType } from 'embla-carousel';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 	import type { Snippet } from 'svelte';
 
 	let {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { AlertTriangle, Box, Compass, FileText, Heart, History, Inbox, Map, UserSquare } from 'reicon-svelte';
-	import type { ThreadRelation } from '$lib/data/workspace';
-	import type { SearchKind } from '$lib/search/types';
+	import type { ThreadRelation } from '#lib/data/workspace.js';
+	import type { SearchKind } from '#lib/search/types.js';
 
 	let {
 		relations = [],

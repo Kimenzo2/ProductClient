@@ -1,7 +1,6 @@
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getInstallationToken } from '$lib/server/githubApp';
-import { githubRepositoryUrl, type GithubLinkRole } from '$lib/server/githubCanonical';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { getInstallationToken } from '#lib/server/githubApp.js';
+import { githubRepositoryUrl, type GithubLinkRole } from '#lib/server/githubCanonical.js';
 import type { RequestHandler } from './$types';
 
 async function getUserId(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -15,17 +14,17 @@ async function getUserId(request: Request, admin: ReturnType<typeof createAdminC
 export const GET: RequestHandler = async ({ request, url }) => {
 	const admin = createAdminClient();
 	const userId = await getUserId(request, admin);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const productId = url.searchParams.get('product_id');
 	const role = url.searchParams.get('role') === 'context' ? 'context' : 'source';
 	if (productId) {
 		// verify ownership via product
 		const { data: prod } = await admin.from('products').select('maker_id').eq('id', productId).maybeSingle();
-		if (!prod || (prod as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
+		if (!prod || (prod as { maker_id: string }).maker_id !== userId) return Response.json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
 		if (role === 'context') {
 			const { data: contextLinks, error: contextError } = await admin.from('github_repo_links').select('*').eq('product_id', productId).eq('role', 'context').order('repo_full_name', { ascending: true });
-			if (contextError) return json({ ok: false, code: 'DB_ERROR', message: contextError.message }, { status: 500 });
-			return json({ ok: true, links: contextLinks ?? [] });
+			if (contextError) return Response.json({ ok: false, code: 'DB_ERROR', message: contextError.message }, { status: 500 });
+			return Response.json({ ok: true, links: contextLinks ?? [] });
 		}
 		const { data } = await admin.from('github_repo_links').select('*').eq('product_id', productId).eq('role', role).maybeSingle();
 		if (!data) {
@@ -38,28 +37,28 @@ export const GET: RequestHandler = async ({ request, url }) => {
 				.order('updated_at', { ascending: false })
 				.limit(1)
 				.maybeSingle();
-			return json({ ok: true, link: null, installation_id: installation?.installation_id ?? null });
+			return Response.json({ ok: true, link: null, installation_id: installation?.installation_id ?? null });
 		}
-		return json({ ok: true, link: data });
+		return Response.json({ ok: true, link: data });
 	}
 	// list all links for maker
 	const { data: products } = await admin.from('products').select('id').eq('maker_id', userId);
 	const ids = (products as Array<{ id: string }> | null)?.map((p) => p.id) ?? [];
-	if (!ids.length) return json({ ok: true, links: [] });
+	if (!ids.length) return Response.json({ ok: true, links: [] });
 	const { data: links } = await admin.from('github_repo_links').select('*').in('product_id', ids);
-	return json({ ok: true, links: links ?? [] });
+	return Response.json({ ok: true, links: links ?? [] });
 };
 
 export const POST: RequestHandler = async ({ request }) => {
 	const admin = createAdminClient();
 	const userId = await getUserId(request, admin);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	let body: { product_id?: string; installation_id?: number; repo_full_name?: string; branch?: string; deploy_branch?: string; docs_path?: string; role?: GithubLinkRole };
 	try {
 		body = await request.json();
 	} catch {
-		return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
+		return Response.json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	}
 	const productId = body.product_id?.trim();
 	const role: GithubLinkRole = body.role === 'context' ? 'context' : 'source';
@@ -70,15 +69,15 @@ export const POST: RequestHandler = async ({ request }) => {
 	let docsPath = (body.docs_path?.trim() || '/').trim();
 	if (!docsPath.startsWith('/')) docsPath = '/' + docsPath;
 
-	if (!productId || !installationId || !repoFullName) return json({ ok: false, code: 'MISSING_FIELDS', message: 'product_id, installation_id, repo_full_name required' }, { status: 400 });
-	if (!/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repoFullName)) return json({ ok: false, code: 'INVALID_REPOSITORY' }, { status: 422 });
-	if (!/^[^\s]+$/.test(branch) || (deployBranch !== null && !/^[^\s]+$/.test(deployBranch))) return json({ ok: false, code: 'INVALID_BRANCH' }, { status: 422 });
+	if (!productId || !installationId || !repoFullName) return Response.json({ ok: false, code: 'MISSING_FIELDS', message: 'product_id, installation_id, repo_full_name required' }, { status: 400 });
+	if (!/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repoFullName)) return Response.json({ ok: false, code: 'INVALID_REPOSITORY' }, { status: 422 });
+	if (!/^[^\s]+$/.test(branch) || (deployBranch !== null && !/^[^\s]+$/.test(deployBranch))) return Response.json({ ok: false, code: 'INVALID_BRANCH' }, { status: 422 });
 
 	const { data: product } = await admin.from('products').select('id, maker_id, tenant_id').eq('id', productId).maybeSingle();
-	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
+	if (!product || (product as { maker_id: string }).maker_id !== userId) return Response.json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
 
 	const { data: install } = await admin.from('github_installations').select('installation_id').eq('installation_id', installationId).eq('maker_id', userId).maybeSingle();
-	if (!install) return json({ ok: false, code: 'INSTALLATION_NOT_FOUND' }, { status: 404 });
+	if (!install) return Response.json({ ok: false, code: 'INSTALLATION_NOT_FOUND' }, { status: 404 });
 
 	// verify repo is accessible via installation token + branch exists
 	try {
@@ -89,21 +88,21 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 		if (!repoRes.ok) {
 			const t = await repoRes.text().catch(() => '');
-			return json({ ok: false, code: 'REPO_NOT_ACCESSIBLE', message: t.slice(0, 500) }, { status: 400 });
+			return Response.json({ ok: false, code: 'REPO_NOT_ACCESSIBLE', message: t.slice(0, 500) }, { status: 400 });
 		}
 		const br = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(branch)}`, {
 			headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
 		});
-		if (!br.ok) return json({ ok: false, code: 'BRANCH_NOT_FOUND', message: `Branch ${branch} not found` }, { status: 400 });
+		if (!br.ok) return Response.json({ ok: false, code: 'BRANCH_NOT_FOUND', message: `Branch ${branch} not found` }, { status: 400 });
 		if (deployBranch && deployBranch !== branch) {
 			const deployRef = await fetch(`https://api.github.com/repos/${repoFullName}/git/ref/heads/${encodeURIComponent(deployBranch)}`, {
 				headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
 			});
-			if (!deployRef.ok) return json({ ok: false, code: 'DEPLOY_BRANCH_NOT_FOUND', message: `Deploy branch ${deployBranch} not found` }, { status: 400 });
+			if (!deployRef.ok) return Response.json({ ok: false, code: 'DEPLOY_BRANCH_NOT_FOUND', message: `Deploy branch ${deployBranch} not found` }, { status: 400 });
 		}
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		return json({ ok: false, code: 'GITHUB_ERROR', message: msg }, { status: 502 });
+		return Response.json({ ok: false, code: 'GITHUB_ERROR', message: msg }, { status: 502 });
 	}
 
 	// Source is one per product; context repos may be listed. Avoid relying on
@@ -127,7 +126,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const data = write.data;
 	const error = write.error;
 
-	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (error) return Response.json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	if (role === 'source') {
 		await admin.from('products').update({ github_url: githubRepositoryUrl(repoFullName) }).eq('id', productId);
 		if (product.tenant_id) {
@@ -141,20 +140,20 @@ export const POST: RequestHandler = async ({ request }) => {
 				content_path: docsPath,
 				updated_at: new Date().toISOString()
 			}, { onConflict: 'product_id,kit' });
-			if (kitError) return json({ ok: false, code: 'KIT_REPOSITORY_SYNC_FAILED', message: kitError.message }, { status: 500 });
+			if (kitError) return Response.json({ ok: false, code: 'KIT_REPOSITORY_SYNC_FAILED', message: kitError.message }, { status: 500 });
 		}
 	}
-	return json({ ok: true, link: data });
+	return Response.json({ ok: true, link: data });
 };
 
 export const DELETE: RequestHandler = async ({ request, url }) => {
 	const admin = createAdminClient();
 	const userId = await getUserId(request, admin);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const productId = url.searchParams.get('product_id') ?? (await request.json().catch(() => ({} as Record<string, string>))).product_id;
-	if (!productId) return json({ ok: false, code: 'MISSING_PRODUCT_ID' }, { status: 400 });
+	if (!productId) return Response.json({ ok: false, code: 'MISSING_PRODUCT_ID' }, { status: 400 });
 	const { data: product } = await admin.from('products').select('maker_id, tenant_id').eq('id', productId).maybeSingle();
-	if (!product || (product as { maker_id: string }).maker_id !== userId) return json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
+	if (!product || (product as { maker_id: string }).maker_id !== userId) return Response.json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
 
 	const role = url.searchParams.get('role') === 'context' ? 'context' : 'source';
 	const removeAll = url.searchParams.get('all') === '1';
@@ -163,7 +162,7 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 	if (!removeAll) query = query.eq('role', role);
 	if (repo) query = query.eq('repo_full_name', repo);
 	const { error } = await query;
-	if (error) return json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
+	if (error) return Response.json({ ok: false, code: 'DB_ERROR', message: error.message }, { status: 500 });
 	if (product.tenant_id && (removeAll || role === 'source')) {
 		let managedQuery = admin.from('github_kit_repositories').update({ installation_id: null, provision_status: 'awaiting_authorization', github_sync_status: 'idle', updated_at: new Date().toISOString() }).eq('product_id', productId).eq('managed', true);
 		if (!removeAll) managedQuery = managedQuery.eq('kit', 'docs');
@@ -173,5 +172,5 @@ export const DELETE: RequestHandler = async ({ request, url }) => {
 		await manualQuery;
 	}
 	if (role === 'source') await admin.from('products').update({ github_url: null }).eq('id', productId);
-	return json({ ok: true });
+	return Response.json({ ok: true });
 };

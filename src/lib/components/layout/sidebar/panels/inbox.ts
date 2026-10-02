@@ -1,5 +1,5 @@
 import { Inbox } from 'reicon-svelte';
-import { feedback } from '$lib/data/workspace';
+import { feedback } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const inboxPanel: PanelDef = {

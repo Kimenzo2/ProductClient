@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import OnboardingProgress from '$lib/components/auth/OnboardingProgress.svelte';
+	import OnboardingProgress from '#lib/components/auth/OnboardingProgress.svelte';
 
 	let {
 		current,

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { ArrowLeft, ArrowRight, CheckCircle, Clock, Compass, Inbox, Map, Users2 } from 'reicon-svelte';
-	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-	import RelationList from '$lib/components/workspace/RelationList.svelte';
-	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
-	import { decisionThreadById, docFeedback, docs, feedback, problemById, problems, roadmapItems } from '$lib/data/workspace';
+	import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+	import RelationList from '#lib/components/workspace/RelationList.svelte';
+	import StatusBadge from '#lib/components/workspace/StatusBadge.svelte';
+	import { decisionThreadById, docFeedback, docs, feedback, problemById, problems, roadmapItems } from '#lib/data/workspace.js';
 
 	let id = $derived(page.params.id ?? '');
 	let problem = $derived(problemById(id));

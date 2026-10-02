@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { ArrowLeft, CheckCircle, Compass } from 'reicon-svelte';
-	import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
-	import { feedback, products } from '$lib/data/workspace';
+	import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '#lib/components/ui/index.js';
+	import { feedback, products } from '#lib/data/workspace.js';
 
 	const feedbackId = page.url.searchParams.get('feedback') ?? '';
 	const source = feedback.find((item) => item.id === feedbackId);

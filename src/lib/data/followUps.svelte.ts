@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { followUps as seedFollowUps, type FollowUpRecord } from '$lib/data/workspace';
-import { supabase } from '$lib/supabaseClient';
+import { browser } from '$app/env';
+import { followUps as seedFollowUps, type FollowUpRecord } from '#lib/data/workspace.js';
+import { supabase } from '#lib/supabaseClient.js';
 
 const STORAGE_KEY = 'productclient.follow-ups.preview.v1';
 const statuses: FollowUpRecord['status'][] = ['Open', 'In progress', 'Done'];
@@ -48,7 +48,7 @@ function persist() {
 }
 
 export async function hydrateFollowUps(force = false) {
-	if (!browser || (followUpPreview.hydrated && !force)) return;
+	if (!browser || followUpPreview.hydrated && !force) return;
 
 	try {
 		if (supabase) {
@@ -56,7 +56,7 @@ export async function hydrateFollowUps(force = false) {
 			const token = data.session?.access_token;
 			if (token) {
 				const response = await fetch('/api/incidents/work-items', { headers: { authorization: `Bearer ${token}` } });
-				const payload = (await response.json().catch(() => ({}))) as { items?: Array<Record<string, unknown>> };
+				const payload = await response.json().catch(() => ({})) as { items?: Array<Record<string, unknown>> };
 				const records = (payload.items ?? []).filter((item) => item.work_type === 'follow_up').map((item) => ({
 					id: String(item.id),
 					incidentId: String(item.incidentId ?? ''),
@@ -96,7 +96,7 @@ export function updateFollowUp(id: string, changes: Partial<FollowUpEdit>): bool
 	const record = followUpPreview.records.find((item) => item.id === id);
 	if (!record) return false;
 
-	followUpPreview.records = followUpPreview.records.map((item) => (item.id === id ? { ...item, ...changes } : item));
+	followUpPreview.records = followUpPreview.records.map((item) => item.id === id ? { ...item, ...changes } : item);
 	persist();
 	void persistRemote(followUpPreview.records.find((item) => item.id === id));
 	return true;

@@ -1,10 +1,10 @@
 <script lang="ts">
-import { ArrowRight, Compass, Inbox, Users2 } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-import { problems } from '$lib/data/workspace';
-import { browser } from '$app/environment';
-import { onMount } from 'svelte';
+	import { ArrowRight, Compass, Inbox, Users2 } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+	import { problems } from '#lib/data/workspace.js';
+	import { browser } from '$app/env';
+	import { onMount } from 'svelte';
 
 let filter = $state<'All' | 'Needs context' | 'Ready for decision' | 'Planned' | 'Resolved'>('All');
 let isPreview = $state(false);
@@ -24,9 +24,26 @@ let filtered = $derived(sourceProblems.filter((problem) => filter === 'All' || p
 		<span class="text-xs text-[var(--pc-text-faint)]">{filtered.length} problem{filtered.length === 1 ? '' : 's'}</span>
 	</div>
 
-	<div class="flex gap-1.5 overflow-x-auto pb-5" role="group" aria-label="Problem status filters">
-		{#each ['All', 'Needs context', 'Ready for decision', 'Planned', 'Resolved'] as item}
-			<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{item === 'All' ? 'Everything' : item}</button>
+	<div
+		class="flex gap-1.5 overflow-x-auto pb-5"
+		role="group"
+		aria-label="Problem status filters"
+	>
+		{#each [
+			'All',
+			'Needs context',
+			'Ready for decision',
+			'Planned',
+			'Resolved'
+		] as item}
+			<button
+				type="button"
+				onclick={() => filter = item as typeof filter}
+				aria-pressed={filter === item}
+				class="inline-flex min-h-9 shrink-0 items-center rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item
+					? 'bg-[var(--pc-text)] text-[var(--pc-bg)]'
+					: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}"
+			>{item === 'All' ? 'Everything' : item}</button>
 		{/each}
 	</div>
 
@@ -38,7 +55,16 @@ let filtered = $derived(sourceProblems.filter((problem) => filter === 'All' || p
 					<div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/25 pt-3 text-[11px] text-[var(--pc-text-faint)]"><span class="inline-flex items-center gap-1"><Users2 size={13} weight="Outline" aria-hidden="true" /> {problem.affectedAudience}</span><span class="inline-flex items-center gap-1"><Inbox size={13} weight="Outline" aria-hidden="true" /> {problem.feedbackIds.length} source{problem.feedbackIds.length === 1 ? '' : 's'}</span><span class="ml-auto inline-flex items-center gap-1 text-[var(--pc-accent-light)]">Open problem <ArrowRight size={12} weight="Outline" aria-hidden="true" /></span></div>
 				</a>
 			{/each}
-			{#if filtered.length === 0}<StatePanel icon={Compass} title="No problems found" description="No problems match the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} />{/if}
+
+			{#if filtered.length === 0}
+				<StatePanel
+					icon={Compass}
+					title="No problems found"
+					description="No problems match the selected filter."
+					actionLabel="Show all"
+					onAction={() => filter = 'All'}
+				/>
+			{/if}
 		</section>
 
 		<aside class="space-y-4">

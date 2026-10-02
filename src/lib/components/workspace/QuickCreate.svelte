@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { AlertTriangle, ChatDots, Inbox, Plus, Rocket } from 'reicon-svelte';
-	import NotePad from '$lib/components/notes/NotePad.svelte';
+	import NotePad from '#lib/components/notes/NotePad.svelte';
 
 	let {
 		label = 'Create',

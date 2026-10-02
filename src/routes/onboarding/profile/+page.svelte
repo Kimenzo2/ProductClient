@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowRight, User } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import AuthInput from '$lib/components/auth/AuthInput.svelte';
-	import OnboardingFrame from '$lib/components/auth/OnboardingFrame.svelte';
-	import { requireSession } from '$lib/auth/guard';
-	import { readOnboardingDraft, saveOnboardingDraft } from '$lib/auth/onboarding';
-	import { supabase } from '$lib/supabaseClient';
+	import { Button } from '#lib/components/ui/index.js';
+	import AuthInput from '#lib/components/auth/AuthInput.svelte';
+	import OnboardingFrame from '#lib/components/auth/OnboardingFrame.svelte';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { readOnboardingDraft, saveOnboardingDraft } from '#lib/auth/onboarding.js';
+	import { supabase } from '#lib/supabaseClient.js';
 
 	let name = $state('');
 	let nameError = $state('');

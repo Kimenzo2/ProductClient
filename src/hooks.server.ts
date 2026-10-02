@@ -1,7 +1,7 @@
-import { dev } from '$app/environment';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { dev } from '$app/env';
 import { injectAnalytics } from '@vercel/analytics/sveltekit';
 import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
-import type { Handle } from '@sveltejs/kit';
 
 injectAnalytics({ mode: dev ? 'development' : 'production' });
 injectSpeedInsights();

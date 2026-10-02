@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Lock, Shield } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { Button } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 </script>
 
 <header class="mb-5">

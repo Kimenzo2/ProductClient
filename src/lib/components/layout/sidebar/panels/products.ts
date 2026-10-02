@@ -1,5 +1,5 @@
 import { Box } from 'reicon-svelte';
-import { products } from '$lib/data/workspace';
+import { products } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const productsPanel: PanelDef = {

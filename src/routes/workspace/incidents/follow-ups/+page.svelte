@@ -3,10 +3,10 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 import { AlertTriangle, ArrowRight, Calendar, CheckCircle, Clock, Export, History, Search, User } from 'reicon-svelte';
-import { Button, Input, Label, Select } from '$lib/components/ui';
-import { followUpPreview, hydrateFollowUps, resetFollowUps, updateFollowUp } from '$lib/data/followUps.svelte';
-import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
-import type { FollowUpRecord, IncidentRecord } from '$lib/data/workspace';
+import { Button, Input, Label, Select } from '#lib/components/ui/index.js';
+import { followUpPreview, hydrateFollowUps, resetFollowUps, updateFollowUp } from '#lib/data/followUps.svelte.js';
+import { hydrateStatusEditor, incidentRecordsForWorkspace } from '#lib/data/statusEditor.svelte.js';
+import type { FollowUpRecord, IncidentRecord } from '#lib/data/workspace.js';
 
 type FollowUpFilter = 'Everything' | FollowUpRecord['status'];
 type EnrichedFollowUp = FollowUpRecord & { incident?: IncidentRecord };
@@ -59,7 +59,7 @@ let filter = $state<FollowUpFilter>('Everything');
 	function selectFollowUp(id: string) {
 		selectedId = id;
 		saveNotice = '';
-		void goto(`/workspace/incidents/follow-ups?selected=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
+		void goto(`/workspace/incidents/follow-ups?selected=${encodeURIComponent(id)}`, { replaceState: true, reset: false });
 	}
 
 	function clearFilters() {

@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { ArrowLeft, CheckCircle, CloseCircle } from 'reicon-svelte';
-	import { Button, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
-	import { type PublicIncidentStatus, type StatusIncident } from '$lib/data/status';
-	import { appendIncidentUpdate, hydrateStatusEditor, incidentRecordsForWorkspace, saveStatusEditor, statusEditorPreview } from '$lib/data/statusEditor.svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { Button, Input, Label, Select, StatePanel, Textarea } from '#lib/components/ui/index.js';
+	import { type PublicIncidentStatus, type StatusIncident } from '#lib/data/status.js';
+	import { appendIncidentUpdate, hydrateStatusEditor, incidentRecordsForWorkspace, saveStatusEditor, statusEditorPreview } from '#lib/data/statusEditor.svelte.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 	let id = $derived(page.params.id);
 	let incident = $derived(incidentRecordsForWorkspace().find((record) => record.id === id));

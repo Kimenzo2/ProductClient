@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 import { Check, Plug, Search } from 'reicon-svelte';
-import { Button, Input, Label, Select } from '$lib/components/ui';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-import { supabase } from '$lib/supabaseClient';
+import { Button, Input, Label, Select } from '#lib/components/ui/index.js';
+import { tooltip } from '#lib/components/Tooltip.svelte';
+import { supabase } from '#lib/supabaseClient.js';
 
 	type Product = { id: string; name: string; slug: string };
 	type KitKey = 'docs' | 'roadmap' | 'status';

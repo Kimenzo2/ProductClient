@@ -5,10 +5,10 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { CloseCircle, Add, ImagePlus, Link2, Check, Globe } from 'reicon-svelte';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$env/static/public';
-	import { activeProductStore, setActiveProduct, refreshProducts } from '$lib/stores/activeProduct.svelte';
+import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY } from '$app/env/public';
+	import { activeProductStore, setActiveProduct, refreshProducts } from '#lib/stores/activeProduct.svelte.js';
 
 	type Tab = 'product' | 'media' | 'launch' | 'review';
 	type Pricing = 'free' | 'free_paid' | 'paid' | null;
@@ -199,16 +199,17 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	function safeWebsite(): string | null {
 		const trimmed = website.trim();
 		if (!trimmed) return null;
-		return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+		return (/^https?:\/\//i).test(trimmed) ? trimmed : null;
 	}
 	function normalizeWebsiteBlur() {
 		if (!website.trim()) { websiteWarn=''; return; }
 		const raw = website.trim();
-		const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+		const withProto = (/^https?:\/\//i).test(raw) ? raw : `https://${raw}`;
 		const canonical = stripUtm(withProto);
 		website = canonical;
-		if (/\.(vercel\.app|netlify\.app)(\/|$)/i.test(canonical)) websiteWarn = 'Heads up: app subdomains look temporary — consider a custom domain.';
-		else websiteWarn = '';
+
+		if ((/\.(vercel\.app|netlify\.app)(\/|$)/i).test(canonical)) websiteWarn = 'Heads up: app subdomains look temporary — consider a custom domain.'; else websiteWarn = '';
+
 		// Prefill name/tagline only when empty — soft OG fetch not wired, keep empty
 	}
 	async function checkSlugBlur() {
@@ -257,10 +258,21 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	}
 	function addExtraLink() {
 		if (!extraUrl.trim()) return;
-		const url = /^https?:\/\//i.test(extraUrl.trim()) ? extraUrl.trim() : `https://${extraUrl.trim()}`;
-		extraLinks = [...extraLinks, { label: extraLabel.trim() || new URL(url).hostname.replace(/^www\./,''), url }];
-		extraLabel = ''; extraUrl = '';
+
+		const url = (/^https?:\/\//i).test(extraUrl.trim()) ? extraUrl.trim() : `https://${extraUrl.trim()}`;
+
+		extraLinks = [
+			...extraLinks,
+			{
+				label: extraLabel.trim() || new URL(url).hostname.replace(/^www\./, ''),
+				url
+			}
+		];
+
+		extraLabel = '';
+		extraUrl = '';
 	}
+
 	function removeExtraLink(index: number) {
 		extraLinks = extraLinks.filter((_, i) => i !== index);
 	}
@@ -325,7 +337,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		screenshots = screenshots.filter((_, i) => i !== index);
 	}
 	function isDurableMediaUrl(value: string): boolean {
-		return /^https?:\/\//i.test(value) || value.startsWith('/');
+		return (/^https?:\/\//i).test(value) || value.startsWith('/');
 	}
 
 	async function handleLogoChange(e: Event) {
@@ -500,7 +512,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			if (showHint) mediaError = 'Add a product name before saving.';
 			return false;
 		}
-		if ((slugTouched && !slug.trim()) || (slug.trim() && normalizeSlug(slug).length < 3)) {
+		if (slugTouched && !slug.trim() || slug.trim() && normalizeSlug(slug).length < 3) {
 			if (showHint) {
 				mediaError = 'Use a product address with at least three letters or numbers.';
 				slugError = mediaError;
@@ -568,7 +580,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			slugError = '';
 			if (showHint) {
 				savedHint = 'Draft saved';
-				setTimeout(() => (savedHint = ''), 1200);
+				setTimeout(() => savedHint = '', 1200);
 			}
 			return true;
 		} catch (e: any) {
@@ -838,13 +850,27 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown}></svelte:window>
 
 <!-- Backdrop: transparent click-catcher, like ProductSwitcher -->
-<button type="button" class="fixed inset-0 z-40 cursor-default bg-transparent" aria-label="Close" onclick={handleBackdropClick} {...(showExitModal ? { inert: true } : {})}></button>
+
+<button
+	type="button"
+	class="fixed inset-0 z-40 cursor-default bg-transparent"
+	aria-label="Close"
+	onclick={handleBackdropClick}
+	{...showExitModal ? { inert: true } : {}}
+></button>
 
 <!-- Pad — scale 0.98 → 1 + fade per spec -->
-<div class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6" aria-modal="true" role="dialog" aria-label={editMode ? 'Edit product' : 'Add a product'} {...(showExitModal ? { inert: true } : {})}>
+
+<div
+	class="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6"
+	aria-modal="true"
+	role="dialog"
+	aria-label={editMode ? 'Edit product' : 'Add a product'}
+	{...showExitModal ? { inert: true } : {}}
+>
 	<div
 		in:scale={{ start: 0.98, duration: 160, easing: cubicOut }}
 		class="flex w-full max-w-[820px] max-h-[min(88dvh,860px)] flex-col overflow-hidden rounded-[24px] border border-[var(--pc-border-strong)] bg-[var(--pc-bg)] sm:max-h-[min(92dvh,860px)] max-sm:inset-0 max-sm:max-w-none max-sm:max-h-none max-sm:rounded-none max-sm:border-0"
@@ -864,9 +890,11 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 					<button
 						type="button"
 						role="tab"
-						aria-selected={activeTab===value}
-						onclick={() => (activeTab = value as Tab)}
-						class="pb-3 text-sm font-medium tracking-[-0.01em] transition-[color,border-color] {activeTab===value ? 'border-b-2 border-[var(--pc-text)] text-[var(--pc-text)]' : 'border-b-2 border-transparent text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]'}"
+						aria-selected={activeTab === value}
+						onclick={() => activeTab = value as Tab}
+						class="pb-3 text-sm font-medium tracking-[-0.01em] transition-[color,border-color] {activeTab === value
+							? 'border-b-2 border-[var(--pc-text)] text-[var(--pc-text)]'
+							: 'border-b-2 border-transparent text-[var(--pc-text-muted)] hover:text-[var(--pc-text)]'}"
 					>{label}</button>
 				{/each}
 			</div>
@@ -890,10 +918,26 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 							{#if nameError}<p class="text-sm leading-[1.5] text-[#fca5a5]">{nameError}</p>{/if}
 						</div>
 						<div class="space-y-2">
-							<label for="pad-slug" class="block text-sm font-medium text-[var(--pc-text-muted)]">Address</label>
-							<div class="flex items-center gap-1 rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-0 transition-[background-color] focus-within:bg-[var(--pc-surface-2)]">
-								<span class="shrink-0 text-sm text-[var(--pc-text-faint)]">productclient.com/</span>
-								<input id="pad-slug" bind:value={slug} oninput={() => (slugTouched = true)} onblur={checkSlugBlur} placeholder="bento" class="min-w-0 flex-1 cursor-text bg-transparent py-3 text-base text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none" />
+							<label
+								for="pad-slug"
+								class="block text-sm font-medium text-[var(--pc-text-muted)]"
+							>Address</label>
+
+							<div
+								class="flex items-center gap-1 rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-0 transition-[background-color] focus-within:bg-[var(--pc-surface-2)]"
+							>
+								<span
+									class="shrink-0 text-sm text-[var(--pc-text-faint)]"
+								>productclient.com/</span>
+
+								<input
+									id="pad-slug"
+									bind:value={slug}
+									oninput={() => slugTouched = true}
+									onblur={checkSlugBlur}
+									placeholder="bento"
+									class="min-w-0 flex-1 cursor-text bg-transparent py-3 text-base text-[var(--pc-text)] placeholder:text-[var(--pc-text-faint)] outline-none"
+								/>
 							</div>
 							{#if slugError}<p class="text-sm text-[#fca5a5]">{slugError}</p>{/if}
 						</div>
@@ -923,16 +967,34 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 						<div class="space-y-3">
 							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Pricing</p>
 							<div class="grid grid-cols-3 gap-2">
-								{#each [['free','Free'],['free_paid','Free + paid'],['paid','Paid']] as [val, label]}
-									<button type="button" onclick={() => (pricing = val as Pricing)} aria-pressed={pricing===val} class="rounded-[12px] border px-2 py-3 text-center text-sm font-medium transition-[background-color,color,border-color] {pricing===val ? 'border-[var(--pc-text)] bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)]'}">{label}</button>
+								{#each [
+									['free', 'Free'],
+									['free_paid', 'Free + paid'],
+									['paid', 'Paid']
+								] as [val, label]}
+									<button
+										type="button"
+										onclick={() => pricing = val as Pricing}
+										aria-pressed={pricing === val}
+										class="rounded-[12px] border px-2 py-3 text-center text-sm font-medium transition-[background-color,color,border-color] {pricing === val
+											? 'border-[var(--pc-text)] bg-[var(--pc-text)] text-[var(--pc-bg)]'
+											: 'border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)]'}"
+									>{label}</button>
 								{/each}
 							</div>
 						</div>
 						<div class="space-y-3">
 							<p class="block text-sm font-medium text-[var(--pc-text-muted)]">Availability</p>
 							<div class="grid grid-cols-2 gap-2">
-								{#each [['live','Live now'],['coming_soon','Coming soon']] as [val, label]}
-									<button type="button" onclick={() => (availability = val as Availability)} aria-pressed={availability===val} class="rounded-[12px] border px-2 py-3 text-center text-sm font-medium transition-[background-color,color,border-color] {availability===val ? 'border-[var(--pc-text)] bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)]'}">{label}</button>
+								{#each [['live', 'Live now'], ['coming_soon', 'Coming soon']] as [val, label]}
+									<button
+										type="button"
+										onclick={() => availability = val as Availability}
+										aria-pressed={availability === val}
+										class="rounded-[12px] border px-2 py-3 text-center text-sm font-medium transition-[background-color,color,border-color] {availability === val
+											? 'border-[var(--pc-text)] bg-[var(--pc-text)] text-[var(--pc-bg)]'
+											: 'border-[var(--pc-border-strong)] bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)]'}"
+									>{label}</button>
 								{/each}
 							</div>
 						</div>
@@ -966,16 +1028,22 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 									<input bind:value={plan.detail} placeholder="Core search and 50 AI actions a month." class="w-full cursor-text rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm text-[var(--pc-text-muted)] outline-none" />
 								</div>
 								{#if pricingPlans.length > 1}
-									<button type="button" onclick={() => (pricingPlans = pricingPlans.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove pricing plan">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => pricingPlans = pricingPlans.filter((_, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove pricing plan"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<button
 							type="button"
-							use:tooltip={{ text: 'Add another pricing tier to your recipe', island: true }}
-							onclick={() => (pricingPlans = [...pricingPlans, { name: '', price: '', detail: '' }])}
+							use:tooltip={{
+								text: 'Add another pricing tier to your recipe',
+								island: true
+							}}
+							onclick={() => pricingPlans = [...pricingPlans, { name: '', price: '', detail: '' }]}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -994,16 +1062,19 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 									<input bind:value={cap.description} placeholder="One query across apps, notes, and recent files." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
 								</div>
 								{#if capabilities.length > 1}
-									<button type="button" onclick={() => (capabilities = capabilities.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove capability">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => capabilities = capabilities.filter((_, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove capability"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<button
 							type="button"
 							use:tooltip={{ text: 'Add another capability to your recipe', island: true }}
-							onclick={() => (capabilities = [...capabilities, { name: '', description: '' }])}
+							onclick={() => capabilities = [...capabilities, { name: '', description: '' }]}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -1022,17 +1093,23 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 									<input bind:value={diff.description} placeholder="Opens tools and also reasons across them." class="w-full cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3 py-2.5 text-sm text-[var(--pc-text-muted)] outline-none focus:bg-[var(--pc-surface-2)]" />
 								</div>
 								{#if differentiators.length > 1}
-									<button type="button" onclick={() => (differentiators = differentiators.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove differentiator">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => differentiators = differentiators.filter((_, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove differentiator"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<p class="text-xs text-[var(--pc-text-faint)]">Rendered as pure long text: <span class="italic">name: description</span> joined with spaces, no bullets or em dashes.</p>
 						<button
 							type="button"
-							use:tooltip={{ text: 'Add another differentiator to your recipe', island: true }}
-							onclick={() => (differentiators = [...differentiators, { name: '', description: '' }])}
+							use:tooltip={{
+								text: 'Add another differentiator to your recipe',
+								island: true
+							}}
+							onclick={() => differentiators = [...differentiators, { name: '', description: '' }]}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -1048,16 +1125,19 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 							<div class="flex gap-2">
 								<input bind:value={audienceFor[i]} placeholder={['People who live in keyboard shortcuts','Teams drowning in tab sprawl','Users who want one place to ask and act'][i] ?? 'Add audience'} class="flex-1 cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none focus:bg-[var(--pc-surface-2)]" />
 								{#if audienceFor.length > 1}
-									<button type="button" onclick={() => (audienceFor = audienceFor.filter((__, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove audience">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => audienceFor = audienceFor.filter((__, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove audience"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<button
 							type="button"
 							use:tooltip={{ text: 'Add another audience to your recipe', island: true }}
-							onclick={() => (audienceFor = [...audienceFor, ''])}
+							onclick={() => audienceFor = [...audienceFor, '']}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -1073,16 +1153,19 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 							<div class="flex gap-2">
 								<input bind:value={howItWorks[i]} placeholder={['Install Bento and point it at the apps you use daily.','Hit the hotkey, then type or speak what you need.','Bento pulls context, runs the action, and stays open for follow-ups.'][i] ?? 'Add a step'} class="flex-1 cursor-text rounded-[12px] border border-transparent bg-[var(--pc-surface)] px-3.5 py-2.5 text-sm text-[var(--pc-text)] outline-none transition-[background-color] focus:bg-[var(--pc-surface-2)]" />
 								{#if howItWorks.length > 1}
-									<button type="button" onclick={() => (howItWorks = howItWorks.filter((__, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove step">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => howItWorks = howItWorks.filter((__, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove step"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<button
 							type="button"
 							use:tooltip={{ text: 'Add another step to your recipe', island: true }}
-							onclick={() => (howItWorks = [...howItWorks, ''])}
+							onclick={() => howItWorks = [...howItWorks, '']}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -1101,16 +1184,19 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 									<textarea bind:value={faq.answer} rows={2} placeholder="Index and search run locally..." class="w-full cursor-text resize-none rounded-[8px] bg-[var(--pc-bg)] px-3 py-2 text-sm leading-[1.5] text-[var(--pc-text-muted)] outline-none"></textarea>
 								</div>
 								{#if faqs.length > 1}
-									<button type="button" onclick={() => (faqs = faqs.filter((_, idx) => idx !== i))} class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]" aria-label="Remove FAQ">
-										<CloseCircle size={16} weight="Outline" aria-hidden="true" />
-									</button>
+									<button
+										type="button"
+										onclick={() => faqs = faqs.filter((_, idx) => idx !== i)}
+										class="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pc-surface)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface-2)] hover:text-[var(--pc-text)]"
+										aria-label="Remove FAQ"
+									><CloseCircle size={16} weight="Outline" aria-hidden="true" /></button>
 								{/if}
 							</div>
 						{/each}
 						<button
 							type="button"
 							use:tooltip={{ text: 'Add another FAQ to your recipe', island: true }}
-							onclick={() => (faqs = [...faqs, { question: '', answer: '' }])}
+							onclick={() => faqs = [...faqs, { question: '', answer: '' }]}
 							class="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--pc-border-strong)] bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--pc-text-muted)] transition-[background-color,color,border-color] hover:bg-[var(--pc-surface)] hover:text-[var(--pc-text)] hover:border-[var(--pc-text)]/20"
 						>
 							<Add size={14} weight="Outline" aria-hidden="true" /> Add block
@@ -1218,14 +1304,33 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 			<div class="flex items-center justify-between gap-3">
 				<div class="flex gap-2">
 					{#if activeTab !== 'product'}
-						<button type="button" onclick={() => (activeTab = activeTab === 'review' ? 'launch' : activeTab === 'launch' ? 'media' : 'product')} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]">Back</button>
+						<button
+							type="button"
+							onclick={() => activeTab = activeTab === 'review'
+								? 'launch'
+								: activeTab === 'launch' ? 'media' : 'product'}
+							class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)]"
+						>Back</button>
 					{:else}
-						<button type="button" onclick={() => (editMode ? handleSaveChanges() : saveDraft())} disabled={saving || editLoading || editLoadFailed} class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50">{saving ? 'Saving...' : editMode ? 'Save changes' : 'Save draft'}</button>
+						<button
+							type="button"
+							onclick={() => editMode ? handleSaveChanges() : saveDraft()}
+							disabled={saving || editLoading || editLoadFailed}
+							class="inline-flex h-10 items-center justify-center rounded-full border border-[var(--pc-border-strong)] bg-[var(--pc-surface)] px-4 text-sm font-medium text-[var(--pc-text)] hover:bg-[var(--pc-surface-2)] disabled:opacity-50"
+						>
+							{saving
+								? 'Saving...'
+								: editMode ? 'Save changes' : 'Save draft'}
+						</button>
 					{/if}
 				</div>
 				<div class="flex gap-2">
 					{#if activeTab !== 'review'}
-						<button type="button" onclick={() => (activeTab = activeTab === 'product' ? 'media' : activeTab === 'media' ? 'launch' : 'review')} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]">Continue</button>
+						<button
+							type="button"
+							onclick={() => activeTab = activeTab === 'product' ? 'media' : activeTab === 'media' ? 'launch' : 'review'}
+							class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98]"
+						>Continue</button>
 					{:else if editKeepsLive}
 						<button type="button" onclick={() => handleSaveChanges()} disabled={saving || editLoading || editLoadFailed} class="inline-flex h-10 items-center justify-center rounded-full bg-[var(--pc-text)] px-5 text-sm font-medium text-[var(--pc-bg)] hover:opacity-[0.88] active:scale-[0.98] disabled:opacity-50">
 							{saving ? 'Saving...' : 'Save changes'}

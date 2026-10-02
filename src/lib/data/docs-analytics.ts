@@ -1,5 +1,5 @@
-import { supabase } from '$lib/supabaseClient';
-import { analyticsRange, type AnalyticsRange } from '$lib/data/analytics-range.svelte';
+import { supabase } from '#lib/supabaseClient.js';
+import { analyticsRange, type AnalyticsRange } from '#lib/data/analytics-range.svelte.js';
 
 export type DocsAnalytics = {
 	metrics: { views: number; visitors: number; searches: number; noResultQueries: number; helpfulYes: number; helpfulNo: number; playgroundRuns: number; codeCopies: number; };

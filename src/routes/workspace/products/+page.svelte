@@ -1,10 +1,10 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 import { Box } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
+import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+import ProductLogo from '#lib/components/brand/ProductLogo.svelte';
 
 let products = $derived(activeProductStore.products);
 let filtered = $derived(products);

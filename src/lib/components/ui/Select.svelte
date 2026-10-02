@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Select } from 'bits-ui';
 	import { ChevronDown, Check } from 'reicon-svelte';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	export type SelectOption = { value: string; label: string; disabled?: boolean };
 

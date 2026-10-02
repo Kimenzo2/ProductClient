@@ -34,5 +34,5 @@ export function resolveHostedDocsHref(path?: string | null): string {
 	return `${hostedDocsPage.origin}${normalizedPath}`;
 }
 
-// Multi-tenant slug helpers live in `$lib/tenant` (TENANT_DOMAIN / tenantHost /
+// Multi-tenant slug helpers live in `#lib/tenant.js` (TENANT_DOMAIN / tenantHost /
 // tenantUrl) — the slug registry maps one tenant to all hosted page types.

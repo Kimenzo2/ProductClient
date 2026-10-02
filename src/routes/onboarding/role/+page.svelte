@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowLeft, ArrowRight, Briefcase, Code, MessageDots, Users } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import OnboardingFrame from '$lib/components/auth/OnboardingFrame.svelte';
-	import { requireSession } from '$lib/auth/guard';
-	import { readOnboardingDraft, saveOnboardingDraft, type OnboardingRole } from '$lib/auth/onboarding';
+	import { Button } from '#lib/components/ui/index.js';
+	import OnboardingFrame from '#lib/components/auth/OnboardingFrame.svelte';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { readOnboardingDraft, saveOnboardingDraft, type OnboardingRole } from '#lib/auth/onboarding.js';
 
 	type RoleOption = { value: OnboardingRole; label: string; description: string; icon: typeof Briefcase };
 

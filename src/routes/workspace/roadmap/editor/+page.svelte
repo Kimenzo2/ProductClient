@@ -14,7 +14,7 @@
 		Upload,
 		Warning
 	} from 'reicon-svelte';
-	import { Button, Input, Label, Select, Textarea, Toggle } from '$lib/components/ui';
+	import { Button, Input, Label, Select, Textarea, Toggle } from '#lib/components/ui/index.js';
 	import VocabEditor from './VocabEditor.svelte';
 	import {
 		RoadmapItemSchema,
@@ -22,8 +22,8 @@
 		roadmapDocSeed,
 		validateRoadmapDoc,
 		type RoadmapDoc
-	} from '$lib/data/roadmapEditor';
-	import { supabase } from '$lib/supabaseClient';
+	} from '#lib/data/roadmapEditor.js';
+	import { supabase } from '#lib/supabaseClient.js';
 
 	type Selection =
 		| { area: 'site' }

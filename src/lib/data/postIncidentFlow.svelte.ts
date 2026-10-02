@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { postIncidentTasks as seedTasks, type PostIncidentTask } from '$lib/data/workspace';
-import { supabase } from '$lib/supabaseClient';
+import { browser } from '$app/env';
+import { postIncidentTasks as seedTasks, type PostIncidentTask } from '#lib/data/workspace.js';
+import { supabase } from '#lib/supabaseClient.js';
 
 const STORAGE_KEY = 'productclient.post-incident-flow.preview.v1';
 const statuses: PostIncidentTask['status'][] = ['Open', 'Done', 'Not doing'];
@@ -48,14 +48,14 @@ function persist() {
 }
 
 export async function hydratePostIncidentFlow(force = false) {
-	if (!browser || (postIncidentFlowPreview.hydrated && !force)) return;
+	if (!browser || postIncidentFlowPreview.hydrated && !force) return;
 	try {
 		if (supabase) {
 			const { data } = await supabase.auth.getSession();
 			const token = data.session?.access_token;
 			if (token) {
 				const response = await fetch('/api/incidents/work-items', { headers: { authorization: `Bearer ${token}` } });
-				const payload = (await response.json().catch(() => ({}))) as { items?: Array<Record<string, unknown>> };
+				const payload = await response.json().catch(() => ({})) as { items?: Array<Record<string, unknown>> };
 				const tasks = (payload.items ?? []).filter((item) => item.work_type === 'review_task').map((item) => ({
 					id: String(item.id),
 					incidentId: String(item.incidentId ?? ''),
@@ -95,7 +95,7 @@ export async function hydratePostIncidentFlow(force = false) {
 export function updatePostIncidentTask(id: string, changes: Partial<PostIncidentTaskEdit>): boolean {
 	const task = postIncidentFlowPreview.tasks.find((item) => item.id === id);
 	if (!task) return false;
-	postIncidentFlowPreview.tasks = postIncidentFlowPreview.tasks.map((item) => (item.id === id ? { ...item, ...changes } : item));
+	postIncidentFlowPreview.tasks = postIncidentFlowPreview.tasks.map((item) => item.id === id ? { ...item, ...changes } : item);
 	persist();
 	void persistRemote(postIncidentFlowPreview.tasks.find((item) => item.id === id));
 	return true;

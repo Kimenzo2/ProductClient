@@ -1,5 +1,5 @@
 import { Edit, Roadmap } from 'reicon-svelte';
-import { roadmapItems } from '$lib/data/workspace';
+import { roadmapItems } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const roadmapPanel: PanelDef = {

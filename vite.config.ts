@@ -1,3 +1,5 @@
+import adapter from '@sveltejs/adapter-vercel';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'node:path';
@@ -34,7 +36,14 @@ if (existsSync(resolve(componentsSvelteDist, 'styles.css'))) {
 }
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			preprocess: vitePreprocess(),
+			adapter: adapter({ runtime: 'nodejs24.x' }),
+			alias: { $lib: 'src/lib', '$lib/*': 'src/lib/*' }
+		})
+	],
 	// Edra's compiled Svelte toolbar imports this package indirectly. Keep it
 	// in Vite's dependency graph so SSR does not retain a stale missing-module
 	// result after the package is installed or the lockfile changes.

@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { Box } from 'reicon-svelte';
-import { Button, Chip, StatePanel } from '$lib/components/ui';
-import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '$lib/stores/activeProduct.svelte';
-import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
+import { Button, Chip, StatePanel } from '#lib/components/ui/index.js';
+import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+import ProductLogo from '#lib/components/brand/ProductLogo.svelte';
 
 	let slug = $derived(page.params.slug ?? '');
 	let product = $derived(activeProductStore.products.find((p) => p.slug === slug) ?? null);

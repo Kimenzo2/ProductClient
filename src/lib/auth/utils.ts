@@ -1,5 +1,5 @@
 import type { AuthError } from '@supabase/supabase-js';
-import { authHref } from '$lib/auth/urls';
+import { authHref } from '#lib/auth/urls.js';
 
 export function safeNextPath(value: string | null | undefined, fallback = '/workspace'): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/auth')) return fallback;

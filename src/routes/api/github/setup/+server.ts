@@ -1,6 +1,6 @@
-import { redirect, json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { createAppJWT, verifyState } from '$lib/server/githubApp';
+import { redirect } from '@sveltejs/kit';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { createAppJWT, verifyState } from '#lib/server/githubApp.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, request }) => {
@@ -11,10 +11,10 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	// GitHub can redirect with ?setup_action=install etc without state if user installs from marketplace
 	// But our flow always includes state
 	if (!installationIdRaw) {
-		return json({ ok: false, code: 'MISSING_INSTALLATION_ID' }, { status: 400 });
+		return Response.json({ ok: false, code: 'MISSING_INSTALLATION_ID' }, { status: 400 });
 	}
 	const installationId = Number(installationIdRaw);
-	if (!Number.isFinite(installationId)) return json({ ok: false, code: 'INVALID_INSTALLATION_ID' }, { status: 400 });
+	if (!Number.isFinite(installationId)) return Response.json({ ok: false, code: 'INVALID_INSTALLATION_ID' }, { status: 400 });
 
 	if (!stateRaw) {
 		// A setup callback without state cannot be safely bound to a ProductClient
@@ -27,15 +27,15 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	}
 
 	const state = verifyState(stateRaw);
-	if (!state) return json({ ok: false, code: 'INVALID_STATE' }, { status: 401 });
+	if (!state) return Response.json({ ok: false, code: 'INVALID_STATE' }, { status: 401 });
 
 	const productId = state.product_id as string | undefined;
 	const makerId = state.maker_id as string | undefined;
 	const nonce = state.nonce as string | undefined;
 	const exp = state.exp as number | undefined;
 
-	if (!productId || !makerId) return json({ ok: false, code: 'INVALID_STATE_PAYLOAD' }, { status: 401 });
-	if (exp && Date.now() > exp) return json({ ok: false, code: 'STATE_EXPIRED' }, { status: 401 });
+	if (!productId || !makerId) return Response.json({ ok: false, code: 'INVALID_STATE_PAYLOAD' }, { status: 401 });
+	if (exp && Date.now() > exp) return Response.json({ ok: false, code: 'STATE_EXPIRED' }, { status: 401 });
 
 	// TODO: state reuse check — store nonce in github_sync_runs with event='state_nonce' and check unique
 	// For now, allow but log
@@ -45,7 +45,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	// Verify product ownership
 	const { data: product } = await admin.from('products').select('id, maker_id, slug, name').eq('id', productId).maybeSingle();
 	if (!product || (product as { maker_id: string }).maker_id !== makerId) {
-		return json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
+		return Response.json({ ok: false, code: 'PRODUCT_NOT_FOUND_OR_NOT_OWNER' }, { status: 403 });
 	}
 
 	// Fetch installation details from GitHub to get account info
@@ -91,7 +91,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	);
 	if (upsertError) {
 		console.error('github_installations upsert failed', upsertError);
-		return json({ ok: false, code: 'DB_ERROR', message: upsertError.message }, { status: 500 });
+		return Response.json({ ok: false, code: 'DB_ERROR', message: upsertError.message }, { status: 500 });
 	}
 
 	// If nonce handling, insert sync run to mark used (best effort)

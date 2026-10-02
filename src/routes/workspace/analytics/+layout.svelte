@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { analyticsRange, type AnalyticsRange, rangeLabel } from '$lib/data/analytics-range.svelte';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { analyticsRange, type AnalyticsRange, rangeLabel } from '#lib/data/analytics-range.svelte.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	let { children } = $props();
 

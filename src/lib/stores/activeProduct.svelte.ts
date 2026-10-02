@@ -1,10 +1,10 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { page } from '$app/state';
-import { supabase } from '$lib/supabaseClient';
-import { env } from '$env/dynamic/public';
-import { ensureMyTenant } from '$lib/tenant';
-import { products as mockProductsSeed } from '$lib/data/workspace';
-import type { ProductRecord } from '$lib/data/workspace';
+import { supabase } from '#lib/supabaseClient.js';
+import { PUBLIC_DEV_AUTH_BYPASS } from '$app/env/public';
+import { ensureMyTenant } from '#lib/tenant.js';
+import { products as mockProductsSeed } from '#lib/data/workspace.js';
+import type { ProductRecord } from '#lib/data/workspace.js';
 
 export type ActiveProduct = {
 	id: string;
@@ -149,7 +149,7 @@ export async function hydrateActiveProduct(): Promise<void> {
 	loadingState = true;
 	loadPromise = (async () => {
 		try {
-			const isBypass = !import.meta.env.PROD && env.PUBLIC_DEV_AUTH_BYPASS === '1';
+			const isBypass = !import.meta.env.PROD && PUBLIC_DEV_AUTH_BYPASS === '1';
 			let rows: ActiveProduct[] = [];
 
 			if (supabase) {

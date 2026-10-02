@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { ArrowRight, CheckCircle, Map } from 'reicon-svelte';
-	import { Chip } from '$lib/components/ui';
-	import type { DecisionThread } from '$lib/data/workspace';
-	import RelationList from '$lib/components/workspace/RelationList.svelte';
-	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
+	import { Chip } from '#lib/components/ui/index.js';
+	import type { DecisionThread } from '#lib/data/workspace.js';
+	import RelationList from '#lib/components/workspace/RelationList.svelte';
+	import StatusBadge from '#lib/components/workspace/StatusBadge.svelte';
+import { tooltip } from '#lib/components/Tooltip.svelte';
+	import VisibilityBadge from '#lib/components/workspace/VisibilityBadge.svelte';
 
 	let {
 		thread,

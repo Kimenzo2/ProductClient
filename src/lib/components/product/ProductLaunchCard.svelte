@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { MockState } from '$lib/data/mockStates';
+	import type { MockState } from '#lib/data/mockStates.js';
 	import { ArrowUp, Verified } from 'reicon-svelte';
-	import { Avatar, Badge, Button, Card, Chip } from '$lib/components/ui';
-import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
-import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { Avatar, Badge, Button, Card, Chip } from '#lib/components/ui/index.js';
+import ProductLogo from '#lib/components/brand/ProductLogo.svelte';
+import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	let {
 		item,

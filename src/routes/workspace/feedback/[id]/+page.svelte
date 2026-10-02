@@ -3,12 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, CheckCircle, Inbox, Map, UserSquare } from 'reicon-svelte';
-	import { Button, Card, Chip, Input, StatePanel } from '$lib/components/ui';
-	import { feedback as mockFeedback, productBySlug, problemsForFeedback } from '$lib/data/workspace';
-	import { loadFeedbackItemById } from '$lib/data/feedbackInbox';
-	import { supabase } from '$lib/supabaseClient';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
+	import { Button, Card, Chip, Input, StatePanel } from '#lib/components/ui/index.js';
+	import { feedback as mockFeedback, productBySlug, problemsForFeedback } from '#lib/data/workspace.js';
+	import { loadFeedbackItemById } from '#lib/data/feedbackInbox.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import ProductLogo from '#lib/components/brand/ProductLogo.svelte';
 
 	let id = $derived(page.params.id);
 	// Mock records first (dev fixtures / legacy ids); live rows load by id when

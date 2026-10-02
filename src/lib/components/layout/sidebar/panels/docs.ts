@@ -1,5 +1,5 @@
 import { FileText } from 'reicon-svelte';
-import { hostedDocsPage } from '$lib/config/tenant';
+import { hostedDocsPage } from '#lib/config/tenant.js';
 import type { PanelDef } from '../types';
 
 export const docsPanel: PanelDef = {

@@ -1,5 +1,5 @@
 import { History } from 'reicon-svelte';
-import { releases } from '$lib/data/workspace';
+import { releases } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const releasesPanel: PanelDef = {

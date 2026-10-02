@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import type { PanelDef } from './types';
-	import { signalRegistry } from '$lib/data/signalRegistry.svelte';
+	import { signalRegistry } from '#lib/data/signalRegistry.svelte.js';
 
 	let {
 		panel,

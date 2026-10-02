@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export type AnalyticsRange = '7d' | '30d' | '90d';
 

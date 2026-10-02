@@ -1,8 +1,8 @@
 <script lang="ts">
-	import ProductLaunchCard from '$lib/components/product/ProductLaunchCard.svelte';
-	import { mockStates } from '$lib/data/mockStates';
+	import ProductLaunchCard from '#lib/components/product/ProductLaunchCard.svelte';
+	import { mockStates } from '#lib/data/mockStates.js';
 	import { Heart } from 'reicon-svelte';
-	import { Avatar, StatePanel } from '$lib/components/ui';
+	import { Avatar, StatePanel } from '#lib/components/ui/index.js';
 
 	// Product identity comes from the shared mock data — never duplicate names or avatars here.
 	const followedSlugs = ['bento', 'tetra', 'mossbit', 'quillpost'] as const;

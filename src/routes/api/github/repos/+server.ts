@@ -1,6 +1,5 @@
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { listInstallationRepos } from '$lib/server/githubApp';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { listInstallationRepos } from '#lib/server/githubApp.js';
 import type { RequestHandler } from './$types';
 
 async function getUserId(request: Request, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
@@ -14,7 +13,7 @@ async function getUserId(request: Request, admin: ReturnType<typeof createAdminC
 export const GET: RequestHandler = async ({ request, url }) => {
 	const admin = createAdminClient();
 	const userId = await getUserId(request, admin);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	const installationIdRaw = url.searchParams.get('installation_id');
 	const productId = url.searchParams.get('product_id');
@@ -34,28 +33,28 @@ export const GET: RequestHandler = async ({ request, url }) => {
 	} else {
 		// list all installations for maker — return installations first
 		const { data: installs } = await admin.from('github_installations').select('installation_id, account_login, account_type').eq('maker_id', userId);
-		if (!installs?.length) return json({ ok: true, repositories: [], installations: [] });
+		if (!installs?.length) return Response.json({ ok: true, repositories: [], installations: [] });
 		// if only one, auto-fetch its repos
 		if (installs.length === 1) {
 			installationId = (installs[0] as { installation_id: number }).installation_id;
 		} else {
-			return json({ ok: true, installations: installs, repositories: [] });
+			return Response.json({ ok: true, installations: installs, repositories: [] });
 		}
 	}
 
-	if (!installationId) return json({ ok: false, code: 'MISSING_INSTALLATION_ID' }, { status: 400 });
+	if (!installationId) return Response.json({ ok: false, code: 'MISSING_INSTALLATION_ID' }, { status: 400 });
 
 	// verify ownership of installation
 	const { data: inst } = await admin.from('github_installations').select('installation_id').eq('installation_id', installationId).eq('maker_id', userId).maybeSingle();
-	if (!inst) return json({ ok: false, code: 'INSTALLATION_NOT_FOUND' }, { status: 404 });
+	if (!inst) return Response.json({ ok: false, code: 'INSTALLATION_NOT_FOUND' }, { status: 404 });
 
 	try {
 		const repos = await listInstallationRepos(installationId);
 		// sort by updated desc
 		repos.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''));
-		return json({ ok: true, repositories: repos, installation_id: installationId });
+		return Response.json({ ok: true, repositories: repos, installation_id: installationId });
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		return json({ ok: false, code: 'GITHUB_ERROR', message: msg }, { status: 502 });
+		return Response.json({ ok: false, code: 'GITHUB_ERROR', message: msg }, { status: 502 });
 	}
 };

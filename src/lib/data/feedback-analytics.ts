@@ -1,5 +1,5 @@
-import { supabase } from '$lib/supabaseClient';
-import type { AnalyticsRange } from '$lib/data/analytics-range.svelte';
+import { supabase } from '#lib/supabaseClient.js';
+import type { AnalyticsRange } from '#lib/data/analytics-range.svelte.js';
 export type FeedbackAnalytics = { metrics: { newRequests: number; comments: number; shipped: number; medianAge: number|null; watchers: number; linked: number; orphaned: number }; byStatus: {status:string;count:number}[] };
 
 const RANGE_DAYS: Record<AnalyticsRange, number> = { '7d': 7, '30d': 30, '90d': 90 };

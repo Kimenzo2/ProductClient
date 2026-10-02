@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { ArrowLeft, ArrowRight, CheckCircle, Export } from 'reicon-svelte';
-	import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
-	import { hostedStatusPage } from '$lib/config/tenant';
-	import { products } from '$lib/data/workspace';
-	import { hydrateStatusEditor, saveStatusEditor, startPublicIncident, statusEditorPreview, type PublicIncidentStatus, type PublicStatusState } from '$lib/data/statusEditor.svelte';
+	import { Button, Input, Label, Select, Textarea } from '#lib/components/ui/index.js';
+	import { hostedStatusPage } from '#lib/config/tenant.js';
+	import { products } from '#lib/data/workspace.js';
+	import { hydrateStatusEditor, saveStatusEditor, startPublicIncident, statusEditorPreview, type PublicIncidentStatus, type PublicStatusState } from '#lib/data/statusEditor.svelte.js';
 
 	type IncidentMode = 'Active' | 'Retrospective' | 'Test';
 	type IncidentSeverity = 'Critical' | 'High impact' | 'Medium impact';

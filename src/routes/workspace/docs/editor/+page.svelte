@@ -1,16 +1,29 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { Add, ArrowLeft, ChevronDown, Code, Eye, FileText, Save, Search, Settings, Trash } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import { Tree, TreeFolder, TreeFile } from 'components-svelte';
-	import EditorBlockSurface from '$lib/components/docs/EditorBlockSurface.svelte';
-	import { docsBlocksToMarkdown, markdownToDocsBlocks, normalizeDocsSiteConfig, starterDocsDocument, starterSiteConfig, type DocsBlock, type DocsDocument, type DocsPage, type DocsSiteConfig } from '$lib/data/docsEditor';
-import { supabase } from '$lib/supabaseClient';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { browser } from '$app/env';
 
-	type EditorResponse = {
+	import {
+		Add,
+		ArrowLeft,
+		ChevronDown,
+		Code,
+		Eye,
+		FileText,
+		Save,
+		Search,
+		Settings,
+		Trash
+	} from 'reicon-svelte';
+
+	import { Button } from '#lib/components/ui/index.js';
+	import { Tree, TreeFolder, TreeFile } from 'components-svelte';
+	import EditorBlockSurface from '#lib/components/docs/EditorBlockSurface.svelte';
+	import { docsBlocksToMarkdown, markdownToDocsBlocks, normalizeDocsSiteConfig, starterDocsDocument, starterSiteConfig, type DocsBlock, type DocsDocument, type DocsPage, type DocsSiteConfig } from '#lib/data/docsEditor.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+
+	type EditorResponse = { 
 		ok?: boolean;
 		code?: string;
 		message?: string;
@@ -86,7 +99,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		for (const p of doc.pages) {
 			const key = p.groupId ?? null;
 			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(p);
+			(map.get(key)!).push(p);
 		}
 		for (const list of map.values()) list.sort((a, b) => a.order - b.order);
 		return map;
@@ -98,8 +111,8 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	});
 	let searchResults = $derived(
 		doc.pages.filter((page) => {
-			const query = searchQuery.trim().toLowerCase();
-			return !query || `${page.title} ${page.description} ${page.slug}`.toLowerCase().includes(query);
+		const query = searchQuery.trim().toLowerCase();
+		return !query || `${page.title} ${page.description} ${page.slug}`.toLowerCase().includes(query);
 		})
 	);
 
@@ -299,7 +312,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 			return;
 		}
 		const response = await fetch('/api/docs/editor', { headers: { authorization: `Bearer ${token}` } });
-		const result = (await response.json().catch(() => null)) as EditorResponse | null;
+		const result = await response.json().catch(() => null) as EditorResponse | null;
 		if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not load the documentation draft.');
 		doc = structuredClone(result.draft ?? starterDocsDocument);
 		siteConfig = normalizeDocsSiteConfig(result.draft?.siteConfig);
@@ -337,7 +350,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'if-match': `W/"${version}"` },
 				body: JSON.stringify({ draft: draftSnapshot(), version })
 			});
-			const result = (await response.json().catch(() => null)) as EditorResponse | null;
+			const result = await response.json().catch(() => null) as EditorResponse | null;
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not save the draft.');
 			version = result.version ?? version + 1;
 			savedSignature = currentSignature();
@@ -354,7 +367,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		publishing = true;
 		errorMessage = '';
 		try {
-			if ((dirty || version === 0) && !(await saveDraft())) return;
+			if ((dirty || version === 0) && !await saveDraft()) return;
 			const token = await sessionToken();
 			if (!token) throw new Error('Sign in again to publish the documentation.');
 			const response = await fetch('/api/docs/publish', {
@@ -362,7 +375,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 				headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
 				body: JSON.stringify({ version })
 			});
-			const result = (await response.json().catch(() => null)) as EditorResponse | null;
+			const result = await response.json().catch(() => null) as EditorResponse | null;
 			if (!response.ok || !result?.ok) throw new Error(result?.message ?? result?.code ?? 'Could not publish the documentation.');
 			publishedVersion = result.version ?? publishedVersion + 1;
 			publicationState = 'published';
@@ -436,11 +449,37 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 		<div class="command-leading">
 			<a class="command-back" href="/workspace/docs" aria-label="Back to Docs"><ArrowLeft size={15} weight="Outline" aria-hidden="true" /></a>
 			<div class="menu-anchor">
-				<button class="branch-switch" type="button" aria-label="Current branch" aria-expanded={branchMenuOpen} onclick={() => (branchMenuOpen = !branchMenuOpen)}><span class="branch-mark" aria-hidden="true"></span><span>{githubLink?.branch ?? 'main'}</span><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
+				<button
+					class="branch-switch"
+					type="button"
+					aria-label="Current branch"
+					aria-expanded={branchMenuOpen}
+					onclick={() => branchMenuOpen = !branchMenuOpen}
+				>
+					<span class="branch-mark" aria-hidden="true"></span>
+					<span>{githubLink?.branch ?? 'main'}</span>
+					<ChevronDown size={13} weight="Outline" aria-hidden="true" />
+				</button>
+
 				{#if branchMenuOpen}
 					<div class="editor-menu branch-menu" role="menu">
-						<button class="menu-item selected" type="button" role="menuitem" onclick={() => (branchMenuOpen = false)}><span class="branch-mark" aria-hidden="true"></span><span>{githubLink?.branch ?? 'main'}</span><span class="menu-check">Configured</span></button>
-						<a class="menu-item" href="/workspace/settings/git" role="menuitem" onclick={() => (branchMenuOpen = false)}>Change in Git settings</a>
+						<button
+							class="menu-item selected"
+							type="button"
+							role="menuitem"
+							onclick={() => branchMenuOpen = false}
+						>
+							<span class="branch-mark" aria-hidden="true"></span>
+							<span>{githubLink?.branch ?? 'main'}</span>
+							<span class="menu-check">Configured</span>
+						</button>
+
+						<a
+							class="menu-item"
+							href="/workspace/settings/git"
+							role="menuitem"
+							onclick={() => branchMenuOpen = false}
+						>Change in Git settings</a>
 					</div>
 				{/if}
 			</div>
@@ -457,8 +496,22 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 			<span class="save-state" role="status">{#if saving}Saving…{:else if publicationState === 'syncing'}Publishing to Cloudflare…{:else if publicationState === 'failed'}Publish failed{:else if dirty}Unsaved changes{:else if version > 0}Saved{/if}</span>
 			<Button class="toolbar-button" variant="outline" size="sm" disabled={!dirty || saving} loading={saving} onclick={() => void saveDraft()}><Save size={13} weight="Outline" /> Save</Button>
 			<div class="publish-control menu-anchor">
-				<Button class="toolbar-button toolbar-button-primary" size="sm" disabled={publishing || loading || doc.pages.length === 0} loading={publishing} onclick={() => void publish()}>Publish</Button>
-				<button class="publish-menu-trigger" type="button" aria-label="More publish actions" aria-expanded={publishMenuOpen} onclick={() => (publishMenuOpen = !publishMenuOpen)}><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
+				<Button
+					class="toolbar-button toolbar-button-primary"
+					size="sm"
+					disabled={publishing || loading || doc.pages.length === 0}
+					loading={publishing}
+					onclick={() => void publish()}
+				>Publish</Button>
+
+				<button
+					class="publish-menu-trigger"
+					type="button"
+					aria-label="More publish actions"
+					aria-expanded={publishMenuOpen}
+					onclick={() => publishMenuOpen = !publishMenuOpen}
+				><ChevronDown size={13} weight="Outline" aria-hidden="true" /></button>
+
 				{#if publishMenuOpen}
 					<div class="editor-menu publish-menu" role="menu">
 						<button class="menu-item" type="button" role="menuitem" onclick={() => { publishMenuOpen = false; void publish(); }}>Publish latest draft</button>
@@ -495,7 +548,14 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 					<nav class="site-config-nav" aria-label="Site configuration sections">
 						{#each siteConfigSections as section}
 							{@const SiteConfigIcon = section.icon}
-							<button class:active={siteConfigSection === section.id} class="site-config-nav-item" type="button" aria-current={siteConfigSection === section.id ? 'page' : undefined} onclick={() => (siteConfigSection = section.id)}>
+
+							<button
+								class:active={siteConfigSection === section.id}
+								class="site-config-nav-item"
+								type="button"
+								aria-current={siteConfigSection === section.id ? 'page' : undefined}
+								onclick={() => siteConfigSection = section.id}
+							>
 								<SiteConfigIcon size={15} weight="Outline" aria-hidden="true" />
 								<span>{section.label}</span>
 							</button>
@@ -582,40 +642,67 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 				</main>
 			</section>
 		{:else}
-		<div class="editor-workspace">
+			<div class="editor-workspace">
 			<aside class="editor-tree" aria-label="Documentation structure">
-				<p class="tree-a11y-hint">Use arrow keys to move, Enter to open a page.</p>
-				<div class="tree-heading">
-					<div><h2>Your documentation</h2></div>
-					<div class="menu-anchor">
-						<button class="icon-action" type="button" aria-label="Add content" aria-haspopup="menu" aria-expanded={treeAddMenuOpen} onclick={() => (treeAddMenuOpen = !treeAddMenuOpen)}><span use:tooltip={{ text: 'Add page or section', island: true }}><Add size={15} weight="Outline" aria-hidden="true" /></span></button>
-						{#if treeAddMenuOpen}
+					<p class="tree-a11y-hint">Use arrow keys to move, Enter to open a page.</p>
+					<div class="tree-heading">
+						<div><h2>Your documentation</h2></div>
+						<div class="menu-anchor">
+							<button
+								class="icon-action"
+								type="button"
+								aria-label="Add content"
+								aria-haspopup="menu"
+								aria-expanded={treeAddMenuOpen}
+								onclick={() => treeAddMenuOpen = !treeAddMenuOpen}
+							>
+								<span
+									use:tooltip={{ text: 'Add page or section', island: true }}
+								><Add size={15} weight="Outline" aria-hidden="true" /></span>
+							</button>
+
+							{#if treeAddMenuOpen}
 							<div class="editor-menu" style="left:auto; right:0; top: calc(100% + 6px);" role="menu">
 								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createPage(); }}><Add size={13} weight="Outline" /> New page</button>
 								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createGroup(); }}>New section</button>
 								<button class="menu-item" type="button" role="menuitem" onclick={() => { treeAddMenuOpen = false; createView(); }}>New view</button>
-							</div>
-						{/if}
+								</div>
+							{/if}
+						</div>
 					</div>
-				</div>
-				{#if orderedViews.length === 0}
+					{#if orderedViews.length === 0}
 					<div class="tree-empty"><p>Start with a view, section, and page.</p><button class="text-button" type="button" onclick={() => createPage()}>Create first page</button></div>
-				{:else}
-					<div class="tree-list">
-						<!-- Loop 1: mature Tree owns keyboard (arrows/Home/End/type-ahead), roving tabindex, expand/collapse.
+					{:else}
+						<div class="tree-list">
+							<!-- Loop 1: mature Tree owns keyboard (arrows/Home/End/type-ahead), roving tabindex, expand/collapse.
 						     No extra tab stops inside role=tree: group add-buttons moved to top Add menu.
 						     Pages use keyed each + wrapper delegates mouse AND keyboard (Enter/Space on inner treeitem bubbles). -->
-						<Tree>
-							{#each orderedViews as view, viewIndex (view.id)}
-								{@const viewGroupPages = (sortedGroupsByView.get(view.id) ?? []).reduce((n, g) => n + (pagesByGroup.get(g.id)?.length ?? 0), 0)}
-								{@const isFirstView = viewIndex === 0}
-								{@const ungroupedCount = isFirstView ? (pagesByGroup.get(null)?.length ?? 0) : 0}
-								{@const viewCount = viewGroupPages + ungroupedCount}
+							<Tree>
+								{#each orderedViews as view, viewIndex (view.id)}
+									{@const viewGroupPages = (sortedGroupsByView.get(view.id) ?? []).reduce((n, g) => n + (pagesByGroup.get(g.id)?.length ?? 0), 0)}
+									{@const isFirstView = viewIndex === 0}
+									{@const ungroupedCount = isFirstView ? pagesByGroup.get(null)?.length ?? 0 : 0}
+									{@const viewCount = viewGroupPages + ungroupedCount}
 								<TreeFolder name={viewCount ? `${view.label} · ${viewCount}` : view.label} defaultOpen>
-									{#each sortedGroupsByView.get(view.id) ?? [] as group (group.id)}
-										{@const groupCount = pagesByGroup.get(group.id)?.length ?? 0}
+										{#each sortedGroupsByView.get(view.id) ?? [] as group (group.id)}
+											{@const groupCount = pagesByGroup.get(group.id)?.length ?? 0}
 										<TreeFolder name={groupCount ? `${group.label} · ${groupCount}` : group.label} defaultOpen>
-											{#each pagesByGroup.get(group.id) ?? [] as page (page.id)}
+												{#each pagesByGroup.get(group.id) ?? [] as page (page.id)}
+													<div
+														role="presentation"
+														data-page-id={page.id}
+														data-selected={selectedPageId === page.id}
+														onclick={() => selectPage(page.id)}
+													onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPage(page.id); } }}
+														class="tree-page-wrapper {selectedPageId === page.id ? 'active' : ''}"
+												>
+													<TreeFile name={page.title || 'Untitled page'} />
+												</div>
+												{/each}
+											</TreeFolder>
+										{/each}
+										{#if isFirstView}
+											{#each pagesByGroup.get(null) ?? [] as page (page.id)}
 												<div
 													role="presentation"
 													data-page-id={page.id}
@@ -627,53 +714,38 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 													<TreeFile name={page.title || 'Untitled page'} />
 												</div>
 											{/each}
-										</TreeFolder>
-									{/each}
-									{#if isFirstView}
-										{#each pagesByGroup.get(null) ?? [] as page (page.id)}
-											<div
-												role="presentation"
-												data-page-id={page.id}
-												data-selected={selectedPageId === page.id}
-												onclick={() => selectPage(page.id)}
-												onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPage(page.id); } }}
-												class="tree-page-wrapper {selectedPageId === page.id ? 'active' : ''}"
-											>
-												<TreeFile name={page.title || 'Untitled page'} />
-											</div>
-										{/each}
-									{/if}
-								</TreeFolder>
-							{/each}
-						</Tree>
-					</div>
-				{/if}
-			</aside>
+										{/if}
+									</TreeFolder>
+								{/each}
+							</Tree>
+						</div>
+					{/if}
+				</aside>
 
-			<main class="editor-canvas" aria-label="Page editor">
-				{#if currentPage}
-					<div class="canvas-scroll">
-						<div class="canvas-sheet">
-							<div class="document-editor-surface">
-								<div class="document-editor-header">
+				<main class="editor-canvas" aria-label="Page editor">
+					{#if currentPage}
+						<div class="canvas-scroll">
+							<div class="canvas-sheet">
+								<div class="document-editor-surface">
+									<div class="document-editor-header">
 									<input class="document-page-title" value={currentPage.title} aria-label="Page title" placeholder="Untitled page" oninput={(event) => updatePage('title', event.currentTarget.value)} />
 									<textarea class="document-page-description" rows="1" value={currentPage.description} aria-label="Page description" placeholder="A short description for navigation and search" oninput={(event) => updatePage('description', event.currentTarget.value)}></textarea>
-								</div>
-								<div class="document-editor-rule"></div>
-								{#if mode === 'visual'}
+									</div>
+									<div class="document-editor-rule"></div>
+									{#if mode === 'visual'}
 									<EditorBlockSurface blocks={editorBlocks} onChange={commitEditorBlocks} />
-								{:else}
+									{:else}
 									<textarea class="writing-surface markdown-mode document-markdown-surface" aria-label="Page Markdown" value={currentPage.markdown} placeholder="# Page title\n\nWrite your documentation here…" oninput={(event) => updatePage('markdown', event.currentTarget.value)}></textarea>
-								{/if}
+									{/if}
+								</div>
 							</div>
 						</div>
-					</div>
-				{:else}
+					{:else}
 					<div class="editor-empty"><FileText size={28} weight="Outline" aria-hidden="true" /><h2>Your first page starts here</h2><p>Create a page to open the writing canvas.</p><button class="text-button" type="button" onclick={() => createPage()}><Add size={14} weight="Outline" /> Create page</button></div>
-				{/if}
-			</main>
+					{/if}
+				</main>
 
-		</div>
+			</div>
 		{/if}
 	{/if}
 </div>
@@ -766,34 +838,209 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	.publish-menu { right: 0; }
 	.menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0 9px; border: 0; border-radius: 7px; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 12px; text-align: left; text-decoration: none; }
 	.menu-item:hover,
-	.menu-item.selected { color: var(--pc-text); background: var(--pc-surface-2); }
-	.menu-item:disabled { cursor: not-allowed; opacity: .45; }
-	.menu-check { margin-inline-start: auto; color: var(--editor-faint); font-size: 10px; }
+	.menu-item.selected {
+		color: var(--pc-text);
+		background: var(--pc-surface-2);
+	}
 
-	.editor-error { margin: 10px 16px 0; max-width: 900px; padding: 8px 11px; border: 1px solid color-mix(in oklch, var(--red-6) 50%, var(--editor-border)); color: var(--red-6); font-size: 12px; line-height: 1.5; }
-	.search-backdrop { position: fixed; z-index: 50; inset: 0; display: grid; place-items: start center; padding: 12vh 20px 20px; background: color-mix(in oklch, var(--pc-bg) 72%, transparent); }
-	.search-dialog { width: min(100%, 560px); overflow: hidden; border: 1px solid var(--editor-border); border-radius: 12px; background: var(--pc-surface); box-shadow: 0 20px 50px rgba(0, 0, 0, .28); }
-	.search-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid var(--editor-border); }
-	.search-dialog-heading h2 { margin-top: 4px; color: var(--pc-text); font-size: 17px; font-weight: 600; }
-	.search-input-wrap { display: flex; align-items: center; gap: 9px; margin: 12px; padding: 0 11px; border: 1px solid var(--editor-border); border-radius: 9px; color: var(--editor-faint); background: var(--pc-bg); }
-	.search-input-wrap input { width: 100%; min-height: 38px; border: 0; outline: 0; color: var(--pc-text); background: transparent; font: inherit; font-size: 13px; }
-	.search-input-wrap input::placeholder { color: var(--editor-faint); }
-	.search-results { max-height: min(52vh, 360px); overflow-y: auto; padding: 0 7px 7px; }
-	.search-result { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 45px; padding: 6px 9px; border: 0; border-radius: 8px; color: var(--editor-muted); background: transparent; cursor: pointer; text-align: left; }
+	.menu-item:disabled {
+		cursor: not-allowed;
+		opacity: .45;
+	}
+
+	.menu-check {
+		margin-inline-start: auto;
+		color: var(--editor-faint);
+		font-size: 10px;
+	}
+
+	.editor-error {
+		margin: 10px 16px 0;
+		max-width: 900px;
+		padding: 8px 11px;
+		border: 1px solid color-mix(in oklch, var(--red-6) 50%, var(--editor-border));
+		color: var(--red-6);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.search-backdrop {
+		position: fixed;
+		z-index: 50;
+		inset: 0;
+		display: grid;
+		place-items: start center;
+		padding: 12vh 20px 20px;
+		background: color-mix(in oklch, var(--pc-bg) 72%, transparent);
+	}
+
+	.search-dialog {
+		width: min(100%, 560px);
+		overflow: hidden;
+		border: 1px solid var(--editor-border);
+		border-radius: 12px;
+		background: var(--pc-surface);
+		box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
+	}
+
+	.search-dialog-heading {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 16px;
+		border-bottom: 1px solid var(--editor-border);
+	}
+
+	.search-dialog-heading h2 {
+		margin-top: 4px;
+		color: var(--pc-text);
+		font-size: 17px;
+		font-weight: 600;
+	}
+
+	.search-input-wrap {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		margin: 12px;
+		padding: 0 11px;
+		border: 1px solid var(--editor-border);
+		border-radius: 9px;
+		color: var(--editor-faint);
+		background: var(--pc-bg);
+	}
+
+	.search-input-wrap input {
+		width: 100%;
+		min-height: 38px;
+		border: 0;
+		outline: 0;
+		color: var(--pc-text);
+		background: transparent;
+		font: inherit;
+		font-size: 13px;
+	}
+
+	.search-input-wrap input::placeholder {
+		color: var(--editor-faint);
+	}
+
+	.search-results {
+		max-height: min(52vh, 360px);
+		overflow-y: auto;
+		padding: 0 7px 7px;
+	}
+
+	.search-result {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		width: 100%;
+		min-height: 45px;
+		padding: 6px 9px;
+		border: 0;
+		border-radius: 8px;
+		color: var(--editor-muted);
+		background: transparent;
+		cursor: pointer;
+		text-align: left;
+	}
+
 	.search-result:hover,
-	.search-result:focus-visible { color: var(--pc-text); background: var(--pc-surface-2); outline: 0; }
-	.search-result > span { display: grid; min-width: 0; gap: 2px; }
-	.search-result strong { overflow: hidden; color: inherit; font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-	.search-result small { overflow: hidden; color: var(--editor-faint); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-	.search-empty { padding: 15px 9px; color: var(--editor-muted); font-size: 12px; }
+	.search-result:focus-visible {
+		color: var(--pc-text);
+		background: var(--pc-surface-2);
+		outline: 0;
+	}
 
-		.editor-workspace { display: grid; grid-template-columns: var(--editor-sidebar-width) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; flex: 1; min-height: 0; border-bottom: 0; overflow: hidden; background: var(--pc-bg); }
-	.editor-tree { min-width: 0; min-height: 0; height: 100%; background: var(--pc-bg); }
-	.editor-tree { display: flex; flex-direction: column; padding: 18px 14px 14px; border-right: 1px solid var(--editor-border); overflow: hidden; min-height: 0; }
-	.tree-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 7px 16px 9px; }
-	.tree-heading h2 { margin-top: 4px; color: var(--pc-text); font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
-	.tree-heading h2 { margin-top: 0; }
-	.icon-action { display: grid; place-items: center; width: 28px; height: 28px; border-color: var(--editor-border); border-radius: 9px; }
+	.search-result > span {
+		display: grid;
+		min-width: 0;
+		gap: 2px;
+	}
+
+	.search-result strong {
+		overflow: hidden;
+		color: inherit;
+		font-size: 12px;
+		font-weight: 500;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.search-result small {
+		overflow: hidden;
+		color: var(--editor-faint);
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 10px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.search-empty {
+		padding: 15px 9px;
+		color: var(--editor-muted);
+		font-size: 12px;
+	}
+
+	.editor-workspace {
+		display: grid;
+		grid-template-columns: var(--editor-sidebar-width) minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr);
+		align-items: stretch;
+		flex: 1;
+		min-height: 0;
+		border-bottom: 0;
+		overflow: hidden;
+		background: var(--pc-bg);
+	}
+
+	.editor-tree {
+		min-width: 0;
+		min-height: 0;
+		height: 100%;
+		background: var(--pc-bg);
+	}
+
+	.editor-tree {
+		display: flex;
+		flex-direction: column;
+		padding: 18px 14px 14px;
+		border-right: 1px solid var(--editor-border);
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.tree-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 0 7px 16px 9px;
+	}
+
+	.tree-heading h2 {
+		margin-top: 4px;
+		color: var(--pc-text);
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: -.01em;
+	}
+
+	.tree-heading h2 {
+		margin-top: 0;
+	}
+
+	.icon-action {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border-color: var(--editor-border);
+		border-radius: 9px;
+	}
+
 	.icon-action:hover,
 	.canvas-icon-action:hover { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2); }
 	.tree-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding: 2px 2px 8px; }
@@ -802,11 +1049,33 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	.text-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; color: var(--editor-muted); background: none; cursor: pointer; font-size: 12px; font-weight: 500; }
 	.text-button:hover { color: var(--pc-text); }
 	/* Loop 4: AT hint — sighted users get arrows for free; SR/keyboard users get the contract. */
-	.tree-a11y-hint { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-	.tree-empty { margin: 18px 8px; color: var(--editor-muted); font-size: 12px; line-height: 1.5; }
-	.tree-empty p { margin-bottom: 10px; }
 
-	/* Loop 1+3: mature Tree theming — components-svelte ships stone-*/ /* light-first classes.
+	.tree-a11y-hint {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.tree-empty {
+		margin: 18px 8px;
+		color: var(--editor-muted);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.tree-empty p {
+		margin-bottom: 10px;
+	}
+
+	/* Loop 1+3: mature Tree theming — components-svelte ships stone-*/
+
+	/* light-first classes.
 	   Map to pc- tokens so dark #0d0d0d keeps contrast; keep library keyboard/ARIA intact.
 	   Icon exception: TreeFolder/File own their lucide folder/file glyphs (aria-hidden, decorative).
 	   Project reicon-only rule stays for our UI; forking the package to swap its internal icons
@@ -818,35 +1087,187 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	.tree-list :global([data-component-part="tree-folder"] [role="treeitem"]:hover),
 	.tree-list :global([data-component-part="tree-file"]:hover) { color: var(--pc-text); background: var(--pc-surface); }
 	/* Selected page: wrapper carries state (TreeFile has no selected prop). */
-	.tree-page-wrapper { border-radius: 9px; }
-	.tree-page-wrapper.active :global([data-component-part="tree-file"]) { color: var(--pc-text); background: var(--pc-surface-2); border: 1px solid var(--editor-border); }
-	.tree-page-wrapper.active :global([data-component-part="tree-file"]:hover) { background: var(--pc-surface-2); }
 
-	.editor-canvas { display: flex; min-width: 0; min-height: 0; height: 100%; flex-direction: column; background: var(--pc-bg); overflow: hidden; }
-	.mode-switch { gap: 2px; padding: 2px; border: 1px solid var(--editor-border); border-radius: 8px; }
-	.command-mode-switch button { min-width: 28px; padding: 0; justify-content: center; }
-	.mode-switch button { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; color: var(--editor-faint); background: transparent; cursor: pointer; font-size: 11px; }
-	.mode-switch button:hover { color: var(--editor-muted); }
-	.mode-switch button.active { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface); }
-	.canvas-icon-action { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 8px; }
-	.canvas-icon-action.danger { color: color-mix(in oklch, var(--red-6) 75%, var(--editor-muted)); }
-	.canvas-icon-action.danger:hover { border-color: color-mix(in oklch, var(--red-6) 40%, var(--editor-border)); color: var(--red-6); background: color-mix(in oklch, var(--red-6) 10%, transparent); }
-	.canvas-scroll { flex: 1; min-height: 0; padding-inline: 48px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; }
+	.tree-page-wrapper {
+		border-radius: 9px;
+	}
+
+	.tree-page-wrapper.active :global([data-component-part="tree-file"]) {
+		color: var(--pc-text);
+		background: var(--pc-surface-2);
+		border: 1px solid var(--editor-border);
+	}
+
+	.tree-page-wrapper.active :global([data-component-part="tree-file"]:hover) {
+		background: var(--pc-surface-2);
+	}
+
+	.editor-canvas {
+		display: flex;
+		min-width: 0;
+		min-height: 0;
+		height: 100%;
+		flex-direction: column;
+		background: var(--pc-bg);
+		overflow: hidden;
+	}
+
+	.mode-switch {
+		gap: 2px;
+		padding: 2px;
+		border: 1px solid var(--editor-border);
+		border-radius: 8px;
+	}
+
+	.command-mode-switch button {
+		min-width: 28px;
+		padding: 0;
+		justify-content: center;
+	}
+
+	.mode-switch button {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		min-height: 26px;
+		padding: 0 8px;
+		border: 1px solid transparent;
+		border-radius: 6px;
+		color: var(--editor-faint);
+		background: transparent;
+		cursor: pointer;
+		font-size: 11px;
+	}
+
+	.mode-switch button:hover {
+		color: var(--editor-muted);
+	}
+
+	.mode-switch button.active {
+		border-color: var(--editor-border);
+		color: var(--pc-text);
+		background: var(--pc-surface);
+	}
+
+	.canvas-icon-action {
+		display: grid;
+		place-items: center;
+		width: 29px;
+		height: 29px;
+		border-radius: 8px;
+	}
+
+	.canvas-icon-action.danger {
+		color: color-mix(in oklch, var(--red-6) 75%, var(--editor-muted));
+	}
+
+	.canvas-icon-action.danger:hover {
+		border-color: color-mix(in oklch, var(--red-6) 40%, var(--editor-border));
+		color: var(--red-6);
+		background: color-mix(in oklch, var(--red-6) 10%, transparent);
+	}
+
+	.canvas-scroll {
+		flex: 1;
+		min-height: 0;
+		padding-inline: 48px;
+		overflow-y: auto;
+		overflow-x: hidden;
+		overscroll-behavior-y: contain;
+		scrollbar-gutter: stable;
+	}
+
 	/* Bottom breathing room: fixed-overlay desktop owns its scroll, so it needs
 	   its own bottom inset above the viewport edge (+ safe-area). The workspace
 	   main's pb-20 lg:pb-0 already clears the mobile nav (lg:hidden) when the
 	   editor flows at <=1024, so inner pad stays modest there. 72px mirrors the
 	   original 92px intent without double-padding the workspace main. */
-	.canvas-sheet { width: min(100%, var(--editor-content-max)); margin: 0 auto; padding: 22px 0 calc(72px + env(safe-area-inset-bottom, 0px)); }
-	.writing-surface { display: block; width: 100%; min-height: 480px; border: 0; outline: 0; resize: vertical; color: var(--pc-text); background: transparent; font: inherit; font-size: 15px; line-height: 1.6; }
-	.writing-surface::placeholder { color: var(--editor-faint); }
-	.markdown-mode { font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; letter-spacing: -.005em; line-height: 1.55; }
 
-	.site-config-shell { display: grid; grid-template-columns: 258px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; flex: 1; min-height: 0; overflow: hidden; border-bottom: 0; background: var(--pc-bg); }
-	.site-config-sidebar { min-width: 0; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding: 22px 12px 26px; border-right: 1px solid var(--editor-border); }
-	.site-config-sidebar-title { padding: 0 10px 18px; color: var(--pc-text); font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
-	.site-config-nav { display: grid; gap: 3px; }
-	.site-config-nav-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 38px; padding: 0 11px; border: 1px solid transparent; border-radius: 9px; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 13px; text-align: left; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease; }
+	.canvas-sheet {
+		width: min(100%, var(--editor-content-max));
+		margin: 0 auto;
+		padding: 22px 0 calc(72px + env(safe-area-inset-bottom, 0px));
+	}
+
+	.writing-surface {
+		display: block;
+		width: 100%;
+		min-height: 480px;
+		border: 0;
+		outline: 0;
+		resize: vertical;
+		color: var(--pc-text);
+		background: transparent;
+		font: inherit;
+		font-size: 15px;
+		line-height: 1.6;
+	}
+
+	.writing-surface::placeholder {
+		color: var(--editor-faint);
+	}
+
+	.markdown-mode {
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 13px;
+		letter-spacing: -.005em;
+		line-height: 1.55;
+	}
+
+	.site-config-shell {
+		display: grid;
+		grid-template-columns: 258px minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr);
+		align-items: stretch;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+		border-bottom: 0;
+		background: var(--pc-bg);
+	}
+
+	.site-config-sidebar {
+		min-width: 0;
+		min-height: 0;
+		height: 100%;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-gutter: stable;
+		padding: 22px 12px 26px;
+		border-right: 1px solid var(--editor-border);
+	}
+
+	.site-config-sidebar-title {
+		padding: 0 10px 18px;
+		color: var(--pc-text);
+		font-size: 15px;
+		font-weight: 650;
+		letter-spacing: -.02em;
+	}
+
+	.site-config-nav {
+		display: grid;
+		gap: 3px;
+	}
+
+	.site-config-nav-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		min-height: 38px;
+		padding: 0 11px;
+		border: 1px solid transparent;
+		border-radius: 9px;
+		color: var(--editor-muted);
+		background: transparent;
+		cursor: pointer;
+		font: inherit;
+		font-size: 13px;
+		text-align: left;
+		transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+	}
+
 	.site-config-nav-item:hover,
 	.site-config-nav-item:focus-visible { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface); outline: 0; }
 	.site-config-nav-item.active { border-color: var(--editor-border); color: var(--pc-text); background: var(--pc-surface-2); font-weight: 600; }
@@ -879,31 +1300,130 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 	.site-config-remove,
 	.site-config-add { border: 0; color: var(--editor-muted); background: transparent; cursor: pointer; font: inherit; font-size: 12px; text-align: left; }
 	.site-config-remove:hover,
-	.site-config-add:hover { color: var(--pc-text); }
-	.site-config-preview { display: grid; gap: 5px; padding: 16px; border: 1px solid var(--editor-border); border-radius: 10px; background: var(--pc-surface); }
-	.site-config-preview strong { color: var(--pc-text); font-size: 15px; }
-	.site-config-preview span { overflow: hidden; color: var(--editor-faint); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-	.site-config-preview p { color: var(--editor-muted); font-size: 13px; line-height: 1.45; }
+	.site-config-add:hover {
+		color: var(--pc-text);
+	}
 
-	.document-editor-surface { box-sizing: border-box; width: 100%; max-width: 1040px; margin: 0 auto; padding: 28px clamp(22px, 5vw, 72px) calc(72px + env(safe-area-inset-bottom, 0px)); background: var(--pc-bg); min-width: 0; overflow-wrap: anywhere; }
-	.document-editor-header { max-width: 900px; }
-	.document-page-title { display: block; width: 100%; border: 0; outline: 0; color: var(--pc-text); background: transparent; font-size: clamp(38px, 4.3vw, 60px); font-weight: 680; letter-spacing: -.065em; line-height: 1.03; }
-	.document-page-description { display: block; width: min(100%, 800px); min-height: 32px; margin-top: 16px; padding: 0; overflow: hidden; border: 0; outline: 0; resize: none; color: var(--editor-muted); background: transparent; font: inherit; font-size: 18px; line-height: 1.55; }
+	.site-config-preview {
+		display: grid;
+		gap: 5px;
+		padding: 16px;
+		border: 1px solid var(--editor-border);
+		border-radius: 10px;
+		background: var(--pc-surface);
+	}
+
+	.site-config-preview strong {
+		color: var(--pc-text);
+		font-size: 15px;
+	}
+
+	.site-config-preview span {
+		overflow: hidden;
+		color: var(--editor-faint);
+		font-size: 12px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.site-config-preview p {
+		color: var(--editor-muted);
+		font-size: 13px;
+		line-height: 1.45;
+	}
+
+	.document-editor-surface {
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 1040px;
+		margin: 0 auto;
+		padding: 28px clamp(22px, 5vw, 72px) calc(72px + env(safe-area-inset-bottom, 0px));
+		background: var(--pc-bg);
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	.document-editor-header {
+		max-width: 900px;
+	}
+
+	.document-page-title {
+		display: block;
+		width: 100%;
+		border: 0;
+		outline: 0;
+		color: var(--pc-text);
+		background: transparent;
+		font-size: clamp(38px, 4.3vw, 60px);
+		font-weight: 680;
+		letter-spacing: -.065em;
+		line-height: 1.03;
+	}
+
+	.document-page-description {
+		display: block;
+		width: min(100%, 800px);
+		min-height: 32px;
+		margin-top: 16px;
+		padding: 0;
+		overflow: hidden;
+		border: 0;
+		outline: 0;
+		resize: none;
+		color: var(--editor-muted);
+		background: transparent;
+		font: inherit;
+		font-size: 18px;
+		line-height: 1.55;
+	}
+
 	.document-page-title::placeholder,
 	.document-page-description::placeholder,
-	.document-markdown-surface::placeholder { color: var(--editor-faint); }
-	.document-editor-rule { height: 1px; margin: 34px 0 26px; background: var(--editor-border); }
-	.document-markdown-surface { min-height: 620px; padding: 0; }
+	.document-markdown-surface::placeholder {
+		color: var(--editor-faint);
+	}
+
+	.document-editor-rule {
+		height: 1px;
+		margin: 34px 0 26px;
+		background: var(--editor-border);
+	}
+
+	.document-markdown-surface {
+		min-height: 620px;
+		padding: 0;
+	}
 
 	.command-back:focus-visible,
 	.branch-switch:focus-visible,
 	.icon-action:focus-visible,
 	.mode-switch button:focus-visible,
 	.canvas-icon-action:focus-visible,
-	.text-button:focus-visible { outline: 2px solid var(--pc-focus-ring); outline-offset: 2px; }
-	.editor-empty { display: grid; place-items: center; align-content: center; gap: 10px; min-height: 520px; padding: 40px; color: var(--editor-muted); text-align: center; }
-	.editor-empty h2 { color: var(--pc-text); font-size: 17px; font-weight: 600; }
-	.editor-empty p { font-size: 13px; }
+	.text-button:focus-visible {
+		outline: 2px solid var(--pc-focus-ring);
+		outline-offset: 2px;
+	}
+
+	.editor-empty {
+		display: grid;
+		place-items: center;
+		align-content: center;
+		gap: 10px;
+		min-height: 520px;
+		padding: 40px;
+		color: var(--editor-muted);
+		text-align: center;
+	}
+
+	.editor-empty h2 {
+		color: var(--pc-text);
+		font-size: 17px;
+		font-weight: 600;
+	}
+
+	.editor-empty p {
+		font-size: 13px;
+	}
 
 	@media (max-width: 980px) {
 		.editor-workspace { grid-template-columns: 220px minmax(0, 1fr); }

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Share } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import { EMAILS, supportMailto } from '$lib/config/email';
+	import { Button } from '#lib/components/ui/index.js';
+	import { EMAILS, supportMailto } from '#lib/config/email.js';
 </script>
 
 <header class="mb-5">

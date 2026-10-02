@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { AlertTriangle, Inbox, Sparkles } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-	import { Button, StatePanel } from '$lib/components/ui';
-	import { loadInboxIncidents, loadInboxThreads, type InboxThreadView, type IncidentRowView } from '$lib/data/feedbackInbox';
-	import { requireSession } from '$lib/auth/guard';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import EntityRow from '#lib/components/workspace/EntityRow.svelte';
+	import { Button, StatePanel } from '#lib/components/ui/index.js';
+	import { loadInboxIncidents, loadInboxThreads, type InboxThreadView, type IncidentRowView } from '#lib/data/feedbackInbox.js';
+	import { requireSession } from '#lib/auth/guard.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import { isAgentV2 } from '$lib/agentV2';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import { isAgentV2 } from '#lib/agentV2.js';
 
 	let filter = $state<'All' | 'Feedback' | 'Incident'>('All');
 	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);

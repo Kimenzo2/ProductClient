@@ -1,5 +1,5 @@
-import { docsBlocksToMarkdown, pagePath, type DocsDocument, type DocsPage } from '$lib/data/docsEditor';
-import { DOCS_CONTRACT_ID } from '$lib/data/docsEditor';
+import { docsBlocksToMarkdown, pagePath, type DocsDocument, type DocsPage } from '#lib/data/docsEditor.js';
+import { DOCS_CONTRACT_ID } from '#lib/data/docsEditor.js';
 
 export type DocsArtifacts = {
 	markdown: string;

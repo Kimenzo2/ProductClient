@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 import { ArrowLeft, ArrowRight, InfoCircle } from 'reicon-svelte';
-import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
-import { tooltip } from '$lib/components/Tooltip.svelte';
+import { Button, Input, Label, Select, Textarea } from '#lib/components/ui/index.js';
+import { tooltip } from '#lib/components/Tooltip.svelte';
 	import {
 		hydrateStatusEditor,
 		saveStatusEditor,
@@ -11,7 +11,7 @@ import { tooltip } from '$lib/components/Tooltip.svelte';
 		statusEditorPreview,
 		type PublicIncidentStatus,
 		type PublicStatusState
-	} from '$lib/data/statusEditor.svelte';
+	} from '#lib/data/statusEditor.svelte.js';
 
 	const lifecycleOptions = [
 		{ value: 'investigating', label: 'Investigating' },

@@ -1,15 +1,15 @@
 <script lang="ts">
-import { FileText, Lock, Refresh } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '$lib/components/ui';
-import { hostedDocsPage } from '$lib/config/tenant';
-import { docs } from '$lib/data/workspace';
-import { supabase } from '$lib/supabaseClient';
-import { onMount } from 'svelte';
-import { browser } from '$app/environment';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { FileText, Lock, Refresh } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import EntityRow from '#lib/components/workspace/EntityRow.svelte';
+	import { Button, Card, Input, Label, Select, StatePanel, Textarea } from '#lib/components/ui/index.js';
+	import { hostedDocsPage } from '#lib/config/tenant.js';
+	import { docs } from '#lib/data/workspace.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/env';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 let isPreview = $state(false);
 onMount(() => {
@@ -100,8 +100,8 @@ let filtered = $derived(sourceDocs.filter((doc) => !activeSlug || doc.productSlu
 			const j = await res.json();
 			if (!j.ok) throw new Error(j.message || j.code || 'Could not save');
 			visibilityNote = 'Saved';
-			setTimeout(() => (visibilityNote = ''), 2000);
-		} catch (e) {
+			setTimeout(() => visibilityNote = '', 2000);
+		} catch(e) {
 			visibilityNote = e instanceof Error ? e.message : 'Could not save';
 		} finally {
 			visibilityBusy = false;

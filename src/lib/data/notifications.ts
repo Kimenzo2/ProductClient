@@ -1,5 +1,5 @@
-import { supabase } from '$lib/supabaseClient';
-import { loadInboxIncidents, timeAgo } from '$lib/data/feedbackInbox';
+import { supabase } from '#lib/supabaseClient.js';
+import { loadInboxIncidents, timeAgo } from '#lib/data/feedbackInbox.js';
 
 // Live notifications — there is no notifications table. The feed derives from
 // what the user already has: public launch events on followed products plus

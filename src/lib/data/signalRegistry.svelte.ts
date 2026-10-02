@@ -1,7 +1,7 @@
-import { browser } from '$app/environment';
-import { hydrateFollowUps, followUpPreview } from '$lib/data/followUps.svelte';
-import { hydratePostIncidentFlow, postIncidentFlowPreview } from '$lib/data/postIncidentFlow.svelte';
-import { hydrateStatusEditor, incidentRecordsForWorkspace, statusEditorPreview } from '$lib/data/statusEditor.svelte';
+import { browser } from '$app/env';
+import { hydrateFollowUps, followUpPreview } from '#lib/data/followUps.svelte.js';
+import { hydratePostIncidentFlow, postIncidentFlowPreview } from '#lib/data/postIncidentFlow.svelte.js';
+import { hydrateStatusEditor, incidentRecordsForWorkspace, statusEditorPreview } from '#lib/data/statusEditor.svelte.js';
 
 /**
  * Shared attention signals for workspace navigation.
@@ -23,17 +23,17 @@ export function setNotificationCount(count: number): void {
 }
 const incidentCount = $derived.by(() =>
 	statusEditorPreview.loadState === 'ready'
-		? incidentRecordsForWorkspace().filter((incident) => incident.status !== 'Resolved').length
+	? incidentRecordsForWorkspace().filter((incident) => incident.status !== 'Resolved').length
 		: 0
 );
 const postIncidentFlowCount = $derived.by(() =>
 	postIncidentFlowPreview.source === 'database'
-		? postIncidentFlowPreview.tasks.filter((task) => task.status !== 'Done' && task.status !== 'Not doing').length
+	? postIncidentFlowPreview.tasks.filter((task) => task.status !== 'Done' && task.status !== 'Not doing').length
 		: 0
 );
 const followUpCount = $derived.by(() =>
 	followUpPreview.source === 'database'
-		? followUpPreview.records.filter((followUp) => followUp.status !== 'Done').length
+	? followUpPreview.records.filter((followUp) => followUp.status !== 'Done').length
 		: 0
 );
 
@@ -62,9 +62,9 @@ export function hydrateSignalRegistry(): Promise<void> {
 		.then(() => undefined)
 		.catch(() => undefined)
 		.finally(() => {
-			signalRegistryState.loading = false;
-			signalRegistryState.hydrated = true;
-		});
+		signalRegistryState.loading = false;
+		signalRegistryState.hydrated = true;
+	});
 
 	return hydrationPromise;
 }

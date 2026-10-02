@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { getWebhookSecret, verifyWebhookSignatureSync } from '$lib/server/githubApp';
-import { syncDocsFromGithub } from '$lib/server/githubDocsSync';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { getWebhookSecret, verifyWebhookSignatureSync } from '#lib/server/githubApp.js';
+import { syncDocsFromGithub } from '#lib/server/githubDocsSync.js';
 
 type GithubRepository = { full_name: string };
 type GithubInstallation = { id: number; account?: { login?: string; type?: string; id?: number } };

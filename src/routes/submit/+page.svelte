@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SubmitPad from '$lib/components/submit/SubmitPad.svelte';
+	import SubmitPad from '#lib/components/submit/SubmitPad.svelte';
 </script>
 
 <svelte:head>

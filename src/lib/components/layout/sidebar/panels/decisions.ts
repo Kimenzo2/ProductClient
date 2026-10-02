@@ -1,5 +1,5 @@
 import { BranchDown } from 'reicon-svelte';
-import { decisionThreads } from '$lib/data/workspace';
+import { decisionThreads } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const decisionsPanel: PanelDef = {

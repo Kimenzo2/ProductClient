@@ -1,10 +1,10 @@
 <script lang="ts">
-import { ArrowRight, CheckCircle, Heart, MessageDots } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-import { proofs } from '$lib/data/workspace';
-import { browser } from '$app/environment';
-import { onMount } from 'svelte';
+	import { ArrowRight, CheckCircle, Heart, MessageDots } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+	import { proofs } from '#lib/data/workspace.js';
+	import { browser } from '$app/env';
+	import { onMount } from 'svelte';
 
 let filter = $state<'All' | 'Approved' | 'Needs review'>('All');
 let approved = $state<Record<string, boolean>>({});
@@ -22,20 +22,167 @@ let filtered = $derived(sourceProofs.filter((proof) => {
 <svelte:head><title>Customer stories | Product Client</title></svelte:head>
 
 <div class="mx-auto w-full max-w-[1180px] px-4 sm:px-6">
-	<WorkspaceHeader title="Customer stories" description="Turn real customer quotes into approved stories people can understand and share." actionLabel="Preview customer stories" actionHref="/wall/tetra-proof" />
-	<div class="flex flex-wrap items-center gap-2 py-5" role="group" aria-label="Proof filters">{#each ['All', 'Approved', 'Needs review'] as item}<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex min-h-9 items-center rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{item}</button>{/each}<span class="ml-auto text-xs text-[var(--pc-text-faint)]">{filtered.length} stor{filtered.length === 1 ? 'y' : 'ies'}</span></div>
+	<WorkspaceHeader
+		title="Customer stories"
+		description="Turn real customer quotes into approved stories people can understand and share."
+		actionLabel="Preview customer stories"
+		actionHref="/wall/tetra-proof"
+	/>
+
+	<div
+		class="flex flex-wrap items-center gap-2 py-5"
+		role="group"
+		aria-label="Proof filters"
+	>
+		{#each ['All', 'Approved', 'Needs review'] as item}
+			<button
+				type="button"
+				onclick={() => filter = item as typeof filter}
+				aria-pressed={filter === item}
+				class="inline-flex min-h-9 items-center rounded-full px-3 text-xs transition-[background-color,color,transform] duration-150 active:scale-[0.96] {filter === item
+					? 'bg-[var(--pc-text)] text-[var(--pc-bg)]'
+					: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}"
+			>{item}</button>
+		{/each}
+
+		<span
+			class="ml-auto text-xs text-[var(--pc-text-faint)]"
+		>{filtered.length} stor{filtered.length === 1 ? 'y' : 'ies'}</span>
+	</div>
+
 	<div class="grid gap-3 pb-10 md:grid-cols-2">
 		{#each filtered as proof (proof.id)}
 			{@const canApprove = proof.consent !== 'Needs confirmation'}
-			<Card padding="lg" class="flex h-full flex-col" id={proof.id}>
-				<div class="flex items-center justify-between gap-3"><div class="flex items-center gap-2"><img src={proof.avatar} alt={proof.name} class="size-8 rounded-full object-cover" /><div><p class="text-xs font-medium">{proof.name}</p><p class="text-[10px] text-[var(--pc-text-faint)]">{proof.role}</p></div></div>{#if (approved[proof.id] ? 'Approved' : proof.status) === 'Approved'}<CheckCircle size={16} weight="Outline" class="text-[var(--pc-accent-light)]" aria-hidden="true" />{:else}<MessageDots size={16} weight="Outline" class="opacity-50" aria-hidden="true" />{/if}</div>
-				<blockquote class="mt-5 flex-1 text-[15px] leading-relaxed tracking-tight">"{proof.quote}"</blockquote>
-				<div class="mt-5 flex flex-wrap items-center gap-1.5"><Chip variant="accent" size="xs">{proof.productName}</Chip>{#each proof.tags as tag}<Chip size="xs">{tag}</Chip>{/each}<span class="ml-auto text-[10px] text-[var(--pc-text-faint)]">{proof.source}</span></div>
-				<div class="mt-4 rounded-[11px] bg-[var(--pc-surface)] p-3 text-[11px] leading-relaxed"><p><span class="text-[var(--pc-text-faint)]">Permission:</span> <span class={proof.consent === 'Confirmed' ? 'text-[var(--pc-accent-light)]' : 'text-[var(--pc-text)]'}>{proof.consent ?? 'Not recorded'}</span></p><p class="mt-1 text-[var(--pc-text-muted)]"><span class="text-[var(--pc-text-faint)]">Can share:</span> {proof.allowedUses?.join(', ') ?? 'No uses recorded'}</p>{#if proof.outcome}<p class="mt-1 text-[var(--pc-text-muted)]"><span class="text-[var(--pc-text-faint)]">What it shows:</span> {proof.outcome}</p>{/if}</div>
-				<div class="mt-4 flex items-center justify-between gap-3 border-t border-[var(--pc-border-strong)]/25 pt-3"><a href={`/workspace/products/${proof.productSlug}`} class="text-[11px] text-[var(--pc-accent-light)]">See this product <ArrowRight size={12} weight="Outline" class="inline" aria-hidden="true" /></a>{#if (approved[proof.id] ? 'Approved' : proof.status) === 'Needs review'}{#if canApprove}<Button variant="ghost" size="sm" onclick={() => (approved = { ...approved, [proof.id]: true })}>Approve quote</Button>{:else}<span class="max-w-[17ch] text-right text-[10px] leading-relaxed text-[var(--pc-text-muted)]">Confirm permission before approving</span>{/if}{:else}<span class="inline-flex items-center gap-1 text-[10px] text-[var(--pc-accent-light)]"><CheckCircle size={12} weight="Outline" aria-hidden="true" /> Approved quote</span>{/if}</div>
+
+			<Card
+				padding="lg"
+				class="flex h-full flex-col"
+				id={proof.id}
+			>
+				<div class="flex items-center justify-between gap-3">
+					<div class="flex items-center gap-2">
+						<img
+							src={proof.avatar}
+							alt={proof.name}
+							class="size-8 rounded-full object-cover"
+						/>
+
+						<div>
+							<p class="text-xs font-medium">{proof.name}</p>
+							<p class="text-[10px] text-[var(--pc-text-faint)]">{proof.role}</p>
+						</div>
+					</div>
+
+					{#if (approved[proof.id] ? 'Approved' : proof.status) === 'Approved'}
+						<CheckCircle
+							size={16}
+							weight="Outline"
+							class="text-[var(--pc-accent-light)]"
+							aria-hidden="true"
+						/>
+					{:else}
+						<MessageDots
+							size={16}
+							weight="Outline"
+							class="opacity-50"
+							aria-hidden="true"
+						/>
+					{/if}
+				</div>
+
+				<blockquote
+					class="mt-5 flex-1 text-[15px] leading-relaxed tracking-tight"
+				>"{proof.quote}"</blockquote>
+
+				<div class="mt-5 flex flex-wrap items-center gap-1.5">
+					<Chip variant="accent" size="xs">{proof.productName}</Chip>
+
+					{#each proof.tags as tag}
+						<Chip size="xs">{tag}</Chip>
+					{/each}
+
+					<span
+						class="ml-auto text-[10px] text-[var(--pc-text-faint)]"
+					>{proof.source}</span>
+				</div>
+
+				<div
+					class="mt-4 rounded-[11px] bg-[var(--pc-surface)] p-3 text-[11px] leading-relaxed"
+				>
+					<p>
+						<span class="text-[var(--pc-text-faint)]">Permission:</span>
+
+						<span
+							class={proof.consent === 'Confirmed'
+								? 'text-[var(--pc-accent-light)]'
+								: 'text-[var(--pc-text)]'}
+						>{proof.consent ?? 'Not recorded'}</span>
+					</p>
+
+					<p class="mt-1 text-[var(--pc-text-muted)]">
+						<span class="text-[var(--pc-text-faint)]">Can share:</span>
+						{proof.allowedUses?.join(', ') ?? 'No uses recorded'}
+					</p>
+
+					{#if proof.outcome}
+						<p class="mt-1 text-[var(--pc-text-muted)]">
+							<span class="text-[var(--pc-text-faint)]">What it shows:</span>
+							{proof.outcome}
+						</p>
+					{/if}
+				</div>
+
+				<div
+					class="mt-4 flex items-center justify-between gap-3 border-t border-[var(--pc-border-strong)]/25 pt-3"
+				>
+					<a
+						href={`/workspace/products/${proof.productSlug}`}
+						class="text-[11px] text-[var(--pc-accent-light)]"
+					>
+						See this product 
+
+						<ArrowRight
+							size={12}
+							weight="Outline"
+							class="inline"
+							aria-hidden="true"
+						/>
+					</a>
+
+					{#if (approved[proof.id] ? 'Approved' : proof.status) === 'Needs review'}
+						{#if canApprove}
+							<Button
+								variant="ghost"
+								size="sm"
+								onclick={() => approved = { ...approved, [proof.id]: true }}
+							>Approve quote</Button>
+						{:else}
+							<span
+								class="max-w-[17ch] text-right text-[10px] leading-relaxed text-[var(--pc-text-muted)]"
+							>Confirm permission before approving</span>
+						{/if}
+					{:else}
+						<span
+							class="inline-flex items-center gap-1 text-[10px] text-[var(--pc-accent-light)]"
+						>
+							<CheckCircle size={12} weight="Outline" aria-hidden="true" />
+							Approved quote
+						</span>
+					{/if}
+				</div>
 			</Card>
 		{/each}
-		{#if filtered.length === 0}<StatePanel icon={Heart} title="No customer stories found" description="No stories match the selected filter." actionLabel="Show all" onAction={() => (filter = 'All')} class="col-span-full" />{/if}
+
+		{#if filtered.length === 0}
+			<StatePanel
+				icon={Heart}
+				title="No customer stories found"
+				description="No stories match the selected filter."
+				actionLabel="Show all"
+				onAction={() => filter = 'All'}
+				class="col-span-full"
+			/>
+		{/if}
 	</div>
 	<div class="flex flex-wrap items-center gap-3 border-t border-[var(--pc-border-strong)]/30 py-6"><Heart size={17} weight="Outline" class="opacity-55" /><p class="text-xs text-[var(--pc-text-muted)] opacity-70">Approved quotes can appear on a Wall of Love, product page, case study, or product update.</p><Button href="/wall/tetra-proof" variant="ghost" size="sm">Preview public stories <ArrowRight size={13} weight="Outline" /></Button></div>
 </div>

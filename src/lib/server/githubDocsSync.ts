@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { fetchFileContent, getRepoTree } from '$lib/server/githubApp';
-import { validateDocsDocument, type DocsDocument } from '$lib/data/docsEditor';
+import { fetchFileContent, getRepoTree } from '#lib/server/githubApp.js';
+import { validateDocsDocument, type DocsDocument } from '#lib/data/docsEditor.js';
 
 type SourceLink = {
 	 id: string;

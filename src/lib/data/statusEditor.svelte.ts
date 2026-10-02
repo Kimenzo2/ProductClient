@@ -1,8 +1,14 @@
-import { browser } from '$app/environment';
-import { statusPageForProduct, type StatusIncident, type StatusIncidentUpdate } from '$lib/data/status';
-import { incidents as workspaceIncidents, productBySlug, products } from '$lib/data/workspace';
-import { getMyTenant, tenantStatusUrl } from '$lib/tenant';
-import { supabase } from '$lib/supabaseClient';
+import { browser } from '$app/env';
+
+import {
+	statusPageForProduct,
+	type StatusIncident,
+	type StatusIncidentUpdate
+} from '#lib/data/status.js';
+
+import { incidents as workspaceIncidents, productBySlug, products } from '#lib/data/workspace.js';
+import { getMyTenant, tenantStatusUrl } from '#lib/tenant.js';
+import { supabase } from '#lib/supabaseClient.js';
 
 /**
  * This is the deliberately small bridge between ProductClient and the public
@@ -169,7 +175,7 @@ function createSeedPage(slug = 'mossbit', tenantName = 'Example Company'): Statu
 				leadName: incident.owner,
 				status: lastUpdate ? incidentStatusMap[lastUpdate.status] ?? 'investigating' : 'investigating',
 				startedAt: incident.startedAt,
-				...(incident.resolvedAt ? { resolvedAt: incident.resolvedAt } : {}),
+				...incident.resolvedAt ? { resolvedAt: incident.resolvedAt } : {},
 				affectedServices: [...incident.affectedComponentIds],
 				updates: incident.updates.map((update) => ({
 					id: update.id,
@@ -276,7 +282,11 @@ export function incidentRecordsForWorkspace(): StatusIncident[] {
 				productSlug,
 				productName: original?.productName ?? productName,
 				startedAt: displayTimestamp(incident.startedAt, original?.startedAt ?? 'Unknown'),
-				...(incident.resolvedAt ? { resolvedAt: displayTimestamp(incident.resolvedAt, incident.resolvedAt) } : {}),
+				...incident.resolvedAt
+					? {
+						resolvedAt: displayTimestamp(incident.resolvedAt, incident.resolvedAt)
+					}
+					: {},
 				owner: incident.leadName?.trim() || original?.owner || 'Unassigned',
 				// The hosted Status Page is tenant-scoped today. Product context is
 				// carried by the Incident record without inventing a product hostname.
@@ -351,8 +361,14 @@ async function writeRemote(snapshot: StatusEditorPage): Promise<StatusEditorSave
 			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
 			body: JSON.stringify(snapshot)
 		});
-		const payload = (await response.json().catch(() => ({}))) as { message?: string; edgeSynced?: boolean };
-		if (!response.ok) return { ok: false, message: payload.message ?? 'Unable to publish changes. Try again.' };
+
+		const payload = await response.json().catch(() => ({})) as { message?: string; edgeSynced?: boolean };
+
+		if (!response.ok) return {
+			ok: false,
+			message: payload.message ?? 'Unable to publish changes. Try again.'
+		};
+
 		return {
 			ok: true,
 			edgeSynced: payload.edgeSynced !== false,
@@ -398,7 +414,7 @@ export async function hydrateStatusEditor() {
 			if (!token) statusEditorPreview.saveState = 'local';
 			if (token) {
 				const response = await fetch('/api/status/editor', { headers: { authorization: `Bearer ${token}` } });
-				const payload = (await response.json()) as { page?: unknown; publishedAt?: string; message?: string };
+				const payload = await response.json() as { page?: unknown; publishedAt?: string; message?: string };
 				if (response.ok && isStoredPage(payload.page)) {
 					statusEditorPreview.page = clonePage(payload.page);
 					publishedSnapshot = clonePage(payload.page as StatusEditorPage);
@@ -481,7 +497,7 @@ export async function saveProductStatusEditor(productSlug: string): Promise<Stat
 
 export function updateServiceStatus(id: string, status: PublicStatusState): boolean {
 	if (!statusEditorPreview.page.services.some((service) => service.id === id)) return false;
-	statusEditorPreview.page.services = statusEditorPreview.page.services.map((service) => (service.id === id ? { ...service, status } : service));
+	statusEditorPreview.page.services = statusEditorPreview.page.services.map((service) => service.id === id ? { ...service, status } : service);
 	persistLocal();
 	return true;
 }
@@ -527,14 +543,18 @@ export function startPublicIncident(input: StartPublicIncidentInput): string | n
 		status: input.status,
 		startedAt,
 		affectedServices: [...input.affectedServices],
-		...(input.mode ? { mode: input.mode } : {}),
-		...(input.severity ? { severity: input.severity } : {}),
-		...(input.coordinationChannel?.trim() ? { coordinationChannel: input.coordinationChannel.trim() } : {}),
-		updates: [{
-			id: `${id}-update-1`,
-			status: input.status,
-			publishedAt: startedAt,
-			message: input.message.trim()
+		...input.mode ? { mode: input.mode } : {},
+		...input.severity ? { severity: input.severity } : {},
+		...input.coordinationChannel?.trim()
+			? { coordinationChannel: input.coordinationChannel.trim() }
+			: {},
+
+		updates: [
+			{
+				id: `${id}-update-1`,
+				status: input.status,
+				publishedAt: startedAt,
+				message: input.message.trim()
 		}]
 	};
 

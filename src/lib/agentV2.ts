@@ -18,8 +18,11 @@ function flagStorage(): Storage | null {
 	}
 }
 
+/** Minimal URL surface this gate reads — satisfied by both mutable URL and Kit 3's readonly page URL. */
+type UrlLike = { searchParams: Pick<URLSearchParams, 'get' | 'has'> };
+
 /** True when the current URL carries `?v2` (value other than `0`). */
-function urlHasV2(url: URL): boolean {
+function urlHasV2(url: UrlLike): boolean {
 	const value = url.searchParams.get('v2');
 	return url.searchParams.has('v2') && value !== '0';
 }
@@ -30,7 +33,7 @@ function urlHasV2(url: URL): boolean {
  * opt-in so plain links (`/workspace/agent`, `/workspace/inbox`) keep the
  * surface visible for the rest of the tab session.
  */
-export function isAgentV2(url: URL): boolean {
+export function isAgentV2(url: UrlLike): boolean {
 	const storage = flagStorage();
 	if (urlHasV2(url)) {
 		storage?.setItem(KEY, '1');

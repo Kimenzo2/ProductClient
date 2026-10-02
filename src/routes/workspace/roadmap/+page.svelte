@@ -1,29 +1,43 @@
 <script lang="ts">
-import { onMount } from 'svelte';
-import { CheckCircle, Globe, Link2, Map, Plus } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import { Button, Card, Chip, Input } from '$lib/components/ui';
-import { roadmapItems } from '$lib/data/workspace';
-import { supabase } from '$lib/supabaseClient';
-import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
-import type { RoadmapDoc } from '$lib/data/roadmapEditor';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { CheckCircle, Globe, Link2, Map, Plus } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { Button, Card, Chip, Input } from '#lib/components/ui/index.js';
+	import { roadmapItems } from '#lib/data/workspace.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { ensureMyTenant, tenantUrl, type Tenant } from '#lib/tenant.js';
+	import type { RoadmapDoc } from '#lib/data/roadmapEditor.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import { browser } from '$app/env';
 
-const lanes = ['Now', 'Next', 'Later', 'Shipped'] as const;
-let tenant = $state<Tenant | null>(null);
-let roadmapDoc = $state<RoadmapDoc | null>(null);
-let isPreview = $state(false);
-onMount(() => {
-	isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
-});
-let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
-let headerTitle = $derived(activeSlug ? `${activeProductStore.activeProduct?.name ?? 'Product'} · Roadmap` : 'Roadmap');
-let scopedItems = $derived(isPreview ? (activeSlug ? roadmapItems.filter((i) => i.productSlug === activeSlug) : roadmapItems) : []);
-	let laneCounts = $derived(
-		Object.fromEntries(lanes.map((l) => [l, scopedItems.filter((i) => i.status === l).length])) as Record<(typeof lanes)[number], number>
-	);
-	let githubLinks = $state<Record<string, { url: string; number: number; title: string | null; state: string | null }>>({});
+	const lanes = ['Now', 'Next', 'Later', 'Shipped'] as const;
+	let tenant = $state<Tenant | null>(null);
+	let roadmapDoc = $state<RoadmapDoc | null>(null);
+	let isPreview = $state(false);
+	onMount(() => {
+		isPreview = browser && import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+	});
+	let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);
+
+	let headerTitle = $derived(activeSlug
+		? `${activeProductStore.activeProduct?.name ?? 'Product'} · Roadmap`
+		: 'Roadmap');
+
+	let scopedItems = $derived(isPreview
+		? activeSlug
+			? roadmapItems.filter((i) => i.productSlug === activeSlug)
+			: roadmapItems
+		: []);
+
+	let laneCounts = $derived(Object.fromEntries(lanes.map((l) => [l, scopedItems.filter((i) => i.status === l).length])) as Record<(typeof lanes)[number], number>);
+
+	let githubLinks = $state<Record<string, { 
+		url: string;
+		number: number;
+		title: string | null;
+		state: string | null
+	 }>>({});
+
 	let githubItemEditing = $state<string | null>(null);
 	let githubReference = $state('');
 	let githubBusy = $state(false);
@@ -76,7 +90,7 @@ let scopedItems = $derived(isPreview ? (activeSlug ? roadmapItems.filter((i) => 
 			const token = sess.session?.access_token;
 			if (!token) return;
 			const res = await fetch('/api/roadmap/publish', { headers: { authorization: `Bearer ${token}` } });
-			const j = (await res.json().catch(() => null)) as { ok?: boolean; doc?: RoadmapDoc } | null;
+			const j = await res.json().catch(() => null) as { ok?: boolean; doc?: RoadmapDoc } | null;
 			if (j?.ok && j.doc) roadmapDoc = j.doc as RoadmapDoc;
 		} catch {}
 	});
@@ -99,9 +113,64 @@ let scopedItems = $derived(isPreview ? (activeSlug ? roadmapItems.filter((i) => 
 						<Card padding="md" class="group" id={item.id}>
 							<div class="flex items-start gap-2"><span class="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--pc-surface)] text-[var(--pc-text-muted)]">{#if lane === 'Shipped'}<CheckCircle size={14} weight="Outline" />{:else}<Map size={14} weight="Outline" />{/if}</span><div class="min-w-0"><h3 class="text-[13px] font-medium leading-snug">{item.title}</h3><p class="mt-1 text-xs leading-relaxed text-[var(--pc-text-muted)] opacity-70">{item.description}</p></div></div>
 							<div class="mt-4 flex items-center gap-2"><Chip size="xs" variant="accent">{item.productName}</Chip></div>
-							{#if githubLinks[item.id]}<div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--pc-border)]/60 pt-3"><Button size="sm" variant="ghost" href={githubLinks[item.id].url} target="_blank"><Link2 size={12} weight="Outline" />Issue #{githubLinks[item.id].number}</Button><Button size="sm" variant="ghost" onclick={() => void removeGithubLink(item.id)}>Unlink</Button></div>
-							{:else if githubItemEditing === item.id}<div class="mt-3 flex flex-wrap gap-2 border-t border-[var(--pc-border)]/60 pt-3"><Input class="min-w-0 flex-1" bind:value={githubReference} placeholder="owner/repo#123" aria-label={`GitHub issue for ${item.title}`} /><Button size="sm" loading={githubBusy} onclick={() => void saveGithubLink(item.id)}>Link</Button><Button size="sm" variant="outline" onclick={() => (githubItemEditing = null)}>Cancel</Button></div>
-							{:else}<div class="mt-3 border-t border-[var(--pc-border)]/60 pt-3"><Button size="sm" variant="ghost" onclick={() => (githubItemEditing = item.id)}><Link2 size={12} weight="Outline" />Link GitHub issue</Button></div>{/if}
+
+							{#if githubLinks[item.id]}
+								<div
+									class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--pc-border)]/60 pt-3"
+								>
+									<Button
+										size="sm"
+										variant="ghost"
+										href={githubLinks[item.id].url}
+										target="_blank"
+									>
+										<Link2 size={12} weight="Outline" />
+										Issue #{githubLinks[item.id].number}
+									</Button>
+
+									<Button
+										size="sm"
+										variant="ghost"
+										onclick={() => void removeGithubLink(item.id)}
+									>Unlink</Button>
+								</div>
+							{:else if githubItemEditing === item.id}
+								<div
+									class="mt-3 flex flex-wrap gap-2 border-t border-[var(--pc-border)]/60 pt-3"
+								>
+									<Input
+										class="min-w-0 flex-1"
+										bind:value={githubReference}
+										placeholder="owner/repo#123"
+										aria-label={`GitHub issue for ${item.title}`}
+									/>
+
+									<Button
+										size="sm"
+										loading={githubBusy}
+										onclick={() => void saveGithubLink(item.id)}
+									>Link</Button>
+
+									<Button
+										size="sm"
+										variant="outline"
+										onclick={() => githubItemEditing = null}
+									>Cancel</Button>
+								</div>
+							{:else}
+								<div
+									class="mt-3 border-t border-[var(--pc-border)]/60 pt-3"
+								>
+									<Button
+										size="sm"
+										variant="ghost"
+										onclick={() => githubItemEditing = item.id}
+									>
+										<Link2 size={12} weight="Outline" />
+										Link GitHub issue
+									</Button>
+								</div>
+							{/if}
 						</Card>
 					{/each}
 					{#if scopedItems.filter((item) => item.status === lane).length === 0}<div class="rounded-[16px] bg-[var(--pc-surface)] px-3 py-8 text-center text-xs text-[var(--pc-text-faint)]">Nothing here yet</div>{/if}

@@ -1,13 +1,13 @@
 <script lang="ts">
 import { Inbox } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-import { StatePanel } from '$lib/components/ui';
-import { loadFeedbackItems, type FeedbackBucket, type FeedbackItemView } from '$lib/data/feedbackInbox';
-import { requireSession } from '$lib/auth/guard';
+import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+import EntityRow from '#lib/components/workspace/EntityRow.svelte';
+import { StatePanel } from '#lib/components/ui/index.js';
+import { loadFeedbackItems, type FeedbackBucket, type FeedbackItemView } from '#lib/data/feedbackInbox.js';
+import { requireSession } from '#lib/auth/guard.js';
 import { onMount } from 'svelte';
-import { trackAnalyticsEvent } from '$lib/data/analytics';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { trackAnalyticsEvent } from '#lib/data/analytics.js';
+import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 let filter = $state<'All' | FeedbackBucket>('All');
 let activeSlug = $derived(activeProductStore.activeProduct?.slug ?? null);

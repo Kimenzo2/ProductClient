@@ -1,20 +1,22 @@
-import { env as privateEnv } from '$env/dynamic/private';
+import {
+	GITHUB_APP_ID,
+	GITHUB_APP_INSTALL_URL,
+	GITHUB_APP_PRIVATE_KEY,
+	GITHUB_APP_SLUG,
+	GITHUB_APP_WEBHOOK_SECRET,
+	GITHUB_STATE_SECRET
+} from '$app/env/private';
 import { createHmac, createSign, timingSafeEqual } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 
-// Env helpers — server-only
-function env(name: string): string | undefined {
-	return (privateEnv as Record<string, string | undefined>)[name];
-}
-
 function getAppId(): string {
-	const id = env('GITHUB_APP_ID');
+	const id = GITHUB_APP_ID;
 	if (!id) throw new Error('Missing GITHUB_APP_ID');
 	return id;
 }
 
 function getPrivateKey(): string {
-	let key = env('GITHUB_APP_PRIVATE_KEY');
+	let key = GITHUB_APP_PRIVATE_KEY;
 	if (key) {
 		// support \n escaped
 		if (key.includes('\\n')) key = key.replace(/\\n/g, '\n');
@@ -35,13 +37,13 @@ function getPrivateKey(): string {
 }
 
 export function getWebhookSecret(): string {
-	const s = env('GITHUB_APP_WEBHOOK_SECRET');
+	const s = GITHUB_APP_WEBHOOK_SECRET;
 	if (!s) throw new Error('Missing GITHUB_APP_WEBHOOK_SECRET');
 	return s;
 }
 
 export function getAppSlug(): string {
-	return env('GITHUB_APP_SLUG') ?? 'product-client';
+	return GITHUB_APP_SLUG || 'product-client';
 }
 
 function base64url(input: string | Buffer): string {
@@ -130,7 +132,7 @@ export const verifyWebhookSignatureSync = verifyWebhookSignature;
  * state = base64url(JSON) + "." + hmac
  */
 function getStateSecret(): string {
-	return env('GITHUB_STATE_SECRET') ?? getWebhookSecret();
+	return GITHUB_STATE_SECRET || getWebhookSecret();
 }
 
 export function signState(payload: Record<string, unknown>): string {
@@ -167,7 +169,7 @@ export function verifyState(state: string): Record<string, unknown> | null {
 }
 
 export function getInstallUrl(state: string): string {
-	const override = env('GITHUB_APP_INSTALL_URL');
+	const override = GITHUB_APP_INSTALL_URL;
 	if (override) return `${override}${override.includes('?') ? '&' : '?'}state=${encodeURIComponent(state)}`;
 	const slug = getAppSlug().replace(/^https:\/\/github\.com\/apps\//, '').replace(/\/$/, '');
 	return `https://github.com/apps/${slug}/installations/new?state=${encodeURIComponent(state)}`;

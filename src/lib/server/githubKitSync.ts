@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { commitRepositoryFiles } from '$lib/server/githubApp';
+import { commitRepositoryFiles } from '#lib/server/githubApp.js';
 
 type SyncJobInput = {
 	tenantId: string;

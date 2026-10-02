@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { CloseCircle, InfoCircle, ArrowRight } from 'reicon-svelte';
-	import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { Button, Input, Label, Select, Textarea } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 	import {
 		hydrateStatusEditor,
 		saveStatusEditor,
@@ -12,7 +12,7 @@
 		statusEditorPreview,
 		type PublicIncidentStatus,
 		type PublicStatusState
-	} from '$lib/data/statusEditor.svelte';
+	} from '#lib/data/statusEditor.svelte.js';
 
 	let { onclose }: { onclose?: () => void } = $props();
 

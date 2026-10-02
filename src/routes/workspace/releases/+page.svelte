@@ -1,14 +1,14 @@
 <script lang="ts">
-import { ArrowRight, History, InfoCircle, Rocket } from 'reicon-svelte';
-import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import EntityRow from '$lib/components/workspace/EntityRow.svelte';
-import { Button, Card, Chip, Select, StatePanel } from '$lib/components/ui';
-import { onMount } from 'svelte';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-import { releases, products } from '$lib/data/workspace';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-import { supabase } from '$lib/supabaseClient';
-import { browser } from '$app/environment';
+	import { ArrowRight, History, InfoCircle, Rocket } from 'reicon-svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import EntityRow from '#lib/components/workspace/EntityRow.svelte';
+	import { Button, Card, Chip, Select, StatePanel } from '#lib/components/ui/index.js';
+	import { onMount } from 'svelte';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { releases, products } from '#lib/data/workspace.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { browser } from '$app/env';
 
 	type InternalStatus = 'Draft' | 'In review' | 'Ready' | 'Published';
 	type Visibility = 'Internal' | 'Preview' | 'Public';
@@ -39,7 +39,9 @@ import { browser } from '$app/environment';
 	});
 	let productOptions = $derived([
 		{ value: 'all', label: 'All workspace products' },
-		...(isPreview ? products.map((p) => ({ value: p.slug, label: p.name })) : [])
+		...isPreview
+			? products.map((p) => ({ value: p.slug, label: p.name }))
+			: []
 	]);
 	let sourceReleases = $derived(isPreview ? releases : []);
 
@@ -100,8 +102,17 @@ import { browser } from '$app/environment';
 	<WorkspaceHeader title={headerTitle} description="Drafts, reviews, and ready to publish. Public page appears only after you publish — this timeline is for makers, not customers." actionLabel="Write product update" />
 	<div class="flex flex-wrap items-center gap-3 py-5" role="group" aria-label="Internal release filters">
 		<div class="flex items-center gap-2">
-			<span class="text-xs font-medium text-[var(--pc-text-muted)]">Product:</span>
-			<Select id="workspace-product" bind:value={productFilter} options={productOptions} placeholder="Select product" />
+			<span
+				class="text-xs font-medium text-[var(--pc-text-muted)]"
+			>Product:</span>
+
+			<Select
+				id="workspace-product"
+				bind:value={productFilter}
+				options={productOptions}
+				placeholder="Select product"
+			/>
+
 			<span
 				class="inline-flex cursor-help"
 				use:tooltip={{
@@ -116,7 +127,14 @@ import { browser } from '$app/environment';
 		<div class="h-5 w-px bg-[var(--pc-border-strong)]/30 hidden sm:block" aria-hidden="true"></div>
 		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Status filter">
 			{#each ['All', 'Draft', 'In review', 'Ready', 'Published'] as item}
-				<button type="button" onclick={() => (filter = item as typeof filter)} aria-pressed={filter === item} class="inline-flex h-9 items-center rounded-full px-3 text-xs transition-[background-color,color] duration-150 {filter === item ? 'bg-[var(--pc-text)] text-[var(--pc-bg)]' : 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}">{item}</button>
+				<button
+					type="button"
+					onclick={() => filter = item as typeof filter}
+					aria-pressed={filter === item}
+					class="inline-flex h-9 items-center rounded-full px-3 text-xs transition-[background-color,color] duration-150 {filter === item
+						? 'bg-[var(--pc-text)] text-[var(--pc-bg)]'
+						: 'bg-[var(--pc-surface-2)] text-[var(--pc-text-muted)] hover:bg-[var(--pc-surface)]'}"
+				>{item}</button>
 			{/each}
 		</div>
 		<span class="ml-auto text-xs text-[var(--pc-text-faint)] tabular-nums">{filtered.length} internal</span>

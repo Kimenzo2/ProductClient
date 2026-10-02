@@ -1,7 +1,11 @@
-import { env } from '$env/dynamic/private';
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { findTenantForUser } from '$lib/server/tenantAccess';
+import {
+	CLOUDFLARE_ACCOUNT_ID,
+	CLOUDFLARE_D1_DATABASE_ID,
+	CLOUDFLARE_API_TOKEN
+} from '$app/env/private';
+
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { findTenantForUser } from '#lib/server/tenantAccess.js';
 import type { RequestHandler } from './$types';
 
 type PublicStatusState = 'operational' | 'degraded' | 'outage' | 'unknown';
@@ -116,7 +120,21 @@ function validateDocument(value: unknown): { document?: Record<string, unknown>;
 			}
 			const resolvedAt = typeof item.resolvedAt === 'string' && item.resolvedAt.trim() ? item.resolvedAt.trim() : undefined;
 			if (resolvedAt && !validTimestamp(resolvedAt)) issues.push(`incidents[${index}].resolvedAt must be a valid timestamp.`);
-			incidents.push({ id, title, summary, leadName, status: item.status, startedAt, ...(resolvedAt ? { resolvedAt } : {}), ...(item.mode ? { mode: item.mode } : {}), ...(item.severity ? { severity: item.severity } : {}), ...(coordinationChannel ? { coordinationChannel } : {}), affectedServices, updates });
+
+			incidents.push({
+				id,
+				title,
+				summary,
+				leadName,
+				status: item.status,
+				startedAt,
+				...resolvedAt ? { resolvedAt } : {},
+				...item.mode ? { mode: item.mode } : {},
+				...item.severity ? { severity: item.severity } : {},
+				...coordinationChannel ? { coordinationChannel } : {},
+				affectedServices,
+				updates
+			});
 		}
 	}
 
@@ -136,13 +154,16 @@ async function getContext(request: Request) {
 	return { admin, userId, tenant, role: tenant?.role ?? null };
 }
 
-async function syncIncidentModel(admin: ReturnType<typeof createAdminClient>, tenantId: string, userId: string, document: Record<string, unknown>) {
-	const services = (document.services as Record<string, unknown>[]) ?? [];
-	const incidents = (document.incidents as Record<string, unknown>[]) ?? [];
-	const { data: existing, error: existingError } = await admin
-		.from('incidents')
-		.select('id, external_id, status, resolved_at, lead_name, lead_user_id, severity, mode, coordination_channel, updated_at')
-		.eq('tenant_id', tenantId);
+async function syncIncidentModel(
+	admin: ReturnType<typeof createAdminClient>,
+	tenantId: string,
+	userId: string,
+	document: Record<string, unknown>
+) {
+	const services = document.services as Record<string, unknown>[] ?? [];
+	const incidents = document.incidents as Record<string, unknown>[] ?? [];
+	const { data: existing, error: existingError } = await admin.from('incidents').select('id, external_id, status, resolved_at, lead_name, lead_user_id, severity, mode, coordination_channel, updated_at').eq('tenant_id', tenantId);
+
 	if (existingError) return existingError;
 
 	for (const incident of incidents) {
@@ -166,7 +187,7 @@ async function syncIncidentModel(admin: ReturnType<typeof createAdminClient>, te
 		const updates = (Array.isArray(incident.updates) ? incident.updates : []) as Record<string, unknown>[];
 		const lastResolved = [...updates].reverse().find((update) => update.status === 'resolved');
 		const resolvedAt = effectiveStatus === 'resolved'
-			? (previous?.resolved_at ?? incident.resolvedAt ?? lastResolved?.publishedAt ?? new Date().toISOString())
+			? previous?.resolved_at ?? incident.resolvedAt ?? lastResolved?.publishedAt ?? new Date().toISOString()
 			: null;
 		const { data: row, error } = await admin.from('incidents').upsert({
 			tenant_id: tenantId,
@@ -334,7 +355,7 @@ async function readNormalizedIncidents(admin: ReturnType<typeof createAdminClien
 			leadName: row.lead_name,
 			status: row.status,
 			startedAt: row.started_at,
-			...(row.resolved_at ? { resolvedAt: row.resolved_at } : {}),
+			...row.resolved_at ? { resolvedAt: row.resolved_at } : {},
 			affectedServices: (services ?? []).filter((service) => service.incident_id === row.id).map((service) => service.service_id),
 			updates: (updates ?? []).filter((update) => update.incident_id === row.id).map((update) => ({ id: update.external_id, status: update.status, publishedAt: update.published_at, message: update.message }))
 		}));
@@ -346,45 +367,45 @@ async function readNormalizedIncidents(admin: ReturnType<typeof createAdminClien
 export const GET: RequestHandler = async ({ request }) => {
 	try {
 		const { admin, tenant } = await getContext(request);
-		if (!tenant) return json({ ok: true, page: null });
+		if (!tenant) return Response.json({ ok: true, page: null });
 		const { data, error } = await admin.from('status_pages').select('page_title, page_description, services, incidents, published_at').eq('tenant_id', tenant.id).maybeSingle();
 		if (error) {
 			console.error('[status-editor] failed to load Supabase Status Page', error);
-			return json({ ok: false, code: 'DB_ERROR', message: 'Unable to load the Status Page right now.' }, { status: 500 });
+			return Response.json({ ok: false, code: 'DB_ERROR', message: 'Unable to load the Status Page right now.' }, { status: 500 });
 		}
-		if (!data) return json({ ok: true, page: null });
+		if (!data) return Response.json({ ok: true, page: null });
 		const normalizedIncidents = await readNormalizedIncidents(admin, tenant.id);
-		return json({ ok: true, page: { productSlug: tenant.slug, pageTitle: data.page_title, pageDescription: data.page_description, services: data.services, incidents: normalizedIncidents ?? data.incidents }, publishedAt: data.published_at });
+		return Response.json({ ok: true, page: { productSlug: tenant.slug, pageTitle: data.page_title, pageDescription: data.page_description, services: data.services, incidents: normalizedIncidents ?? data.incidents }, publishedAt: data.published_at });
 	} catch (error) {
 		console.error('[status-editor] failed to load Status Page context', error);
-		return json({ ok: false, code: 'NOT_CONFIGURED', message: 'Status Editor is not configured yet.' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED', message: 'Status Editor is not configured yet.' }, { status: 503 });
 	}
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
 	const contentLength = Number(request.headers.get('content-length') ?? 0);
-	if (contentLength > 1_000_000) return json({ ok: false, code: 'PAYLOAD_TOO_LARGE', message: 'Status Page content is too large.' }, { status: 413 });
+	if (contentLength > 1_000_000) return Response.json({ ok: false, code: 'PAYLOAD_TOO_LARGE', message: 'Status Page content is too large.' }, { status: 413 });
 	let body: unknown;
 	try {
 		body = await request.json();
 	} catch {
-		return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
+		return Response.json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	}
 
 	const { document, issues } = validateDocument(body);
-	if (!document) return json({ ok: false, code: 'INVALID', issues }, { status: 422 });
+	if (!document) return Response.json({ ok: false, code: 'INVALID', issues }, { status: 422 });
 
 	try {
 		const { admin, userId, tenant, role } = await getContext(request);
-		if (!userId) return json({ ok: false, code: 'UNAUTHORIZED', message: 'Sign in required.' }, { status: 401 });
-		if (!tenant) return json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
-		if (role !== 'owner' && role !== 'admin') return json({ ok: false, code: 'FORBIDDEN', message: 'Manager access required.' }, { status: 403 });
+		if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED', message: 'Sign in required.' }, { status: 401 });
+		if (!tenant) return Response.json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
+		if (role !== 'owner' && role !== 'admin') return Response.json({ ok: false, code: 'FORBIDDEN', message: 'Manager access required.' }, { status: 403 });
 
 		const now = new Date().toISOString();
 		const incidentModelError = await syncIncidentModel(admin, tenant.id, userId, document);
 		if (incidentModelError) {
 			console.error('[status-editor] failed to sync normalized incident model', incidentModelError);
-			return json({ ok: false, code: 'INCIDENT_MODEL_ERROR', message: 'Unable to save the connected Incident record.' }, { status: 500 });
+			return Response.json({ ok: false, code: 'INCIDENT_MODEL_ERROR', message: 'Unable to save the connected Incident record.' }, { status: 500 });
 		}
 		const canonicalIncidents = await readNormalizedIncidents(admin, tenant.id);
 		if (canonicalIncidents) document.incidents = canonicalIncidents;
@@ -401,21 +422,40 @@ export const PUT: RequestHandler = async ({ request }) => {
 		}, { onConflict: 'tenant_id' });
 		if (error) {
 			console.error('[status-editor] failed to save Supabase Status Page', error);
-			return json({ ok: false, code: 'DB_ERROR', message: 'Unable to save the Status Page right now.' }, { status: 500 });
+			return Response.json({ ok: false, code: 'DB_ERROR', message: 'Unable to save the Status Page right now.' }, { status: 500 });
 		}
 
 		const edgeSynced = await mirrorToD1(tenant.slug, document, now);
-		return json({ ok: true, slug: tenant.slug, publishedAt: now, edgeSynced, ...(edgeSynced ? {} : { message: 'Saved to the workspace; the hosted page is still syncing.' }) }, { status: edgeSynced ? 200 : 202 });
-	} catch (error) {
+
+		return Response.json(
+			{
+				ok: true,
+				slug: tenant.slug,
+				publishedAt: now,
+				edgeSynced,
+				...edgeSynced
+					? {}
+					: {
+						message: 'Saved to the workspace; the hosted page is still syncing.'
+					}
+			},
+			{ status: edgeSynced ? 200 : 202 }
+		);
+	} catch(error) {
 		console.error('[status-editor] failed to publish Status Page', error);
-		return json({ ok: false, code: 'NOT_CONFIGURED', message: 'Status Editor is not configured yet.' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED', message: 'Status Editor is not configured yet.' }, { status: 503 });
 	}
 };
 
-async function mirrorToD1(slug: string, document: Record<string, unknown>, timestamp: string): Promise<boolean> {
-	const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-	const databaseId = env.CLOUDFLARE_D1_DATABASE_ID;
-	const token = env.CLOUDFLARE_API_TOKEN;
+async function mirrorToD1(
+	slug: string,
+	document: Record<string, unknown>,
+	timestamp: string
+): Promise<boolean> {
+	const accountId = CLOUDFLARE_ACCOUNT_ID;
+	const databaseId = CLOUDFLARE_D1_DATABASE_ID;
+	const token = CLOUDFLARE_API_TOKEN;
+
 	if (!accountId || !databaseId || !token) return false;
 
 	try {
@@ -431,7 +471,7 @@ async function mirrorToD1(slug: string, document: Record<string, unknown>, times
 			console.error('[status-editor] D1 mirror failed', response.status, await response.text());
 			return false;
 		}
-		const payload = (await response.json().catch(() => ({}))) as { success?: boolean };
+		const payload = await response.json().catch(() => ({})) as { success?: boolean };
 		if (payload.success === false) {
 			console.error('[status-editor] D1 mirror returned an error', payload);
 			return false;

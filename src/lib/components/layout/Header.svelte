@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toggleTheme, getTheme } from '$lib/theme';
+	import { toggleTheme, getTheme } from '#lib/theme.js';
 	import { ArrowUpRight, Bell, Menu, Moon, Search, SidebarLeft, SidebarRight, Sun } from 'reicon-svelte';
-	import { feedHref } from '$lib/auth/urls';
-import QuickCreate from '$lib/components/workspace/QuickCreate.svelte';
-import ProductSwitcher from '$lib/components/layout/ProductSwitcher.svelte';
-import { hydrateSignalRegistry, signalRegistry, setNotificationCount } from '$lib/data/signalRegistry.svelte';
-import { loadNotifications } from '$lib/data/notifications';
-import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { feedHref } from '#lib/auth/urls.js';
+import QuickCreate from '#lib/components/workspace/QuickCreate.svelte';
+import ProductSwitcher from '#lib/components/layout/ProductSwitcher.svelte';
+import { hydrateSignalRegistry, signalRegistry, setNotificationCount } from '#lib/data/signalRegistry.svelte.js';
+import { loadNotifications } from '#lib/data/notifications.js';
+import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	let {
 		onToggleSidebar,

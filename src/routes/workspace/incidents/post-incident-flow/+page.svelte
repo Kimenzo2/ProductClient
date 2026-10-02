@@ -3,10 +3,10 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 import { ArrowLeft, ArrowRight, Calendar, CheckCircle, Clock, CloseCircle, Export, History, Search, User } from 'reicon-svelte';
-import { Button, Input, Label, Select } from '$lib/components/ui';
-import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '$lib/data/postIncidentFlow.svelte';
-import { hydrateStatusEditor, incidentRecordsForWorkspace } from '$lib/data/statusEditor.svelte';
-import type { IncidentRecord, PostIncidentTask } from '$lib/data/workspace';
+import { Button, Input, Label, Select } from '#lib/components/ui/index.js';
+import { hydratePostIncidentFlow, postIncidentFlowPreview, resetPostIncidentFlow, updatePostIncidentTask } from '#lib/data/postIncidentFlow.svelte.js';
+import { hydrateStatusEditor, incidentRecordsForWorkspace } from '#lib/data/statusEditor.svelte.js';
+import type { IncidentRecord, PostIncidentTask } from '#lib/data/workspace.js';
 
 type FlowPhase = PostIncidentTask['phase'];
 type FlowFilter = 'All flows' | 'Needs action' | 'Complete';
@@ -137,7 +137,7 @@ let filter = $state<FlowFilter>('All flows');
 		selectedId = id;
 		editingTaskId = '';
 		saveNotice = '';
-		void goto(`/workspace/incidents/post-incident-flow?selected=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
+		void goto(`/workspace/incidents/post-incident-flow?selected=${encodeURIComponent(id)}`, { replaceState: true, reset: false });
 	}
 
 	function closeEditor() {
@@ -149,7 +149,7 @@ let filter = $state<FlowFilter>('All flows');
 		event.preventDefault();
 		selectedId = '';
 		editingTaskId = '';
-		void goto('/workspace/incidents/post-incident-flow', { replaceState: true, keepFocus: true, noScroll: true });
+		void goto('/workspace/incidents/post-incident-flow', { replaceState: true, reset: false });
 	}
 
 	function clearFilters() {

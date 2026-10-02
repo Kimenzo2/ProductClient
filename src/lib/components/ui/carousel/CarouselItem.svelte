@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getCarouselContext } from './context.js';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 	import type { Snippet } from 'svelte';
 
 	let {

@@ -1,31 +1,30 @@
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
 	const authHeader = request.headers.get('authorization') ?? '';
 	const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-	if (!token) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!token) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	let supabaseAdmin;
 	try {
 		supabaseAdmin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const { data: userData } = await supabaseAdmin.auth.getUser(token);
 	const userId = userData.user?.id;
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 
 	const form = await request.formData().catch(() => null);
-	if (!form) return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
+	if (!form) return Response.json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	const file = form.get('file') as File | null;
 	const field = (form.get('field') as string | null) ?? 'logo';
-	if (!file || !(file instanceof File)) return json({ ok: false, code: 'BAD_REQUEST', message: 'No file' }, { status: 400 });
+	if (!file || !(file instanceof File)) return Response.json({ ok: false, code: 'BAD_REQUEST', message: 'No file' }, { status: 400 });
 	if (!['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp', 'image/avif'].includes(file.type)) {
-		return json({ ok: false, code: 'INVALID_TYPE' }, { status: 400 });
+		return Response.json({ ok: false, code: 'INVALID_TYPE' }, { status: 400 });
 	}
-	if (file.size > 5 * 1024 * 1024) return json({ ok: false, code: 'TOO_LARGE' }, { status: 413 });
+	if (file.size > 5 * 1024 * 1024) return Response.json({ ok: false, code: 'TOO_LARGE' }, { status: 413 });
 
 	const ext = file.name.split('.').pop() ?? 'png';
 	const safeExt = ext.replace(/[^a-zA-Z0-9]/g, '') || 'png';
@@ -35,8 +34,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		contentType: file.type,
 		upsert: true
 	});
-	if (upErr) return json({ ok: false, code: 'UPLOAD_FAILED', message: upErr.message }, { status: 500 });
+	if (upErr) return Response.json({ ok: false, code: 'UPLOAD_FAILED', message: upErr.message }, { status: 500 });
 
 	const { data: urlData } = supabaseAdmin.storage.from('roadmap-assets').getPublicUrl(path);
-	return json({ ok: true, url: urlData.publicUrl, path });
+	return Response.json({ ok: true, url: urlData.publicUrl, path });
 };

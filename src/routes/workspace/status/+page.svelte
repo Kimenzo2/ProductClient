@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { CheckCircle, Edit, Export, History, X } from 'reicon-svelte';
-	import { tenantStatusUrl } from '$lib/tenant';
-import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
-	import { Button, Input, Label, Select, Textarea } from '$lib/components/ui';
+	import { tenantStatusUrl } from '#lib/tenant.js';
+import IncidentComposer from '#lib/components/status/IncidentComposer.svelte';
+	import { Button, Input, Label, Select, Textarea } from '#lib/components/ui/index.js';
 	import {
 			hydrateStatusEditor,
 			addStatusService,
@@ -14,7 +14,7 @@ import IncidentComposer from '$lib/components/status/IncidentComposer.svelte';
 			saveStatusEditor,
 			isStatusEditorDirty,
 			type PublicStatusState
-	} from '$lib/data/statusEditor.svelte';
+	} from '#lib/data/statusEditor.svelte.js';
 
 	const serviceOptions = [
 		{ value: 'operational', label: 'Operational' },

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { BranchDown, Building, CreditCard, Plug, Shield, Users, Warning } from 'reicon-svelte';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
 
 	let { children } = $props();
 

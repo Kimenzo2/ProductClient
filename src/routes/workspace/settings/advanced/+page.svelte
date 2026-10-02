@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Warning } from 'reicon-svelte';
-	import { Button, Input } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { Button, Input } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	let confirm = $state('');
 	let deleting = $state(false);

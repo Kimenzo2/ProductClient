@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { Box, ChevronDown, Add, Check } from 'reicon-svelte';
-import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '$lib/stores/activeProduct.svelte';
+import { activeProductStore, hydrateActiveProduct, setActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 import { page } from '$app/state';
-import ProductLogo from '$lib/components/brand/ProductLogo.svelte';
+import ProductLogo from '#lib/components/brand/ProductLogo.svelte';
 
 	let open = $state(false);
 	let triggerEl: HTMLButtonElement | undefined = $state(undefined);

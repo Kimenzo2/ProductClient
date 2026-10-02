@@ -1,4 +1,4 @@
-import type { SearchKind, SearchRecord } from '$lib/search/types';
+import type { SearchKind, SearchRecord } from '#lib/search/types.js';
 
 export function querySearchRecords(records: SearchRecord[], query: string, kind: 'All' | SearchKind = 'All'): SearchRecord[] {
 	const normalized = query.trim().toLowerCase();

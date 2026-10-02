@@ -3,15 +3,15 @@
 	import { page } from '$app/state';
 	import { AlertTriangle, Box, ChartBarTrendUp, ChevronDown, CloseCircle, FileText, Headset, History, Inbox, MessageDots, Roadmap, Settings } from 'reicon-svelte';
 	import { Collapsible } from 'bits-ui';
-	import { Avatar, Button, Separator } from '$lib/components/ui';
-	import ProductClientLogo from '$lib/components/brand/ProductClientLogo.svelte';
+	import { Avatar, Button, Separator } from '#lib/components/ui/index.js';
+	import ProductClientLogo from '#lib/components/brand/ProductClientLogo.svelte';
 	import { panelRegistry } from './sidebar/panelRegistry';
 	import WorkspaceHoverPanel from './sidebar/WorkspaceHoverPanel.svelte';
-import { tooltip } from '$lib/components/Tooltip.svelte';
-import { isAgentV2 } from '$lib/agentV2';
-import { hydrateSignalRegistry, signalRegistry } from '$lib/data/signalRegistry.svelte';
-import type { SignalKey } from '$lib/data/signalRegistry.svelte';
-import { supabase } from '$lib/supabaseClient';
+import { tooltip } from '#lib/components/Tooltip.svelte';
+import { isAgentV2 } from '#lib/agentV2.js';
+import { hydrateSignalRegistry, signalRegistry } from '#lib/data/signalRegistry.svelte.js';
+import type { SignalKey } from '#lib/data/signalRegistry.svelte.js';
+import { supabase } from '#lib/supabaseClient.js';
 
 	let {
 		collapsed = $bindable(false),

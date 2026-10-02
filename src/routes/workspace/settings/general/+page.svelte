@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Globe } from 'reicon-svelte';
-	import { Button, Input } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { ensureMyTenant, renameMyTenant, slugValidationMessage, tenantUrl, type Tenant } from '$lib/tenant';
-	import { supabase } from '$lib/supabaseClient';
+	import { Button, Input } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { ensureMyTenant, renameMyTenant, slugValidationMessage, tenantUrl, type Tenant } from '#lib/tenant.js';
+	import { supabase } from '#lib/supabaseClient.js';
 
 	let tenant = $state<Tenant | null>(null);
 	let loading = $state(true);

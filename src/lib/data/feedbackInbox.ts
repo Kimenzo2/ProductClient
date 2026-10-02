@@ -1,4 +1,4 @@
-import { supabase } from '$lib/supabaseClient';
+import { supabase } from '#lib/supabaseClient.js';
 
 // Live reads for /workspace/feedback and /workspace/inbox.
 // RLS scopes every query to products the signed-in maker owns; the optional

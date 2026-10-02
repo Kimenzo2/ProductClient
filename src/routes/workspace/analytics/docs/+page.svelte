@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArrowRight } from 'reicon-svelte';
-	import { fetchDocsAnalytics, type DocsAnalytics } from '$lib/data/docs-analytics';
-	import { requireSession } from '$lib/auth/guard';
-	import { supabase } from '$lib/supabaseClient';
-	import { analyticsRange } from '$lib/data/analytics-range.svelte';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
+	import { fetchDocsAnalytics, type DocsAnalytics } from '#lib/data/docs-analytics.js';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { analyticsRange } from '#lib/data/analytics-range.svelte.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
 
 	let data = $state<DocsAnalytics | null>(null);
 	let loading = $state(true);

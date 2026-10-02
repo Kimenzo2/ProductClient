@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { Bell, Rocket, AlertTriangle } from 'reicon-svelte';
 	import { Tabs } from 'bits-ui';
-	import { Avatar, Button, StatePanel } from '$lib/components/ui';
-	import { loadNotifications, markNotificationsRead, type LiveNotification } from '$lib/data/notifications';
-	import { setNotificationCount } from '$lib/data/signalRegistry.svelte';
+	import { Avatar, Button, StatePanel } from '#lib/components/ui/index.js';
+	import { loadNotifications, markNotificationsRead, type LiveNotification } from '#lib/data/notifications.js';
+	import { setNotificationCount } from '#lib/data/signalRegistry.svelte.js';
 
 	const typeIcon: Record<LiveNotification['type'], typeof Rocket> = {
 		launch: Rocket,

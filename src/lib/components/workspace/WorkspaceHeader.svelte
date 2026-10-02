@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Add, Export } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
+	import { Button } from '#lib/components/ui/index.js';
 
 	let {
 		title,

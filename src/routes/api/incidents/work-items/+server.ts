@@ -1,7 +1,6 @@
-import { json } from '@sveltejs/kit';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { findTenantForUser } from '$lib/server/tenantAccess';
-import { followUps as seedFollowUps, postIncidentTasks as seedPostIncidentTasks } from '$lib/data/workspace';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { findTenantForUser } from '#lib/server/tenantAccess.js';
+import { followUps as seedFollowUps, postIncidentTasks as seedPostIncidentTasks } from '#lib/data/workspace.js';
 import type { RequestHandler } from './$types';
 
 async function getContext(request: Request) {
@@ -82,8 +81,8 @@ async function ensureResolvedFlowTasks(admin: ReturnType<typeof createAdminClien
 export const GET: RequestHandler = async ({ request }) => {
 	try {
 		const { admin, userId, tenant } = await getContext(request);
-		if (!userId) return json({ ok: true, source: 'fixtures', items: [] });
-		if (!tenant) return json({ ok: true, source: 'database', items: [] });
+		if (!userId) return Response.json({ ok: true, source: 'fixtures', items: [] });
+		if (!tenant) return Response.json({ ok: true, source: 'database', items: [] });
 		const seedError = await seedDemoWorkItems(admin, tenant.id, userId);
 		if (seedError) throw seedError;
 		const flowError = await ensureResolvedFlowTasks(admin, tenant.id, userId);
@@ -91,11 +90,11 @@ export const GET: RequestHandler = async ({ request }) => {
 		const { data: incidents, error: incidentError } = await admin.from('incidents').select('id, external_id, title, product_name:tenant_id').eq('tenant_id', tenant.id);
 		if (incidentError) throw incidentError;
 		const incidentIds = (incidents ?? []).map((incident) => incident.id as string);
-		if (!incidentIds.length) return json({ ok: true, source: 'database', items: [] });
+		if (!incidentIds.length) return Response.json({ ok: true, source: 'database', items: [] });
 		const { data: items, error } = await admin.from('incident_work_items').select('id, incident_id, external_id, work_type, title, description, kind, phase, status, owner_name, due_label, destination_href').in('incident_id', incidentIds).order('created_at', { ascending: true });
 		if (error) throw error;
 		const incidentsById = new Map((incidents ?? []).map((incident) => [incident.id as string, incident]));
-		return json({
+		return Response.json({
 			ok: true,
 			source: 'database',
 			items: (items ?? []).map((item) => {
@@ -105,19 +104,19 @@ export const GET: RequestHandler = async ({ request }) => {
 		});
 	} catch (error) {
 		console.error('[incident-work-items] failed to load work items', error);
-		return json({ ok: false, code: 'DB_ERROR', message: 'Unable to load Incident work right now.' }, { status: 500 });
+		return Response.json({ ok: false, code: 'DB_ERROR', message: 'Unable to load Incident work right now.' }, { status: 500 });
 	}
 };
 
 export const PATCH: RequestHandler = async ({ request }) => {
 	try {
 		const { admin, userId, tenant } = await getContext(request);
-		if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
-		if (!tenant) return json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
+		if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+		if (!tenant) return Response.json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
 		const body = (await request.json()) as { id?: string; incidentId?: string; status?: string; owner?: string; due?: string };
-		if (!body.id || !body.incidentId) return json({ ok: false, code: 'INVALID' }, { status: 422 });
+		if (!body.id || !body.incidentId) return Response.json({ ok: false, code: 'INVALID' }, { status: 422 });
 		const { data: incident } = await admin.from('incidents').select('id').eq('tenant_id', tenant.id).eq('external_id', body.incidentId).maybeSingle();
-		if (!incident) return json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
+		if (!incident) return Response.json({ ok: false, code: 'NOT_FOUND' }, { status: 404 });
 		const changes = {
 			...(body.status ? { status: body.status } : {}),
 			...(body.owner ? { owner_name: body.owner.trim().slice(0, 120) } : {}),
@@ -127,9 +126,9 @@ export const PATCH: RequestHandler = async ({ request }) => {
 		};
 		const { error } = await admin.from('incident_work_items').update(changes).eq('incident_id', incident.id).eq('external_id', body.id);
 		if (error) throw error;
-		return json({ ok: true });
+		return Response.json({ ok: true });
 	} catch (error) {
 		console.error('[incident-work-items] failed to update work item', error);
-		return json({ ok: false, code: 'DB_ERROR', message: 'Unable to save Incident work right now.' }, { status: 500 });
+		return Response.json({ ok: false, code: 'DB_ERROR', message: 'Unable to save Incident work right now.' }, { status: 500 });
 	}
 };

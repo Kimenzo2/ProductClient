@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { AlertTriangle, Box, FileText, Heart, History, Inbox, Map, UserSquare } from 'reicon-svelte';
-	import type { SearchKind } from '$lib/search/types';
+	import type { SearchKind } from '#lib/search/types.js';
 
 	let {
 		href,

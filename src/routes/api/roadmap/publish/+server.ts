@@ -1,8 +1,12 @@
-import { env } from '$env/dynamic/private';
-import { json } from '@sveltejs/kit';
-import { validateRoadmapDoc } from '$lib/data/roadmapEditor';
-import { createAdminClient } from '$lib/server/supabaseAdmin';
-import { findTenantForUser } from '$lib/server/tenantAccess';
+import {
+	CLOUDFLARE_ACCOUNT_ID,
+	CLOUDFLARE_D1_DATABASE_ID,
+	CLOUDFLARE_API_TOKEN
+} from '$app/env/private';
+
+import { validateRoadmapDoc } from '#lib/data/roadmapEditor.js';
+import { createAdminClient } from '#lib/server/supabaseAdmin.js';
+import { findTenantForUser } from '#lib/server/tenantAccess.js';
 import type { RequestHandler } from './$types';
 
 const MAX_DOC_BYTES = 1_048_576; // 1 MB — matches D1 TEXT limit, prevents Zod DoS
@@ -41,18 +45,18 @@ export const GET: RequestHandler = async ({ request }) => {
 	try {
 		supabaseAdmin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const userId = await getUserId(request);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED' }, { status: 401 });
 	const tenant = await getTenantId(userId);
-	if (!tenant) return json({ ok: true, doc: null, version: 0 }, { headers: { 'cache-control': 'no-store' } });
+	if (!tenant) return Response.json({ ok: true, doc: null, version: 0 }, { headers: { 'cache-control': 'no-store' } });
 	const { data: row } = await supabaseAdmin
 		.from('roadmap_docs')
 		.select('doc, published_at, version')
 		.eq('tenant_id', tenant.id)
 		.maybeSingle();
-	return json(
+	return Response.json(
 		{ ok: true, doc: (row as { doc: unknown } | null)?.doc ?? null, version: (row as { version?: number } | null)?.version ?? 0 },
 		{ headers: { 'cache-control': 'no-store', etag: `W/"${(row as { version?: number } | null)?.version ?? 0}"` } }
 	);
@@ -64,33 +68,33 @@ export const POST: RequestHandler = async ({ request }) => {
 	try {
 		supabaseAdmin = createAdminClient();
 	} catch {
-		return json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
+		return Response.json({ ok: false, code: 'NOT_CONFIGURED' }, { status: 503 });
 	}
 	const userId = await getUserId(request);
-	if (!userId) return json({ ok: false, code: 'UNAUTHORIZED', message: 'Sign in required' }, { status: 401 });
+	if (!userId) return Response.json({ ok: false, code: 'UNAUTHORIZED', message: 'Sign in required' }, { status: 401 });
 
 	// Payload guard: Content-Length + JSON size
 	const contentLength = Number(request.headers.get('content-length') ?? 0);
 	if (contentLength > MAX_DOC_BYTES) {
-		return json({ ok: false, code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
+		return Response.json({ ok: false, code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
 	}
 	let body: unknown;
 	try {
 		body = await request.json();
 	} catch {
-		return json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
+		return Response.json({ ok: false, code: 'BAD_REQUEST' }, { status: 400 });
 	}
 	const doc = (body as { doc?: unknown })?.doc;
 	const jsonBytes = Buffer.byteLength(JSON.stringify(doc ?? ''), 'utf8');
 	if (jsonBytes > MAX_DOC_BYTES) {
-		return json({ ok: false, code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
+		return Response.json({ ok: false, code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
 	}
 
 	const issues = validateRoadmapDoc(doc);
-	if (issues.length > 0) return json({ ok: false, code: 'INVALID', issues }, { status: 422 });
+	if (issues.length > 0) return Response.json({ ok: false, code: 'INVALID', issues }, { status: 422 });
 
 	const tenant = await getTenantId(userId);
-	if (!tenant) return json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
+	if (!tenant) return Response.json({ ok: false, code: 'TENANT_NOT_FOUND' }, { status: 404 });
 
 	// Optimistic concurrency: If-Match with version (from GET etag)
 	const ifMatch = request.headers.get('if-match');
@@ -106,8 +110,8 @@ export const POST: RequestHandler = async ({ request }) => {
 				.select('version')
 				.maybeSingle();
 			if (insertErr) {
-				if (insertErr.code === '23505') return json({ ok: false, code: 'CONFLICT', message: 'Someone else published changes. Reload to get the latest.' }, { status: 409 });
-				return json({ ok: false, code: 'DB_ERROR', message: insertErr.message }, { status: 500 });
+				if (insertErr.code === '23505') return Response.json({ ok: false, code: 'CONFLICT', message: 'Someone else published changes. Reload to get the latest.' }, { status: 409 });
+				return Response.json({ ok: false, code: 'DB_ERROR', message: insertErr.message }, { status: 500 });
 			}
 			publishedVersion = (inserted as { version?: number } | null)?.version ?? 1;
 		} else {
@@ -118,10 +122,10 @@ export const POST: RequestHandler = async ({ request }) => {
 				.eq('version', expectedVersion)
 				.select('version')
 				.maybeSingle();
-			if (updateErr) return json({ ok: false, code: 'DB_ERROR', message: updateErr.message }, { status: 500 });
+			if (updateErr) return Response.json({ ok: false, code: 'DB_ERROR', message: updateErr.message }, { status: 500 });
 			if (!updated) {
 				const { data: current } = await supabaseAdmin.from('roadmap_docs').select('version').eq('tenant_id', tenant.id).maybeSingle();
-				return json({ ok: false, code: 'CONFLICT', message: 'Someone else published changes. Reload to get the latest.', currentVersion: (current as { version?: number } | null)?.version ?? 0 }, { status: 409 });
+				return Response.json({ ok: false, code: 'CONFLICT', message: 'Someone else published changes. Reload to get the latest.', currentVersion: (current as { version?: number } | null)?.version ?? 0 }, { status: 409 });
 			}
 			publishedVersion = (updated as { version?: number }).version ?? expectedVersion + 1;
 		}
@@ -131,7 +135,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			.upsert({ tenant_id: tenant.id, doc: doc as object, published_at: timestamp, updated_by: userId }, { onConflict: 'tenant_id' })
 			.select('version')
 			.maybeSingle();
-		if (upsertErr) return json({ ok: false, code: 'DB_ERROR', message: upsertErr.message }, { status: 500 });
+		if (upsertErr) return Response.json({ ok: false, code: 'DB_ERROR', message: upsertErr.message }, { status: 500 });
 		publishedVersion = (upserted as { version?: number } | null)?.version ?? null;
 	}
 
@@ -139,16 +143,16 @@ export const POST: RequestHandler = async ({ request }) => {
 	const d1Result = await mirrorToD1(tenant.slug, doc, timestamp);
 	if (!d1Result.ok) {
 		// Publish succeeded in Supabase; D1 lag is non-fatal but visible to user
-		return json({ ok: true, slug: tenant.slug, version: publishedVersion, warning: 'Published but edge cache is stale — will sync shortly' });
+		return Response.json({ ok: true, slug: tenant.slug, version: publishedVersion, warning: 'Published but edge cache is stale — will sync shortly' });
 	}
 
-	return json({ ok: true, slug: tenant.slug, version: publishedVersion });
+	return Response.json({ ok: true, slug: tenant.slug, version: publishedVersion });
 };
 
 async function mirrorToD1(slug: string, doc: unknown, timestamp: string): Promise<{ ok: boolean }> {
-	const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-	const databaseId = env.CLOUDFLARE_D1_DATABASE_ID;
-	const token = env.CLOUDFLARE_API_TOKEN;
+	const accountId = CLOUDFLARE_ACCOUNT_ID;
+	const databaseId = CLOUDFLARE_D1_DATABASE_ID;
+	const token = CLOUDFLARE_API_TOKEN;
 	if (!accountId || !databaseId || !token) return { ok: true };
 	const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`;
 	try {
@@ -160,7 +164,7 @@ async function mirrorToD1(slug: string, doc: unknown, timestamp: string): Promis
 				params: [slug, JSON.stringify(doc), timestamp, timestamp]
 			})
 		});
-		const data = (await res.json().catch(() => null)) as { success?: boolean } | null;
+		const data = await res.json().catch(() => null) as { success?: boolean } | null;
 		if (!res.ok || data?.success === false) return { ok: false };
 		return { ok: true };
 	} catch {

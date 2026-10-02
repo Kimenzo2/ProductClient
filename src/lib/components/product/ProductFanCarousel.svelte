@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 	import { ChevronLeft, ChevronRight, MapPoint } from 'reicon-svelte';
 
 	export type ProductFanItem = {

@@ -1,6 +1,6 @@
-import { makers, mockStates, preLaunchProducts, reviews } from '$lib/data/mockStates';
-import { hostedStatusPage } from '$lib/config/tenant';
-import type { SearchKind, SearchRecord } from '$lib/search/types';
+import { makers, mockStates, preLaunchProducts, reviews } from '#lib/data/mockStates.js';
+import { hostedStatusPage } from '#lib/config/tenant.js';
+import type { SearchKind, SearchRecord } from '#lib/search/types.js';
 
 export type LifecycleStatus = 'Live' | 'Beta' | 'Planned' | 'Resolved' | 'In progress' | 'Draft';
 

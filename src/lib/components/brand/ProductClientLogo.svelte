@@ -1,5 +1,5 @@
 <script lang="ts">
-	import logo from '$lib/assets/productclient-logo.svg';
+	import logo from '#lib/assets/productclient-logo.svg';
 
 	type Props = {
 		size?: number;

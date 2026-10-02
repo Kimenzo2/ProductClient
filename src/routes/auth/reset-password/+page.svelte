@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowRight, Lock } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import AuthInput from '$lib/components/auth/AuthInput.svelte';
-	import { passwordError, readableAuthError } from '$lib/auth/utils';
-	import { appHref, authHref, completeAppHandoff, openBlankTab } from '$lib/auth/urls';
-	import { supabase } from '$lib/supabaseClient';
+	import { Button } from '#lib/components/ui/index.js';
+	import AuthInput from '#lib/components/auth/AuthInput.svelte';
+	import { passwordError, readableAuthError } from '#lib/auth/utils.js';
+	import { appHref, authHref, completeAppHandoff, openBlankTab } from '#lib/auth/urls.js';
+	import { supabase } from '#lib/supabaseClient.js';
 
 	let password = $state('');
 	let confirmation = $state('');

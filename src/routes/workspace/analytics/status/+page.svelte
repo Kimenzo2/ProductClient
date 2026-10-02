@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fetchStatusAnalytics, type StatusAnalytics } from '$lib/data/status-analytics';
-	import { requireSession } from '$lib/auth/guard';
-	import { supabase } from '$lib/supabaseClient';
-	import { analyticsRange } from '$lib/data/analytics-range.svelte';
+	import { fetchStatusAnalytics, type StatusAnalytics } from '#lib/data/status-analytics.js';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { analyticsRange } from '#lib/data/analytics-range.svelte.js';
 	let data = $state<StatusAnalytics | null>(null); let loading=$state(true); let error=$state(''); let range=$derived(analyticsRange.value);
 	async function load(){ loading=true; error=''; const ok=await requireSession('/workspace/analytics/status'); if(!ok||!supabase){loading=false; return;} try{ const {data:u}=await supabase.auth.getUser(); if(!u.user) throw new Error('Not signed in'); data=await fetchStatusAnalytics(u.user.id, range);}catch(e){ error=e instanceof Error?e.message:'Load failed';} finally{loading=false;}}
 	onMount(load); $effect(()=>{ void range; void load(); });

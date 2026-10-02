@@ -4,11 +4,11 @@
 	import { goto } from '$app/navigation';
 	import { type EmailOtpType, type Session } from '@supabase/supabase-js';
 	import { ArrowRight, CheckCircle, Lock } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import { readableAuthError, safeNextPath } from '$lib/auth/utils';
-	import { appHref, authHref } from '$lib/auth/urls';
-	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, tenantHost } from '$lib/tenant';
+	import { Button } from '#lib/components/ui/index.js';
+	import { readableAuthError, safeNextPath } from '#lib/auth/utils.js';
+	import { appHref, authHref } from '#lib/auth/urls.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { ensureMyTenant, tenantHost } from '#lib/tenant.js';
 
 	let { mode = 'callback' }: { mode?: 'callback' | 'confirm' } = $props();
 	let status = $state<'checking' | 'ready' | 'error'>('checking');

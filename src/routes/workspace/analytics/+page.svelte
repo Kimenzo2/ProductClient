@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArrowRight, ChartBarTrendUp, CheckCircle, Clock, Eye, Heart, Link2, MessageDots, TrendUp, Users } from 'reicon-svelte';
-	import { Button, Card } from '$lib/components/ui';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-import { fetchMakerAnalytics, type BoostPerformance, type MakerAnalytics } from '$lib/data/maker-analytics';
-import { requireSession } from '$lib/auth/guard';
-import { supabase } from '$lib/supabaseClient';
-import { analyticsRange } from '$lib/data/analytics-range.svelte';
-import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { Button, Card } from '#lib/components/ui/index.js';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+import { fetchMakerAnalytics, type BoostPerformance, type MakerAnalytics } from '#lib/data/maker-analytics.js';
+import { requireSession } from '#lib/auth/guard.js';
+import { supabase } from '#lib/supabaseClient.js';
+import { analyticsRange } from '#lib/data/analytics-range.svelte.js';
+import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 	let analytics = $state<MakerAnalytics | null>(null);
 	let loading = $state(true);
@@ -107,7 +107,7 @@ import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProd
 			await hydrateActiveProduct();
 			analytics = await fetchMakerAnalytics(data.user.id, activeProductStore.activeProductId);
 			// Track with product_id = active for test 5
-			const { trackAnalyticsEvent } = await import('$lib/data/analytics');
+			const { trackAnalyticsEvent } = await import('#lib/data/analytics.js');
 			void trackAnalyticsEvent('status.view' as any, { path: '/workspace/analytics', productId: activeProductStore.activeProductId ?? undefined });
 		} catch (e) { error = e instanceof Error ? e.message : 'Could not load analytics'; } finally { loading = false; }
 	}

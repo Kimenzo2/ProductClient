@@ -3,12 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ArrowLeft, ArrowRight, Clock, Export, Map } from 'reicon-svelte';
-	import { Button, Card, Chip, StatePanel } from '$lib/components/ui';
-	import RelationList from '$lib/components/workspace/RelationList.svelte';
-	import StatusBadge from '$lib/components/workspace/StatusBadge.svelte';
-	import VisibilityBadge from '$lib/components/workspace/VisibilityBadge.svelte';
-	import { decisionThreadById } from '$lib/data/workspace';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
+	import { Button, Card, Chip, StatePanel } from '#lib/components/ui/index.js';
+	import RelationList from '#lib/components/workspace/RelationList.svelte';
+	import StatusBadge from '#lib/components/workspace/StatusBadge.svelte';
+	import VisibilityBadge from '#lib/components/workspace/VisibilityBadge.svelte';
+	import { decisionThreadById } from '#lib/data/workspace.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
 
 	let id = $derived(page.params.id ?? '');
 	let thread = $derived(decisionThreadById(id));

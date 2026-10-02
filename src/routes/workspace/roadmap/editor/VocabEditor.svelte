@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Add, Trash } from 'reicon-svelte';
-	import { Input, Label } from '$lib/components/ui';
+	import { Input, Label } from '#lib/components/ui/index.js';
 
 	let {
 		kind,

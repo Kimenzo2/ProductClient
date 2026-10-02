@@ -1,7 +1,12 @@
-import { env } from '$env/dynamic/private';
+import {
+	CLOUDFLARE_ACCOUNT_ID,
+	CLOUDFLARE_D1_DATABASE_ID,
+	CLOUDFLARE_API_TOKEN
+} from '$app/env/private';
+
 import { createHash, randomUUID } from 'node:crypto';
-import type { DocsDocument } from '$lib/data/docsEditor';
-import { buildDocsArtifacts, type DocsArtifacts } from '$lib/server/docsArtifacts';
+import type { DocsDocument } from '#lib/data/docsEditor.js';
+import { buildDocsArtifacts, type DocsArtifacts } from '#lib/server/docsArtifacts.js';
 
 function canonicalize(value: unknown): unknown {
 	if (Array.isArray(value)) return value.map(canonicalize);
@@ -26,8 +31,14 @@ async function runD1Query(accountId: string, databaseId: string, token: string, 
 			headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
 			body: JSON.stringify({ sql, params })
 		});
-		const result = (await response.json().catch(() => null)) as D1Result;
-		if (!response.ok || result?.success === false) return { ok: false, message: result?.errors?.[0]?.message ?? 'Cloudflare D1 publish failed' };
+
+		const result = await response.json().catch(() => null) as D1Result;
+
+		if (!response.ok || result?.success === false) return {
+			ok: false,
+			message: result?.errors?.[0]?.message ?? 'Cloudflare D1 publish failed'
+		};
+
 		return { ok: true };
 	} catch (error) {
 		return { ok: false, message: error instanceof Error ? error.message : 'Cloudflare D1 publish failed' };
@@ -44,10 +55,15 @@ export async function mirrorDocsToD1(
 	rollbackOfVersion: number | null = null,
 	redirects: DocsRedirect[] = [],
 	artifacts: DocsArtifacts = buildDocsArtifacts(document, slug, version, contentHash)
-): Promise<{ ok: boolean; message?: string; contentHash: string; releaseId: string }> {
-	const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-	const databaseId = env.CLOUDFLARE_D1_DATABASE_ID;
-	const token = env.CLOUDFLARE_API_TOKEN;
+): Promise<{ 
+	ok: boolean;
+	message?: string;
+	contentHash: string;
+	releaseId: string
+ }> {
+	const accountId = CLOUDFLARE_ACCOUNT_ID;
+	const databaseId = CLOUDFLARE_D1_DATABASE_ID;
+	const token = CLOUDFLARE_API_TOKEN;
 	const failed = (message: string) => ({ ok: false, message, contentHash, releaseId });
 	if (!accountId || !databaseId || !token) return failed('Cloudflare D1 is not configured');
 

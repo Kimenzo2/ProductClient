@@ -1,4 +1,4 @@
-import { incidents as workspaceIncidents, productBySlug, type IncidentRecord } from '$lib/data/workspace';
+import { incidents as workspaceIncidents, productBySlug, type IncidentRecord } from '#lib/data/workspace.js';
 
 export type ServiceStatus = 'Operational' | 'Degraded' | 'Outage' | 'Maintenance';
 export type UptimeBarStatus = 'operational' | 'degraded' | 'outage' | 'maintenance';

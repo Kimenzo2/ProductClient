@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import Callout from 'components-svelte/callout';
 	import { Add, ChevronDown, Trash } from 'reicon-svelte';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import type { DocsBlock } from '$lib/data/docsEditor';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import type { DocsBlock } from '#lib/data/docsEditor.js';
 	import type { Component } from 'svelte';
 
 	type LoadedComponent = Component<any>;

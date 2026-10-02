@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArrowRight, Calendar, CheckCircle, Compass, Copy, Globe, Link, Shield, Upload, User } from 'reicon-svelte';
-	import { Button, Input, Textarea } from '$lib/components/ui';
-	import { tooltip } from '$lib/components/Tooltip.svelte';
-	import { fetchMakerAnalytics, type MakerAnalytics } from '$lib/data/maker-analytics';
-	import { supabase } from '$lib/supabaseClient';
-	import { requireSession } from '$lib/auth/guard';
-	import { displaySubdomain, ensureMyTenant, renameMyTenant, slugValidationMessage, tenantRoadmapUrl, tenantStatusUrl, tenantUrl, type Tenant } from '$lib/tenant';
+	import { Button, Input, Textarea } from '#lib/components/ui/index.js';
+	import { tooltip } from '#lib/components/Tooltip.svelte';
+	import { fetchMakerAnalytics, type MakerAnalytics } from '#lib/data/maker-analytics.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { displaySubdomain, ensureMyTenant, renameMyTenant, slugValidationMessage, tenantRoadmapUrl, tenantStatusUrl, tenantUrl, type Tenant } from '#lib/tenant.js';
 
 	type Profile = {
 		id: string;

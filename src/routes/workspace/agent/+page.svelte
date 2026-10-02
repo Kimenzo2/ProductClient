@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import WorkspaceHeader from '$lib/components/workspace/WorkspaceHeader.svelte';
-	import { Button, Card, StatePanel, Toggle } from '$lib/components/ui';
-	import { requireSession } from '$lib/auth/guard';
-	import { supabase } from '$lib/supabaseClient';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import { isAgentV2 } from '$lib/agentV2';
-	import { cn } from '$lib/utils.js';
+	import WorkspaceHeader from '#lib/components/workspace/WorkspaceHeader.svelte';
+	import { Button, Card, StatePanel, Toggle } from '#lib/components/ui/index.js';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import { isAgentV2 } from '#lib/agentV2.js';
+	import { cn } from '#lib/utils.js';
 
 	type Tool = { key: string; label: string; enabled: boolean; pin: string; config: Record<string, unknown>; sort_order: number };
 	type Session = { id: string; stage: string; started_at: string; updated_at: string; title?: string | null; preview?: string | null };

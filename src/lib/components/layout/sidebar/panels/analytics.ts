@@ -1,5 +1,5 @@
 import { ChartBarTrendUp } from 'reicon-svelte';
-import { searchGaps } from '$lib/data/workspace';
+import { searchGaps } from '#lib/data/workspace.js';
 import type { PanelDef } from '../types';
 
 export const analyticsPanel: PanelDef = {

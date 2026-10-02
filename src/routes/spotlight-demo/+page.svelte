@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ProductFanCarousel from '$lib/components/product/ProductFanCarousel.svelte';
-	import { products } from '$lib/data/workspace';
-	import { mockStates } from '$lib/data/mockStates';
+	import ProductFanCarousel from '#lib/components/product/ProductFanCarousel.svelte';
+	import { products } from '#lib/data/workspace.js';
+	import { mockStates } from '#lib/data/mockStates.js';
 
 	// Map workspace products to fan items — use product avatar as cover, fall back to mockState thumbnail/screenshots
 	const items = products.slice(0, 6).map((p) => {

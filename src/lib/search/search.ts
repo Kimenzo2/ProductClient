@@ -1,3 +1,3 @@
-import type { SearchKind } from '$lib/search/types';
+import type { SearchKind } from '#lib/search/types.js';
 
 export const workspaceSearchKinds: Array<'All' | SearchKind> = ['All', 'Product', 'Problem', 'Decision', 'Release', 'Doc', 'Feedback', 'Incident', 'Roadmap', 'Proof', 'Maker'];

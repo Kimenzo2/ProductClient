@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowRight, Briefcase, CheckCircle, Users } from 'reicon-svelte';
-	import { Button } from '$lib/components/ui';
-	import OnboardingFrame from '$lib/components/auth/OnboardingFrame.svelte';
-	import { requireSession } from '$lib/auth/guard';
-	import { clearOnboardingDraft, readOnboardingDraft } from '$lib/auth/onboarding';
-	import { readableAuthError } from '$lib/auth/utils';
-	import { appHref, completeAppHandoff, openBlankTab } from '$lib/auth/urls';
-	import { supabase } from '$lib/supabaseClient';
-	import { ensureMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '$lib/tenant';
+	import { Button } from '#lib/components/ui/index.js';
+	import OnboardingFrame from '#lib/components/auth/OnboardingFrame.svelte';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { clearOnboardingDraft, readOnboardingDraft } from '#lib/auth/onboarding.js';
+	import { readableAuthError } from '#lib/auth/utils.js';
+	import { appHref, completeAppHandoff, openBlankTab } from '#lib/auth/urls.js';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { ensureMyTenant, syncTenantRegistry, tenantHost, tenantUrl, type Tenant } from '#lib/tenant.js';
 
 	let name = $state('');
 	let workspaceName = $state('');

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { AlertTriangle, ArrowRight, BookOpen, Box, Compass, FileText, Globe, History, Inbox, MessageDots } from 'reicon-svelte';
-	import WorkspaceLauncher from '$lib/components/workspace/WorkspaceLauncher.svelte';
-	import HomeWorkItem from '$lib/components/workspace/HomeWorkItem.svelte';
-	import { supabase } from '$lib/supabaseClient';
-	import { requireSession } from '$lib/auth/guard';
-	import { ensureMyTenant, tenantUrl, type Tenant } from '$lib/tenant';
-	import { activeProductStore, hydrateActiveProduct } from '$lib/stores/activeProduct.svelte';
-	import { loadLatestFeedback, timeAgo, type FeedbackItemView } from '$lib/data/feedbackInbox';
-	import { feedback, incidents, problems, releases } from '$lib/data/workspace';
+	import WorkspaceLauncher from '#lib/components/workspace/WorkspaceLauncher.svelte';
+	import HomeWorkItem from '#lib/components/workspace/HomeWorkItem.svelte';
+	import { supabase } from '#lib/supabaseClient.js';
+	import { requireSession } from '#lib/auth/guard.js';
+	import { ensureMyTenant, tenantUrl, type Tenant } from '#lib/tenant.js';
+	import { activeProductStore, hydrateActiveProduct } from '#lib/stores/activeProduct.svelte.js';
+	import { loadLatestFeedback, timeAgo, type FeedbackItemView } from '#lib/data/feedbackInbox.js';
+	import { feedback, incidents, problems, releases } from '#lib/data/workspace.js';
 
 	type HomeMode = 'build' | 'coordinate';
 	type StarterAction = { label: string; detail: string; href: string; icon: typeof Box };
